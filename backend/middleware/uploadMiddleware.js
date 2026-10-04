@@ -27,6 +27,28 @@ const allowedImageMimes = [
 
 const allowedPdfMimes = ['application/pdf'];
 
+// Extension -> MIME types it may carry. Uploaded files are served publicly
+// (the extension controls the delivered Content-Type), so a file's
+// extension must match its declared MIME type.
+const EXT_TO_MIMES = {
+  '.jpg': ['image/jpeg'],
+  '.jpeg': ['image/jpeg'],
+  '.png': ['image/png'],
+  '.gif': ['image/gif'],
+  '.webp': ['image/webp'],
+  '.heic': ['image/heic'],
+  '.heif': ['image/heif'],
+  '.pdf': ['application/pdf'],
+};
+
+const isAllowedFile = (file, allowedMimes) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  return (
+    allowedMimes.includes(file.mimetype) &&
+    (EXT_TO_MIMES[ext] || []).includes(file.mimetype)
+  );
+};
+
 // Storage configuration - local filesystem or memory (for cloud uploads)
 const useCloud = process.env.STORAGE === 'supabase';
 
@@ -61,11 +83,11 @@ const storage = useCloud
       }
     });
 
-// File filter to validate MIME types based on file fieldname
+// File filter to validate MIME type AND extension consistency
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [...allowedImageMimes, ...allowedPdfMimes];
-  
-  if (allowedMimes.includes(file.mimetype)) {
+
+  if (isAllowedFile(file, allowedMimes)) {
     cb(null, true);
   } else {
     req.error = 'File type not allowed';
@@ -89,7 +111,7 @@ export const multipleUpload = multer(uploadConfig).array('files', 10);
 export const profileUpload = multer({
   ...uploadConfig,
   fileFilter: (req, file, cb) => {
-    if (allowedImageMimes.includes(file.mimetype)) {
+    if (isAllowedFile(file, allowedImageMimes)) {
       cb(null, true);
     } else {
       req.error = 'Profile image must be an image file';
@@ -102,9 +124,7 @@ export const profileUpload = multer({
 export const settingsUpload = multer({
   ...uploadConfig,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || 
-        file.mimetype === 'image/png' || 
-        file.mimetype === 'image/webp') {
+    if (isAllowedFile(file, ['image/jpeg', 'image/png', 'image/webp'])) {
       cb(null, true);
     } else {
       req.error = 'Invalid file type';
@@ -117,7 +137,7 @@ export const settingsUpload = multer({
 export const categoryUpload = multer({
   ...uploadConfig,
   fileFilter: (req, file, cb) => {
-    if (allowedImageMimes.includes(file.mimetype)) {
+    if (isAllowedFile(file, allowedImageMimes)) {
       cb(null, true);
     } else {
       req.error = 'Category image must be an image file';
@@ -130,11 +150,11 @@ export const categoryUpload = multer({
 export const productUpload = multer({
   ...uploadConfig,
   fileFilter: (req, file, cb) => {
-    if (allowedImageMimes.includes(file.mimetype)) {
+    if (isAllowedFile(file, allowedImageMimes)) {
       cb(null, true);
     } else {
       req.error = 'Product image must be an image file';
-      cb(new Error('Product image must be JPG, PNG, GIF, or WebP'));
+      cb(new Error('Product image must be an image file'));
     }
   }
 }).array('images', 10);
