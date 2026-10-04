@@ -1,0 +1,468 @@
+import asyncHandler from "express-async-handler";
+import Seller from "../models/Seller.js";
+import Product from "../models/Product.js";
+import Order from "../models/Order.js";
+import User from "../models/User.js";
+import Message from "../models/Message.js";
+import Feedback from "../models/Feedback.js";
+
+// @desc    Apply to become a seller
+// @route   POST /api/sellers/register
+export const registerSeller = asyncHandler(async (req, res) => {
+  const existing = await Seller.findOne({ user: req.user._id });
+  if (existing) {
+    res.status(400);
+    throw new Error("You already have a seller account");
+  }
+
+  const { shopName, businessType, ownerName, ownerPhone, ...rest } = req.body;
+  if (!shopName || !ownerName || !ownerPhone) {
+    res.status(400);
+    throw new Error("Shop name, owner name, and phone are required");
+  }
+
+  const seller = await Seller.create({
+    user: req.user._id,
+    shopName,
+    businessType: businessType || "individual",
+    ownerName,
+    ownerPhone,
+    ...rest,
+  });
+
+  await User.findByIdAndUpdate(req.user._id, { role: "seller" });
+
+  res.status(201).json({ success: true, seller });
+});
+
+// @desc    Get seller's own profile
+// @route   GET /api/sellers/me
+export const getMySellerProfile = asyncHandler(async (req, res) => {
+  const seller = await Seller.findOne({ user: req.user._id });
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller profile not found");
+  }
+  res.json({ success: true, seller });
+});
+
+// @desc    Update seller profile
+// @route   PUT /api/sellers/me
+export const updateSellerProfile = asyncHandler(async (req, res) => {
+  const seller = await Seller.findOne({ user: req.user._id });
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller profile not found");
+  }
+
+  const allowed = [
+    "shopName", "shopDescription", "shopLogo", "shopBanner",
+    "businessType", "registrationNumber", "ownerName", "ownerPhone",
+    "ownerNic", "ownerAddress", "warehouseAddress", "returnAddress",
+    "bankName", "bankAccountTitle", "bankAccountNo", "bankBranch", "bankChequeImage",
+  ];
+
+  allowed.forEach((field) => {
+    if (req.body[field] !== undefined) seller[field] = req.body[field];
+  });
+
+  const updated = await seller.save();
+  res.json({ success: true, seller: updated });
+});
+
+// @desc    Get seller dashboard stats
+// @route   GET /api/sellers/dashboard
+export const getSellerDashboard = asyncHandler(async (req, res) => {
+  const seller = await Seller.findOne({ user: req.user._id });
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller profile not found");
+  }
+
+  const myProducts = await Product.find({ seller: req.user._id });
+  const productIds = myProducts.map((p) => p._id);
+  const totalProducts = myProducts.length;
+  const activeProducts = myProducts.filter((p) => p.status === "active").length;
+  const pendingApproval = myProducts.filter((p) => !p.approvedByAdmin).length;
+
+  const myOrders = await Order.find({ "items.product": { $in: productIds } }).sort({ createdAt: -1 }).limit(20);
+  const totalOrders = await Order.countDocuments({ "items.product": { $in: productIds } });
+  const pendingOrders = myOrders.filter((o) => o.orderStatus === "pending" || o.orderStatus === "processing").length;
+
+  let totalRevenue = 0;
+  myOrders.forEach((o) => {
+    if (o.paymentStatus === "paid") {
+      o.items.forEach((item) => {
+        if (productIds.some((pid) => pid.toString() === (item.product?.toString() || ""))) {
+          totalRevenue += (item.price || 0) * (item.quantity || 0);
+        }
+      });
+    }
+  });
+
+  res.json({
+    success: true,
+    stats: {
+      totalProducts,
+      activeProducts,
+      pendingApproval,
+      totalOrders,
+      pendingOrders,
+      totalRevenue,
+      availableBalance: seller.availableBalance,
+      totalEarnings: seller.totalEarnings,
+      rating: seller.rating,
+      shipOnTime: seller.shipOnTime,
+      chatResponseRate: seller.chatResponseRate,
+    },
+    recentOrders: myOrders.slice(0, 5),
+  });
+});
+
+// @desc    Get seller's products
+// @route   GET /api/sellers/products
+export const getSellerProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({ seller: req.user._id }).populate("variants").sort({ createdAt: -1 });
+  const formatted = products.map((p) => ({
+    ...p.toObject(),
+    productName: p.name,
+    productId: p._id.toString(),
+  }));
+  res.json({ success: true, products: formatted });
+});
+
+// @desc    Get seller's orders
+// @route   GET /api/sellers/orders
+export const getSellerOrders = asyncHandler(async (req, res) => {
+  const myProducts = await Product.find({ seller: req.user._id }).select("_id");
+  const productIds = myProducts.map((p) => p._id);
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+  const status = req.query.status;
+
+  const filter = { "items.product": { $in: productIds } };
+  if (status && status !== "all") filter.orderStatus = status;
+
+  const [orders, totalCount] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).populate("user", "name email phone profileImage"),
+    Order.countDocuments(filter),
+  ]);
+
+  // Filter to only show seller's items in each order
+  const filtered = orders.map((order) => {
+    const orderObj = order.toObject();
+    orderObj.items = orderObj.items.filter((item) =>
+      productIds.some((pid) => pid.toString() === (item.product?.toString() || ""))
+    );
+    return orderObj;
+  });
+
+  res.json({ success: true, orders: filtered, page, totalPages: Math.ceil(totalCount / limit) || 1, totalCount });
+});
+
+// @desc    Get seller earnings
+// @route   GET /api/sellers/earnings
+export const getSellerEarnings = asyncHandler(async (req, res) => {
+  const seller = await Seller.findOne({ user: req.user._id });
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller profile not found");
+  }
+
+  const myProducts = await Product.find({ seller: req.user._id }).select("_id");
+  const productIds = myProducts.map((p) => p._id);
+
+  const period = req.query.period || "month";
+  const now = new Date();
+  let startDate;
+  if (period === "week") startDate = new Date(now.setDate(now.getDate() - 7));
+  else if (period === "month") startDate = new Date(now.setMonth(now.getMonth() - 1));
+  else if (period === "year") startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+  else startDate = new Date(now.setMonth(now.getMonth() - 1));
+
+  const paidOrders = await Order.find({
+    "items.product": { $in: productIds },
+    paymentStatus: "paid",
+    createdAt: { $gte: startDate },
+  }).sort({ createdAt: 1 });
+
+  let totalRevenue = 0;
+  const earningsByDay = {};
+  paidOrders.forEach((order) => {
+    const day = order.createdAt.toISOString().split("T")[0];
+    if (!earningsByDay[day]) earningsByDay[day] = 0;
+    order.items.forEach((item) => {
+      if (productIds.some((pid) => pid.toString() === (item.product?.toString() || ""))) {
+        const itemTotal = (item.price || 0) * (item.quantity || 0);
+        totalRevenue += itemTotal;
+        earningsByDay[day] += itemTotal;
+      }
+    });
+  });
+
+  const commissionDeduction = totalRevenue * (seller.commissionRate / 100);
+
+  res.json({
+    success: true,
+    earnings: {
+      totalRevenue,
+      commissionRate: seller.commissionRate,
+      commissionDeduction,
+      netEarnings: totalRevenue - commissionDeduction,
+      availableBalance: seller.availableBalance,
+      totalEarnings: seller.totalEarnings,
+      dailyBreakdown: Object.entries(earningsByDay).map(([date, amount]) => ({ date, amount })),
+    },
+  });
+});
+
+// @desc    Get seller messages
+// @route   GET /api/sellers/messages
+export const getSellerMessages = asyncHandler(async (req, res) => {
+  const messages = await Message.find({ seller: req.user._id })
+    .populate("sender", "name profileImage")
+    .sort({ createdAt: -1 })
+    .limit(50);
+  res.json({ success: true, messages });
+});
+
+// @desc    Send message as seller
+// @route   POST /api/sellers/messages
+export const sendSellerMessage = asyncHandler(async (req, res) => {
+  const { receiverId, text, orderId } = req.body;
+  if (!text) {
+    res.status(400);
+    throw new Error("Message text is required");
+  }
+
+  const message = await Message.create({
+    sender: req.user._id,
+    receiver: receiverId,
+    text,
+    order: orderId || undefined,
+    seller: req.user._id,
+  });
+
+  res.status(201).json({ success: true, message });
+});
+
+// ---- Admin endpoints ----
+
+// @desc    Get all sellers (admin)
+// @route   GET /api/sellers/admin/all
+export const adminGetAllSellers = asyncHandler(async (req, res) => {
+  const { status, page = 1, limit = 20 } = req.query;
+  const filter = {};
+  if (status) filter.status = status;
+
+  const [sellers, total] = await Promise.all([
+    Seller.find(filter).populate("user", "name email profileImage").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit)),
+    Seller.countDocuments(filter),
+  ]);
+
+  res.json({ success: true, sellers, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
+});
+
+// @desc    Approve seller (admin)
+// @route   PUT /api/sellers/admin/:id/approve
+export const adminApproveSeller = asyncHandler(async (req, res) => {
+  const seller = await Seller.findById(req.params.id);
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  seller.status = "approved";
+  seller.approvedAt = new Date();
+  seller.approvedBy = req.user._id;
+  seller.onboardingCompleted = true;
+  await seller.save();
+
+  await User.findByIdAndUpdate(seller.user, { role: "seller" });
+
+  res.json({ success: true, seller });
+});
+
+// @desc    Reject seller (admin)
+// @route   PUT /api/sellers/admin/:id/reject
+export const adminRejectSeller = asyncHandler(async (req, res) => {
+  const seller = await Seller.findById(req.params.id);
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  seller.status = "rejected";
+  seller.rejectionReason = req.body.reason || "";
+  await seller.save();
+
+  res.json({ success: true, seller });
+});
+
+// @desc    Suspend seller (admin)
+// @route   PUT /api/sellers/admin/:id/suspend
+export const adminSuspendSeller = asyncHandler(async (req, res) => {
+  const seller = await Seller.findById(req.params.id);
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  seller.status = "suspended";
+  await seller.save();
+
+  await User.findByIdAndUpdate(seller.user, { role: "customer" });
+
+  res.json({ success: true, seller });
+});
+
+// @desc    Update seller commission (admin)
+// @route   PUT /api/sellers/admin/:id/commission
+export const adminSetCommission = asyncHandler(async (req, res) => {
+  const seller = await Seller.findById(req.params.id);
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  seller.commissionRate = req.body.commissionRate || 0;
+  await seller.save();
+
+  res.json({ success: true, seller });
+});
+
+// @desc    Get seller platform stats (admin)
+// @route   GET /api/sellers/admin/stats
+export const adminGetSellerStats = asyncHandler(async (req, res) => {
+  const [totalSellers, pendingSellers, approvedSellers, suspendedSellers] = await Promise.all([
+    Seller.countDocuments(),
+    Seller.countDocuments({ status: "pending" }),
+    Seller.countDocuments({ status: "approved" }),
+    Seller.countDocuments({ status: "suspended" }),
+  ]);
+
+  const sellersWithProducts = await Product.distinct("seller");
+  const totalSellerProducts = await Product.countDocuments({ seller: { $ne: null } });
+  const pendingApprovalProducts = await Product.countDocuments({ approvedByAdmin: false, seller: { $ne: null } });
+
+  res.json({
+    success: true,
+    stats: {
+      totalSellers,
+      pendingSellers,
+      approvedSellers,
+      suspendedSellers,
+      sellersWithProducts: sellersWithProducts.length,
+      totalSellerProducts,
+      pendingApprovalProducts,
+    },
+  });
+});
+
+// @desc    Get individual seller detail for admin
+// @route   GET /api/sellers/admin/:id/detail
+export const adminGetSellerDetail = asyncHandler(async (req, res) => {
+  const seller = await Seller.findById(req.params.id).populate("user", "name email profileImage role");
+  if (!seller) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  const sellerProducts = await Product.find({ seller: seller.user._id })
+    .sort({ createdAt: -1 })
+    .select("name price stock status approvedByAdmin images createdAt");
+
+  const productIds = sellerProducts.map((p) => p._id);
+
+  // Feedback stats for seller's products
+  const feedbackStats = await Feedback.aggregate([
+    { $match: { product: { $in: productIds } } },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+
+  // Order stats for seller's products
+  const sellerOrders = await Order.find({ "items.product": { $in: productIds } }).sort({ createdAt: -1 }).limit(50).select("orderStatus totalPrice createdAt items");
+
+  const totalOrders = sellerOrders.length;
+  const deliveredOrders = sellerOrders.filter((o) => o.orderStatus === "delivered").length;
+  const pendingOrders = sellerOrders.filter((o) => o.orderStatus === "pending" || o.orderStatus === "processing").length;
+
+  res.json({
+    success: true,
+    seller: {
+      _id: seller._id,
+      shopName: seller.shopName,
+      shopLogo: seller.shopLogo,
+      shopBanner: seller.shopBanner,
+      shopDescription: seller.shopDescription,
+      status: seller.status,
+      rejectionReason: seller.rejectionReason,
+      commissionRate: seller.commissionRate,
+      businessType: seller.businessType,
+      ownerName: seller.ownerName,
+      ownerPhone: seller.ownerPhone,
+      createdAt: seller.createdAt,
+      approvedAt: seller.approvedAt,
+      user: seller.user,
+    },
+    products: sellerProducts,
+    feedbackStats,
+    orderStats: { totalOrders, deliveredOrders, pendingOrders },
+    recentOrders: sellerOrders.slice(0, 10),
+  });
+});
+
+// @desc    Get public store page by shop name
+// @route   GET /api/sellers/store/:shopName
+export const getPublicStore = asyncHandler(async (req, res) => {
+  const seller = await Seller.findOne({
+    shopName: { $regex: new RegExp(`^${req.params.shopName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+  })
+    .populate("user", "name")
+    .select("shopName shopLogo shopBanner shopDescription rating numRatings shipOnTime chatResponseRate createdAt user status");
+
+  if (!seller || seller.status !== "approved") {
+    res.status(404);
+    throw new Error("Store not found");
+  }
+
+  const { page = 1, limit = 12 } = req.query;
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+
+  const [products, totalProducts] = await Promise.all([
+    Product.find({ seller: seller.user._id, approvedByAdmin: true, status: { $in: ["active", "ready"] } })
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .select("name price sellingPrice images stock createdAt"),
+    Product.countDocuments({ seller: seller.user._id, approvedByAdmin: true, status: { $in: ["active", "ready"] } }),
+  ]);
+
+  const formattedProducts = products.map((p) => ({
+    ...p.toObject(),
+    productName: p.name,
+    productId: p._id.toString(),
+  }));
+
+  res.json({
+    success: true,
+    store: {
+      shopName: seller.shopName,
+      shopLogo: seller.shopLogo,
+      shopBanner: seller.shopBanner,
+      shopDescription: seller.shopDescription,
+      rating: seller.rating,
+      numRatings: seller.numRatings,
+      shipOnTime: seller.shipOnTime,
+      chatResponseRate: seller.chatResponseRate,
+      memberSince: seller.createdAt,
+      owner: seller.user?.name || "",
+    },
+    products: formattedProducts,
+    totalProducts,
+    page: pageNum,
+    totalPages: Math.ceil(totalProducts / limitNum),
+  });
+});

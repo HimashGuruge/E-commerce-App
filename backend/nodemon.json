@@ -1,0 +1,10 @@
+{
+  "watch": ["*.js", "**/*.js"],
+  "ext": "js,mjs,json",
+  "execMap": {
+    "js": "node --experimental-vm-modules",
+    "mjs": "node --experimental-vm-modules"
+  },
+  "ignore": ["node_modules/**", "*.test.js"],
+  "delay": "1000"
+}
