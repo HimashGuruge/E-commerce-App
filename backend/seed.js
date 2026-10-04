@@ -12,19 +12,27 @@ const seedDatabase = async () => {
     console.log("Connected to database...");
 
     const adminUserId = new mongoose.Types.ObjectId("69f48421dbf4d5ee2e09e613");
-    const existingAdmin = await User.findById(adminUserId);
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
-    if (!existingAdmin) {
-      await User.create({
-        _id: adminUserId,
-        name: "Admin User",
-        email: "admin@example.com",
-        password: "Admin123!",
-        role: "admin",
-      });
-      console.log("Created admin user: admin@example.com / Admin123!");
+    if (!adminPassword) {
+      console.warn(
+        "ADMIN_PASSWORD not set in backend/.env — skipping admin user creation."
+      );
     } else {
-      console.log("Admin user already exists");
+      const existingAdmin = await User.findById(adminUserId);
+      if (!existingAdmin) {
+        await User.create({
+          _id: adminUserId,
+          name: "Admin User",
+          email: adminEmail,
+          password: adminPassword,
+          role: "admin",
+        });
+        console.log(`Created admin user: ${adminEmail} (password from ADMIN_PASSWORD)`);
+      } else {
+        console.log("Admin user already exists");
+      }
     }
 
     const trendingTerms = [

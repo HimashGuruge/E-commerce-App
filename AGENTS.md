@@ -32,7 +32,7 @@ All commands run **inside** their folder. Node **20** required; plain JavaScript
 npm install
 npm start          # nodemon server.js
 npm run dev        # node --watch server.js
-node seed.js       # seed admin user (admin@example.com / Admin123!) + data
+node seed.js       # seeds trending terms; creates admin only if ADMIN_EMAIL/ADMIN_PASSWORD are set in backend/.env
 node add-products.js        # demo categories/products
 node seed-daraz-products.js # bulk product import
 
@@ -46,7 +46,7 @@ npm run test       # vitest run
 
 Deployment: `backend/Dockerfile` (node:20-alpine, EXPOSE 4000); frontend deploys to Vercel via `vercel.json` (SPA rewrite).
 
-**Env vars** (not committed): backend `.env`: `MONGO_URI`, `PORT` (4000), `JWT_SECRET`, `FRONTEND_URL`, `GOOGLE_CLIENT_ID/SECRET`, `EMAIL_*`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STORAGE` (= `supabase` to switch uploads to cloud), `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `LOG_LEVEL`. Frontend `.env`: `VITE_BACKEND_URL` (default `http://localhost:4000`), `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`.
+**Env vars** (see `.env.example` in each folder): backend `.env`: `MONGO_URI`, `PORT` (4000), `JWT_SECRET`, `FRONTEND_URL`, `GOOGLE_CLIENT_ID/SECRET`, `EMAIL_*`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STORAGE` (= `supabase` to switch uploads to cloud), `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `LOG_LEVEL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Frontend `.env`: `VITE_BACKEND_URL` (default `http://localhost:4000`), `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`.
 
 ## Code Conventions & Common Patterns
 - **Backend responses**: unified envelope `{ success: true, ...payload }` / `{ success: false, error }` produced by controllers and the final 4-arg error handler in `server.js`.
