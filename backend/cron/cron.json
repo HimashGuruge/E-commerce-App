@@ -1,0 +1,16 @@
+{
+  "jobs": [
+    {
+      "name": "delivery-cron",
+      "script": "delivery-cron.mjs",
+      "schedule": "daily at 3:00 AM",
+      "description": "Auto-deliver orders in 'shipped' status older than 3 days"
+    },
+    {
+      "name": "keep-alive",
+      "script": "keep-alive.mjs",
+      "schedule": "every 12 hours",
+      "description": "Ping Supabase to prevent project from being paused"
+    }
+  ]
+}
