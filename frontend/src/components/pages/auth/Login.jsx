@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
@@ -7,6 +7,7 @@ import api from "@/utils/api";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const submittingRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
@@ -34,6 +35,8 @@ export default function Login() {
 
   const handleManualLogin = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     try {
       const res = await api.post(`/api/users/login`, formData);
@@ -43,6 +46,7 @@ export default function Login() {
     } catch (error) {
       toast.error(error.response?.data?.error || "Invalid Credentials");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

@@ -19,9 +19,7 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     },
   },
-  plugins: [react(), tailwindcss({
-    darkMode: 'class',
-  })],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

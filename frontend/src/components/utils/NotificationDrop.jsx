@@ -6,6 +6,7 @@ import React, {
   useMemo,
 } from "react";
 import api, { BASE_URL } from "@/utils/api";
+import { onSocketEvent } from "@/utils/socket";
 import {
   MessageSquare,
   X,
@@ -1023,6 +1024,21 @@ export default function NotificationDrop() {
       }
     };
   }, [fetchUnreadCount, startGlobalPolling, stopGlobalPolling, stopChatPolling]);
+
+  // Real-time: react instantly to users waiting for a reply
+  useEffect(() => {
+    return onSocketEvent("chat:unseen-user", ({ userId, userName }) => {
+      fetchUnreadCount();
+      if (isOpen) fetchAllConversations(false);
+      if (selectedChat?.userId === userId) {
+        api.get(`/api/notifications/admin/chat/${userId}`)
+          .then((res) => setChatHistory(res.data))
+          .catch(() => {});
+      } else if (userName) {
+        console.log("[Chat] New message from", userName);
+      }
+    });
+  }, [fetchUnreadCount, fetchAllConversations, isOpen, selectedChat]);
 
   useEffect(() => {
     if (isOpen) {

@@ -219,13 +219,24 @@ const run = async () => {
         const parent = await Product.create({ ...parentData, isVariantParent: true, variantAttributes });
         console.log(`Created parent product: "${parent.name}" (${parent._id})`);
 
+        const buildVariantSku = (attributes) => {
+          const entries = Object.entries(attributes || {}).sort(([a], [b]) => a.localeCompare(b));
+          if (entries.length === 0) return "";
+          return entries.map(([key, value]) => `${key}_` + String(value)).join("-");
+        };
         const template = variantTemplates[prod.name] || [];
-        const variantDocs = template.map((v, idx) => ({
-          ...v,
-          parentProduct: parent._id,
-          sku: v.sku || `SKU-${String(parent._id).slice(-4)}-${idx + 1}`,
-          sellingPrice: v.sellingPrice || v.price,
-        }));
+        const variantDocs = template.map((v) => {
+          const { attributes = {}, skuSuffix, ...rest } = v;
+          const vsku = buildVariantSku(attributes);
+          return {
+            ...rest,
+            attributes,
+            parentProduct: parent._id,
+            variantSku: vsku,
+            sku: vsku ? `SKU-${vsku}-${parent._id}` : `SKU-${parent._id}`,
+            sellingPrice: v.sellingPrice || v.price,
+          };
+        });
         const created = await Variant.insertMany(variantDocs);
         await Product.findByIdAndUpdate(parent._id, {
           $push: { variants: { $each: created.map(v => v._id) } },

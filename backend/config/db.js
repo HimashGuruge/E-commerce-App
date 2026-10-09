@@ -1,4 +1,16 @@
 import mongoose from "mongoose";
+import logger from "../utils/logger.js";
+
+// Log connection state changes so outages are visible instead of silent.
+mongoose.connection.on("disconnected", () => {
+  logger.warn("MongoDB disconnected — requests will fail until it reconnects");
+});
+mongoose.connection.on("reconnected", () => {
+  logger.info("MongoDB reconnected");
+});
+mongoose.connection.on("error", (err) => {
+  logger.error("Mongoose connection error:", err.message);
+});
 
 const connectDB = async () => {
   try {
@@ -6,9 +18,9 @@ const connectDB = async () => {
       compressors: ['zlib'],
       zlibCompressionLevel: 3,
     });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    logger.info(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    logger.error(`MongoDB initial connection failed: ${error.message}`);
     process.exit(1);
   }
 };

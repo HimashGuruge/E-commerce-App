@@ -17,6 +17,13 @@ export const appConfig = {
   jwtSecret: process.env.JWT_SECRET,
 };
 
+export const rateLimitConfig = {
+  apiMax: parseInt(process.env.RATE_LIMIT_API_MAX, 10) || 2000,
+  apiWindowMin: parseInt(process.env.RATE_LIMIT_API_WINDOW_MIN, 10) || 15,
+  loginMax: parseInt(process.env.RATE_LIMIT_LOGIN_MAX, 10) || 20,
+  loginWindowMin: parseInt(process.env.RATE_LIMIT_LOGIN_WINDOW_MIN, 10) || 15,
+};
+
 export const emailConfig = {
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT, 10),

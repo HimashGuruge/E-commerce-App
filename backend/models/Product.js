@@ -28,5 +28,9 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ seller: 1 });
 productSchema.index({ approvedByAdmin: 1 });
+productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ name: "text", description: "text" });
+// Search stays prefix-anchored (faster than substring); keep index warm
+productSchema.index({ name: 1 });
 
 export default mongoose.model("Product", productSchema);

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import NotificationWidget from "@/components/utils/NotificationWidget.jsx";
 import { getCartWithTotals } from "@/components/utils/Cart.jsx";
+import { getPublicSettings } from "@/utils/siteSettings";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
@@ -112,9 +113,9 @@ export default function Navbar() {
   useEffect(() => {
     updateCartCount();
 
-    // Fetch site settings
-    api.get("/api/settings/public").then((res) => {
-      if (res.data?.success) setSettings(res.data.settings);
+    // Site settings come from the shared cache (one network fetch per session)
+    getPublicSettings().then((s) => {
+      if (s) setSettings(s);
     }).catch(() => {});
 
     // Listen for cart updates
@@ -295,14 +296,13 @@ export default function Navbar() {
     };
   }, [fetchUserData]);
 
+  // settingsUpdated events already carry the fresh settings in detail — no refetch needed
   useEffect(() => {
-    const refreshSettings = () => {
-      api.get("/api/settings/public").then((res) => {
-        if (res.data?.success) setSettings(res.data.settings);
-      }).catch(() => {});
+    const applySettings = (e) => {
+      if (e.detail) setSettings(e.detail);
     };
-    window.addEventListener("settingsUpdated", refreshSettings);
-    return () => window.removeEventListener("settingsUpdated", refreshSettings);
+    window.addEventListener("settingsUpdated", applySettings);
+    return () => window.removeEventListener("settingsUpdated", applySettings);
   }, []);
 
   const userId = user?._id || user?.id || "";

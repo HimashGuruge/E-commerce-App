@@ -70,16 +70,14 @@ export default function EditProduct() {
 
   const brands = ["Unbranded", "Nike", "Samsung", "Apple", "Sony", "Adidas", "Dell", "LG", "Other"];
 
-  const parseAttributeHash = (hash) => {
-    if (!hash || typeof hash !== "string") return {};
+  const parseVariantSku = (vsku) => {
+    if (!vsku || typeof vsku !== "string") return {};
     const attrs = {};
-    const clean = hash.replace(/,/g, "-");
-    const pairs = clean.split("-");
-    pairs.forEach((pair) => {
-      const idx = pair.indexOf(":");
-      if (idx > 0) {
-        const key = pair.slice(0, idx).trim().toLowerCase();
-        const value = pair.slice(idx + 1).trim();
+    vsku.split("-").forEach((pair) => {
+      const eqIdx = pair.indexOf("_");
+      if (eqIdx > 0) {
+        const key = pair.slice(0, eqIdx);
+        const value = pair.slice(eqIdx + 1);
         if (key && value) attrs[key] = value;
       }
     });
@@ -96,8 +94,7 @@ export default function EditProduct() {
         if (typeof firstVal === "string") return attrs;
       }
     }
-    if (variant.attributeHash) return parseAttributeHash(variant.attributeHash);
-    if (variant.skuSuffix) return parseAttributeHash(variant.skuSuffix);
+    if (variant.variantSku) return parseVariantSku(variant.variantSku);
     return {};
   };
 
@@ -831,7 +828,6 @@ export default function EditProduct() {
                       const variantsPayload = generatedVariants.map((variant) => {
                         const variantKey = Object.values(variant).join("-");
                         return {
-                          skuSuffix: variantKey,
                           attributes: variant,
                           price: newVariantPrices[variantKey] || basePrice,
                           sellingPrice: newVariantPrices[variantKey] || basePrice,

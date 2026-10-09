@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import api from "@/utils/api";
+import { getPublicSettings } from "@/utils/siteSettings";
 import { useParams, useNavigate } from "react-router-dom";
 import { addToCart } from "@/components/utils/Cart.jsx";
 import { getWishlistLocal, addToWishlistLocal, removeFromWishlistLocal, isInWishlistLocal } from "@/components/utils/Wishlist.jsx";
@@ -246,16 +247,14 @@ export default function ProductOverview() {
     }
   };
 
-  const parseAttributeHash = (hash) => {
-    if (!hash || typeof hash !== 'string') return {};
+  const parseVariantSku = (vsku) => {
+    if (!vsku || typeof vsku !== 'string') return {};
     const attrs = {};
-    const clean = hash.replace(/,/g, '-');
-    const pairs = clean.split('-');
-    pairs.forEach(pair => {
-      const idx = pair.indexOf(':');
-      if (idx > 0) {
-        const key = pair.slice(0, idx).trim().toLowerCase();
-        const value = pair.slice(idx + 1).trim();
+    vsku.split('-').forEach(pair => {
+      const eqIdx = pair.indexOf('_');
+      if (eqIdx > 0) {
+        const key = pair.slice(0, eqIdx);
+        const value = pair.slice(eqIdx + 1);
         if (key && value) {
           attrs[key] = value;
         }
@@ -278,12 +277,7 @@ export default function ProductOverview() {
         }
       }
     }
-    if (variant.attributeHash) {
-      return parseAttributeHash(variant.attributeHash);
-    }
-    if (variant.skuSuffix) {
-      return parseAttributeHash(variant.skuSuffix);
-    }
+    if (variant.variantSku) return parseVariantSku(variant.variantSku);
     return {};
   };
 
@@ -628,9 +622,8 @@ export default function ProductOverview() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await api.get("/api/settings/public");
-        if (res.data?.success && res.data?.settings) {
-          const s = res.data.settings;
+        const s = await getPublicSettings();
+        if (s) {
           if (s.shipping) {
             setShippingSettings({
               courierName: s.shipping.courierName || "Domex",

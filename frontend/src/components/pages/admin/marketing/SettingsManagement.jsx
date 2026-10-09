@@ -6,6 +6,7 @@ import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-i
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
 import { injectTheme, injectFont, injectNavbar } from "@/utils/color";
+import { invalidatePublicSettings } from "@/utils/siteSettings";
 
 const SOCIAL_ICONS = {
   facebook: FaFacebook,
@@ -359,7 +360,8 @@ export default function SettingsManagement() {
         const color = form.chatWidgetColor || form.primaryColor || "#F85606";
         document.cookie = `opencodeChatColor=${encodeURIComponent(color)}; max-age=31536000; path=/`;
         Swal.fire("Saved!", "Settings updated successfully.", "success");
-        window.dispatchEvent(new CustomEvent("settingsUpdated"));
+        invalidatePublicSettings();
+        window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: res.data.settings }));
       }
     } catch (err) {
       console.error("Failed to save settings:", err);
@@ -384,7 +386,8 @@ export default function SettingsManagement() {
           document.cookie = `opencodeChatColor=${encodeURIComponent(color)}; max-age=31536000; path=/`;
         }
         Swal.fire({ icon: "success", title: "Saved!", text: `${section} updated successfully.`, timer: 1500, showConfirmButton: false });
-        window.dispatchEvent(new CustomEvent("settingsUpdated"));
+        invalidatePublicSettings();
+        window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: res.data.settings }));
       }
     } catch (err) {
       Swal.fire("Error", err.response?.data?.message || `Failed to save ${section.toLowerCase()}`, "error");

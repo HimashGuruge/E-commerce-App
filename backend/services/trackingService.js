@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import Order from "../models/Order.js";
 import Message from "../models/Message.js";
+import { emitToUser } from "./socketService.js";
 
 const DOMEX_TRACK_URL = "https://www.domex.lk/track?tracking=";
 
@@ -35,7 +36,7 @@ async function processShippedOrders() {
   console.log("[TrackingService] Checking shipped orders...");
   try {
     const shippedOrders = await Order.find({
-      status: "shipped",
+      orderStatus: "shipped",
       trackingNumber: { $ne: null, $ne: "" },
     });
 
@@ -49,19 +50,30 @@ async function processShippedOrders() {
       const domexStatus = await checkDomexTracking(order.trackingNumber);
 
       if (domexStatus === "delivered") {
-        order.status = "delivered";
-        order.deliveredAt = new Date();
+        order.orderStatus = "delivered";
         await order.save();
 
-        await Message.create({
-          sender: order.user || null,
-          isAdmin: true,
-          userRead: false,
-          text: `✅ Order #${order.orderId || order._id} has been delivered (auto-detected via tracking).`,
-          sentAt: new Date(),
-        });
+        try {
+          await Message.create({
+            sender: order.user,
+            message: `✅ Order #${order._id} has been delivered (auto-detected via tracking).`,
+            senderType: "bot",
+            isAdmin: true,
+            isBot: true,
+            adminRead: true,
+            userRead: false,
+          });
+        } catch (msgErr) {
+          console.error(`[TrackingService] Failed to notify user for order ${order._id}:`, msgErr.message);
+        }
 
         updatedCount++;
+
+        // Real-time: tell the buyer's open orders page immediately
+        emitToUser(order.user, "order:update", {
+          orderId: order._id,
+          orderStatus: "delivered",
+        });
         console.log(`[TrackingService] Order ${order.orderId || order._id} auto-marked as delivered`);
       }
     }
@@ -71,11 +83,19 @@ async function processShippedOrders() {
   }
 }
 
+let trackingTask = null;
+
 export function startTrackingCron() {
-  cron.schedule("0 */6 * * *", () => {
+  trackingTask = cron.schedule("0 */6 * * *", () => {
     processShippedOrders();
   });
   console.log("[TrackingService] Cron scheduled: every 6 hours");
+}
+
+export function stopTrackingCron() {
+  if (trackingTask) {
+    trackingTask.stop();
+  }
 }
 
 export { processShippedOrders };

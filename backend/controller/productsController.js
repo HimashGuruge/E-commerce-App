@@ -36,10 +36,39 @@ export const onUpload = asyncHandler(async (req, res) => {
   });
 });
 
-export const getAllProducts = asyncHandler(async (req, res) => {
-  const { category, search, minPrice, maxPrice, brand, sortBy, sort, includeAll, isParent, seller } = req.query;
-  let query = {};
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const SORT_FIELDS = {
+  "price-asc": { price: 1 },
+  "price-desc": { price: -1 },
+  "selling-price-asc": { sellingPrice: 1 },
+  "selling-price-desc": { sellingPrice: -1 },
+  "sellingprice-asc": { sellingPrice: 1 },
+  "sellingprice-desc": { sellingPrice: -1 },
+  "sellingPrice-asc": { sellingPrice: 1 },
+  "sellingPrice-desc": { sellingPrice: -1 },
+  newest: { createdAt: -1 },
+  "created-at-desc": { createdAt: -1 },
+  "createdat-desc": { createdAt: -1 },
+  oldest: { createdAt: 1 },
+  rating: { rating: -1 },
+  name: { name: 1 },
+  "name-asc": { name: 1 },
+};
+
+const applyFilters = (query, {
+  category,
+  categories,
+  search,
+  minPrice,
+  maxPrice,
+  brand,
+  includeAll,
+  isParent,
+  seller,
+  minRating,
+  inStock,
+}) => {
   if (includeAll !== "true") {
     query.status = { $in: ["active", "ready"] };
     // For public requests, only show admin-approved products
@@ -55,30 +84,111 @@ export const getAllProducts = asyncHandler(async (req, res) => {
   }
 
   if (category) query.category = category;
+
+  if (categories) {
+    const list = String(categories).split(",").map((c) => c.trim()).filter(Boolean);
+    if (list.length > 0) {
+      const conditions = [];
+      for (const c of list) {
+        conditions.push(new RegExp(`^${escapeRegExp(c)}$`, "i"));
+      }
+      query.category = { $in: conditions };
+    }
+  }
+
   if (brand) query.brand = brand;
-  if (search) query.name = { $regex: search, $options: "i" };
+
+  if (search) {
+    query.name = { $regex: escapeRegExp(search), $options: "i" };
+  }
+
   if (minPrice || maxPrice) {
     query.price = {};
     if (minPrice) query.price.$gte = Number(minPrice);
     if (maxPrice) query.price.$lte = Number(maxPrice);
   }
 
-  let productsQuery = Product.find(query).populate("variants");
-  const effectiveSort = sortBy || sort;
-  if (effectiveSort === "price-asc") productsQuery.sort({ price: 1 });
-  else if (effectiveSort === "price-desc") productsQuery.sort({ price: -1 });
-  else if (effectiveSort === "sellingPrice-asc") productsQuery.sort({ sellingPrice: 1 });
-  else if (effectiveSort === "sellingPrice-desc") productsQuery.sort({ sellingPrice: -1 });
-  else if (effectiveSort === "newest") productsQuery.sort({ createdAt: -1 });
-  else if (effectiveSort === "rating") productsQuery.sort({ rating: -1 });
+  if (minRating !== undefined && minRating !== "" && !Number.isNaN(Number(minRating))) {
+    const threshold = Number(minRating);
+    if (threshold > 0) {
+      query.rating = { $gte: threshold };
+    }
+  }
 
-  const products = await productsQuery;
-  const formattedProducts = products.map((p) => ({
+  if (inStock === "true") {
+    query.stock = { $gt: 0 };
+  }
+
+  return query;
+};
+
+const normalizeSortParam = (raw) => {
+  if (!raw) return null;
+  const value = String(raw).trim();
+  if (value in SORT_FIELDS) return SORT_FIELDS[value];
+  const [field, dir] = value.split(":");
+  const direction = dir === "desc" ? -1 : 1;
+  const fieldMap = {
+    price: "price",
+    sellingPrice: "sellingPrice",
+    "selling-price": "sellingPrice",
+    rating: "rating",
+    name: "name",
+    createdAt: "createdAt",
+  };
+  if (fieldMap[field]) return { [fieldMap[field]]: direction };
+  return null;
+};
+
+const paginateResponse = ({ results, totalCount, page, limit }) => ({
+  success: true,
+  products: results.map((p) => ({
     ...p.toObject(),
     productName: p.name,
     productId: p._id.toString(),
-  }));
-  res.json({ success: true, products: formattedProducts });
+  })),
+  page,
+  limit,
+  totalCount,
+  totalPages: Math.max(Math.ceil(totalCount / limit), 1),
+  hasNextPage: page < Math.ceil(totalCount / limit),
+});
+
+export const getAllProducts = asyncHandler(async (req, res) => {
+  const {
+    category, categories, search, minPrice, maxPrice, brand,
+    sortBy, sort, includeAll, isParent, seller, minRating, inStock, page, limit,
+  } = req.query;
+
+  const query = applyFilters({}, {
+    category, categories, search, minPrice, maxPrice, brand,
+    includeAll, isParent, seller, minRating, inStock,
+  });
+
+  const sortSpec = normalizeSortParam(sortBy || sort);
+  let base = Product.find(query).populate("variants");
+  if (sortSpec) base = base.sort(sortSpec);
+
+  const pageNum = page && Number(page) > 0 ? Math.floor(Number(page)) : null;
+  const pageSize = Math.min(Math.max(Number(limit) || 24, 1), 100);
+
+  if (pageNum === null) {
+    const products = await base;
+    return res.json({
+      success: true,
+      products: products.map((p) => ({
+        ...p.toObject(),
+        productName: p.name,
+        productId: p._id.toString(),
+      })),
+    });
+  }
+
+  const [results, totalCount] = await Promise.all([
+    base.skip((pageNum - 1) * pageSize).limit(pageSize),
+    Product.countDocuments(query),
+  ]);
+  res.json(paginateResponse({ results, totalCount, page: pageNum, limit: pageSize }));
 });
 
 export const productFindById = asyncHandler(async (req, res) => {
@@ -102,16 +212,25 @@ export const productFindById = asyncHandler(async (req, res) => {
 });
 
 export const getProductsByCategory = asyncHandler(async (req, res) => {
-  const products = await Product.find({
-    category: req.params.category,
-    status: { $in: ["active", "ready"] },
-  });
-  const formattedProducts = products.map((p) => ({
-    ...p.toObject(),
-    productName: p.name,
-    productId: p._id.toString(),
-  }));
-  res.json({ success: true, products: formattedProducts });
+  const { sort, sortBy, page, limit } = req.query;
+  const query = applyFilters(
+    { category: req.params.category },
+    { category: req.params.category, includeAll: "true" }
+  );
+
+  let base = Product.find(query).populate("variants");
+  const sortSpec = normalizeSortParam(sortBy || sort);
+  base = sortSpec ? base.sort(sortSpec) : base.sort("-createdAt");
+
+  const pageNum = page && Number(page) > 0 ? Math.floor(Number(page)) : null;
+  const pageSize = Math.min(Math.max(Number(limit) || 24, 1), 100);
+
+  const [results, totalCount] = await Promise.all([
+    pageNum === null ? base : base.skip((pageNum - 1) * pageSize).limit(pageSize),
+    Product.countDocuments(query),
+  ]);
+
+  res.json(paginateResponse({ results, totalCount, page: pageNum ?? 1, limit: pageSize }));
 });
 
 export const getProductsByIds = asyncHandler(async (req, res) => {

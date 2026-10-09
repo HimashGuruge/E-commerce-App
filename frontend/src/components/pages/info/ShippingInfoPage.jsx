@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Truck, Clock, CheckCircle2, ArrowRight, Shield, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import api from '@/utils/api';
+import { getPublicSettings } from '@/utils/siteSettings';
 import SkeletonLoader from '@/components/shared/SkeletonLoader';
 
 const ShippingInfo = () => {
@@ -11,9 +11,9 @@ const ShippingInfo = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const { data } = await api.get('/api/settings/public');
-        if (data.success) {
-          setSettings(data.settings);
+        const settings = await getPublicSettings();
+        if (settings) {
+          setSettings(settings);
         }
       } catch (err) {
         console.error('Failed to load shipping settings:', err);

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import api from "@/utils/api";
+import { getPublicSettings } from "@/utils/siteSettings";
 
 const ReturnsExchanges = () => {
   const navigate = useNavigate();
@@ -25,13 +26,13 @@ const ReturnsExchanges = () => {
   useEffect(() => {
     const fetchPolicy = async () => {
       try {
-        const { data } = await api.get("/api/settings/public");
-        if (data.success && data.settings?.returnPolicy) {
-          setPolicy(data.settings.returnPolicy);
-          if (data.settings.shipping) {
+        const settings = await getPublicSettings();
+        if (settings?.returnPolicy) {
+          setPolicy(settings.returnPolicy);
+          if (settings.shipping) {
             setPolicy((prev) => ({
               ...prev,
-              courierName: data.settings.shipping.courierName || "Domex",
+              courierName: settings.shipping.courierName || "Domex",
             }));
           }
         }

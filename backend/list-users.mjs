@@ -1,0 +1,10 @@
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+dotenv.config();
+console.log("uri:", process.env.MONGO_URI);
+await mongoose.connect(process.env.MONGO_URI);
+const M = mongoose.model("User", new mongoose.Schema({ email: String }));
+const all = await M.find().limit(20).lean();
+console.log("count:", all.length);
+console.log(JSON.stringify(all.map((u) => u.email)));
+process.exit(0);

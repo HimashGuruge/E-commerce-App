@@ -3,9 +3,7 @@ import mongoose from "mongoose";
 const variantSchema = new mongoose.Schema(
   {
     sku: { type: String, required: true, unique: true },
-    color: { type: String },
-    size: { type: String },
-    material: { type: String },
+    variantSku: { type: String, index: true },
     attributes: { type: Object, default: {} },
     price: { type: Number },
     sellingPrice: { type: Number },

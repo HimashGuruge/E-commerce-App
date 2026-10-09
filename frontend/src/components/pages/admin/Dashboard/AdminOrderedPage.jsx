@@ -189,9 +189,10 @@ export default function AdminOrderedPage() {
     window.open(`https://www.domex.lk/track?tracking=${trackingNumber}`, "_blank");
   };
 
+  const term = searchTerm.toLowerCase();
   const filteredOrders = orders.filter((order) =>
-    order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.shippingAddress?.customerName?.toLowerCase().includes(searchTerm.toLowerCase())
+    String(order.orderId ?? "").toLowerCase().includes(term) ||
+    String(order.shippingAddress?.customerName ?? "").toLowerCase().includes(term)
   );
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);

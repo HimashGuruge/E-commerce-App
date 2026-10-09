@@ -1,10 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
-import { createServer } from 'http';
+import { createServer } from "http";
+import { initSocket } from "./services/socketService.js";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 import connectDB from "./config/db.js";
+import { rateLimitConfig } from "./config/env.js";
 import logger from "./utils/logger.js";
 
 import userRouter from "./routes/usersRouter.js";
@@ -15,43 +18,89 @@ import paymentRouter from "./routes/paymentRouter.js";
 import addressRouter from "./routes/addressRouter.js";
 import feedbackRouter from "./routes/feedbackRouter.js";
 import messageRouter from "./routes/messageRouter.js";
-import notificationRouter from "./routes/notificationRoutes.js";
-import adRouter from "./routes/adRoutes.js";
-import serviceRouter from "./routes/serviceRoutes.js";
+import notificationRouter from "./routes/notificationRouter.js";
+import adRouter from "./routes/adRouter.js";
+import serviceRouter from "./routes/serviceRouter.js";
 import adminRouter from "./routes/adminRouter.js";
 import trendingRouter from "./routes/trendingRouter.js";
-import featureRouter from "./routes/featureRoutes.js";
-import announcementRouter from "./routes/announcementRoutes.js";
-import settingsRouter from "./routes/settingsRoutes.js";
+import featureRouter from "./routes/featureRouter.js";
+import announcementRouter from "./routes/announcementRouter.js";
+import settingsRouter from "./routes/settingsRouter.js";
 import sellersRouter from "./routes/sellersRouter.js";
 import questionRouter from "./routes/questionRouter.js";
-import sliderRouter from "./routes/sliderRoutes.js";
-import uploadRouter from "./routes/uploadRoutes.js";
+import sliderRouter from "./routes/sliderRouter.js";
+import uploadRouter from "./routes/uploadRouter.js";
 import { handleStripeWebhook } from "./controller/paymentController.js";
-import { startTrackingCron } from "./services/trackingService.js";
+import { startTrackingCron, stopTrackingCron } from "./services/trackingService.js";
+import mongoose from "mongoose";
 
 dotenv.config();
+
+// Fail fast if required environment variables are missing
+const missingEnv = ["MONGO_URI", "JWT_SECRET"].filter((k) => !process.env[k]);
+if (missingEnv.length > 0) {
+  logger.error(`Missing required env vars: ${missingEnv.join(", ")}. Check backend/.env`);
+  process.exit(1);
+}
+
 connectDB();
 startTrackingCron();
 
 const app = express();
+const server = createServer(app);
 let PORT = process.env.PORT || 4000;
 
+// Socket.IO real-time events (chat, notifications, order status)
+const socketIo = initSocket(server);
+
+// --- Graceful shutdown & crash handling -------------------------------------
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled promise rejection:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught exception:", err);
+  process.exit(1);
+});
+
+const shutdown = async (signal) => {
+  logger.warn(`${signal} received — starting graceful shutdown`);
+  stopTrackingCron();
+  try {
+    if (socketIo) {
+      socketIo.disconnectSockets?.();
+      socketIo.close();
+    }
+  } catch {}
+  // Stop accepting new connections; let in-flight requests finish
+  await new Promise((resolve) => server.close(resolve));
+  try {
+    await mongoose.connection.close();
+  } catch {}
+  logger.info("Shutdown complete — bye");
+  process.exit(0);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
 // Simple port check - try current port, then fallback to +1
-app.listen(PORT, async (err) => {
+server.listen(PORT, (err) => {
   if (err && err.code === 'EADDRINUSE') {
-    PORT += 1;
-    console.log(`Default port ${PORT-1} in use, falling back to ${PORT}`);
-    await new Promise(resolve => setTimeout(resolve, 100)); // Wait briefly
-    app.close();
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    const fallbackPort = PORT + 1;
+    logger.warn(`Port ${PORT} in use, falling back to ${fallbackPort}`);
+    server.listen(fallbackPort, () => logger.info(`Server running on port ${fallbackPort}`));
   } else {
-    console.log(`Server running on port ${PORT}`);
+    logger.info(`Server running on port ${PORT}`);
   }
 });
 
 
-app.use(cors());
+// REST API — CORS restricted to the frontend origin
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3001",
+}));
 
 // Security headers
 app.use(helmet({
@@ -61,8 +110,8 @@ app.use(helmet({
 
 // Rate limiting
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: rateLimitConfig.loginWindowMin * 60 * 1000,
+  max: rateLimitConfig.loginMax,
   message: { success: false, error: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -74,11 +123,41 @@ app.use("/api/messages/sendmessage", rateLimit({
   message: { success: false, error: "Too many messages, please slow down" },
 }));
 
+// Global safety net for all other API routes
+// 2K/15min sits well above real client polling load (~60-120 req/min across
+// Navbar/Footer/ChatBot/Admin panels) yet still stops runaway loops. The
+// dedicated auth + chat-send limiters above stay stricter.
+app.use("/api", rateLimit({
+  windowMs: rateLimitConfig.apiWindowMin * 60 * 1000,
+  max: rateLimitConfig.apiMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many requests, please try again later" },
+}));
+
 // Stripe webhook needs raw body - must be before express.json()
 app.post("/api/payment/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+app.use(compression());
+
+// Light request logging (method, path, status, duration)
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: mongoose.connection.readyState === 1 ? "healthy" : "unhealthy",
+    db: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    uptime: process.uptime(),
+  });
+});
 
 app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
@@ -114,14 +193,12 @@ if (process.env.STORAGE !== 'supabase') {
   });
 }
 
-app.get("/api/test", (req, res) => res.json({ ok: true, msg: "Server works" }));
-app.get("/api/categories/test", (req, res) => res.json({ ok: true, msg: "Category router works" }));
-
 app.use((err, req, res, next) => {
+  // Controllers set res.status(...) before throwing, so that code wins over err.status
+  const status = res.statusCode >= 400 ? res.statusCode : err.status || 500;
   logger.error(err.stack);
-  res.status(err.status || 500).json({
+  res.status(status).json({
     success: false,
     error: err.message || "Internal Server Error",
   });
 });
-

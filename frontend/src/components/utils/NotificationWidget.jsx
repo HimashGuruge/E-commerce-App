@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/utils/api";
+import { onSocketEvent } from "@/utils/socket";
 import { Bell, Truck, MessageSquare, Package, CheckCircle, CheckCheck, Volume2, VolumeX, Monitor, X } from "lucide-react";
 
 const POLLING_INTERVAL = 30000;
@@ -189,6 +190,12 @@ export default function NotificationWidget() {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
+  }, [token, fetchUnreadCount]);
+
+  // Real-time: refresh unread count when the server pushes an update
+  useEffect(() => {
+    if (!token) return;
+    return onSocketEvent(["order:update", "chat:new-message"], () => fetchUnreadCount());
   }, [token, fetchUnreadCount]);
 
   useEffect(() => {
