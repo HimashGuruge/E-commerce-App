@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import { emitToUser } from "../services/socketService.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
@@ -63,6 +64,11 @@ export const cancelOrder = asyncHandler(async (req, res) => {
   order.cancelledBy = req.user._id;
   order.cancellationReason = req.body.reason || "Cancelled by user";
   await order.save();
+  // Real-time: notify the buyer's open orders page instantly
+  emitToUser(order.user?._id || order.user, "order:update", {
+    orderId: order._id,
+    orderStatus: order.orderStatus,
+  });
   res.json({ success: true, order });
 });
 
@@ -147,6 +153,12 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
   } catch (err) {
     logger.error("Failed to send order status notification:", err);
   }
+
+  // Real-time: push the status change to the buyer immediately
+  emitToUser(order.user?._id || order.user, "order:update", {
+    orderId: order._id,
+    orderStatus: order.orderStatus,
+  });
 
   res.json({ success: true, order });
 });

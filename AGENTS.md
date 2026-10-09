@@ -73,3 +73,10 @@ Deployment: `backend/Dockerfile` (node:20-alpine, EXPOSE 4000); frontend deploys
 - **Backend**: Jest is configured inline in `backend/package.json` (`npm test`) but **zero test files exist** — do not rely on it, and don't assume `npm test` passes.
 - **Frontend**: Vitest is the runner (`npm run test` / `test:watch`); the only test is the placeholder `frontend/src/components/product/Card.test.jsx`. Playwright/@testing-library are installed but unused.
 - Treat coverage as effectively nonexistent: verify changes manually (run both servers, exercise the changed route/component) rather than relying on suites.
+## Explaining Things (How I Must Answer)
+- When explaining anything (how code works, what's set up, what needs fixing), ALWAYS end with:
+  1. **A short summary table or list** of the key facts/status.
+  2. **"Final result"** — one clear block stating the bottom line: what works now, what's broken or missing, and the exact next step.
+  3. A **clear direct answer** to the question asked, first — details after.
+- Prefer small tables over dense paragraphs for status/what-to-do answers.
+- Never leave the user to piece together the conclusion from the middle of the explanation.

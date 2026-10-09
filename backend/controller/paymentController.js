@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Stripe from "stripe";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
@@ -8,6 +9,26 @@ import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Shared input validation for checkout endpoints (Stripe + COD)
+const validateCheckoutBody = (req, res) => {
+  const { items, shippingAddress } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    res.status(400);
+    throw new Error("Cart is empty — nothing to checkout");
+  }
+  for (const item of items) {
+    const hasRef = (item.variantId || item.productId) && mongoose.isValidObjectId(item.variantId || item.productId);
+    if (!hasRef || !Number.isInteger(item.quantity) || item.quantity < 1) {
+      res.status(400);
+      throw new Error("Each item needs a valid product id and a positive integer quantity");
+    }
+  }
+  if (!shippingAddress?.address || !shippingAddress?.phone || !shippingAddress?.city) {
+    res.status(400);
+    throw new Error("Shipping address must include address, city, and phone");
+  }
+};
 
 const getShippingConfig = async () => {
   const config = await SiteConfig.findOne();
@@ -95,6 +116,7 @@ const releaseStock = async (reservations) => {
 };
 
 export const createStripeSession = asyncHandler(async (req, res) => {
+  validateCheckoutBody(req, res);
   const { items, shippingAddress } = req.body;
   
   // Verify stock before creating order
@@ -214,6 +236,7 @@ export const handleStripeFailure = asyncHandler(async (req, res) => {
 });
 
 export const placeCODOrder = asyncHandler(async (req, res) => {
+  validateCheckoutBody(req, res);
   const { items, shippingAddress } = req.body;
   let subtotal = 0;
   const orderItems = [];

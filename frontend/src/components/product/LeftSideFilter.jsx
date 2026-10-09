@@ -85,16 +85,16 @@ const LeftSideFilter = ({
   });
 
   return (
-    <div className="w-full h-full overflow-y-auto bg-white">
+    <div className="w-full h-full overflow-y-auto bg-white dark:bg-slate-900">
       {/* Mobile header with close button */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 lg:hidden">
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 lg:hidden">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-slate-700" />
-            <h3 className="text-lg font-black uppercase tracking-wider text-slate-900">Filters</h3>
+            <Filter size={16} className="text-slate-700 dark:text-slate-300" />
+            <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">Filters</h3>
           </div>
           {onClose && (
-            <button onClick={() => { onClose(); }} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <button onClick={() => { onClose(); }} className="p-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
               <X size={18} />
             </button>
           )}
@@ -105,32 +105,32 @@ const LeftSideFilter = ({
         {/* Desktop header */}
         <div className="hidden lg:flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-slate-700" />
-            <h3 className="text-lg font-black uppercase tracking-wider text-slate-900">Filters</h3>
+            <Filter size={16} className="text-slate-700 dark:text-slate-300" />
+            <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">Filters</h3>
           </div>
         </div>
 
         {hasActiveFilters && (
-          <button onClick={clearAllFilters} className="w-full mb-6 py-3 text-xs font-bold uppercase tracking-wider border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
+          <button onClick={clearAllFilters} className="w-full mb-6 py-3 text-xs font-bold uppercase tracking-wider border border-red-100 dark:border-red-900/60 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/70 rounded-lg transition-colors">
             Clear All Filters
           </button>
         )}
 
         {/* Sort By */}
-        <div className="mb-6 border-b border-slate-100 pb-6">
+        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("sort")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Sort By</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Sort By</h4>
             {expandedSections.sort ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {expandedSections.sort && (
             <div className="space-y-1">
               {SORT_OPTIONS.map((opt) => (
                 <button key={opt.value} onClick={() => setFilters((prev) => ({ ...prev, sortBy: opt.value }))}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                    filters.sortBy === opt.value
-                      ? "bg-slate-900 text-white font-semibold"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                      filters.sortBy === opt.value
+                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
                 >
                   {opt.label}
                 </button>
@@ -140,9 +140,9 @@ const LeftSideFilter = ({
         </div>
 
         {/* Price Range */}
-        <div className="mb-6 border-b border-slate-100 pb-6">
+        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("price")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Price Range (LKR)</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Price Range (LKR)</h4>
             {expandedSections.price ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {expandedSections.price && (
@@ -150,30 +150,30 @@ const LeftSideFilter = ({
               <div className="flex gap-3">
                 <input type="number" placeholder="Min" value={localPrice.min}
                   onChange={(e) => setLocalPrice({ ...localPrice, min: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 text-sm rounded-lg outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all bg-white text-slate-900 placeholder:text-slate-400" min="0"
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 text-sm rounded-lg outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900 transition-all bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500" min="0"
                 />
                 <input type="number" placeholder="Max" value={localPrice.max}
                   onChange={(e) => setLocalPrice({ ...localPrice, max: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 text-sm rounded-lg outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all bg-white text-slate-900 placeholder:text-slate-400" min="0"
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 text-sm rounded-lg outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900 transition-all bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500" min="0"
                 />
               </div>
               <div className="flex gap-2">
                 <button onClick={applyPriceFilter} className="flex-1 py-2.5 bg-brand-500 text-white text-xs font-bold uppercase rounded-lg hover:bg-brand-600 active:scale-[0.98] transition-all shadow-sm hover:shadow-md">
                   Apply
                 </button>
-                {isPriceActive && <button onClick={clearPriceFilter} className="px-4 border border-slate-200 text-xs font-bold rounded-lg hover:bg-slate-50 transition-all">Reset</button>}
+                {isPriceActive && <button onClick={clearPriceFilter} className="px-4 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reset</button>}
               </div>
               {!isPriceActive && (
-                <p className="text-[10px] text-brand-600 font-bold text-center bg-brand-50 py-2 rounded-md border border-brand-100">Showing All Prices</p>
+                <p className="text-[10px] text-brand-600 dark:text-brand-300 font-bold text-center bg-brand-50 dark:bg-brand-900/20 py-2 rounded-md border border-brand-100 dark:border-brand-900/60">Showing All Prices</p>
               )}
             </div>
           )}
         </div>
 
         {/* Rating */}
-        <div className="mb-6 border-b border-slate-100 pb-6">
+        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("rating")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Minimum Rating</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Minimum Rating</h4>
             {expandedSections.rating ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {expandedSections.rating && (
@@ -181,40 +181,25 @@ const LeftSideFilter = ({
               {RATINGS.map((stars) => {
                 const selected = filters.minRating === stars;
                 const count = ratingCounts?.[stars] || 0;
-                const maxCount = ratingCounts ? Math.max(...Object.values(ratingCounts), 1) : 1;
-                const barWidth = (count / maxCount) * 100;
                 return (
                   <button key={stars} onClick={() => setFilters((prev) => ({ ...prev, minRating: selected ? 0 : stars }))}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all relative overflow-hidden ${
-                      selected ? "bg-amber-50 text-amber-800 font-semibold" : "text-slate-600 hover:bg-slate-50"
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                      selected
+                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {selected && (
-                      <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-400 rounded-r" />
-                    )}
-                    <div className="flex gap-0.5 shrink-0">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} size={14} fill={s <= stars ? "currentColor" : "none"} className={s <= stars ? "text-amber-400" : "text-slate-300"} />
-                      ))}
-                    </div>
-                    <span className="text-xs shrink-0">& up</span>
-                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full mx-2 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${selected ? "bg-amber-400" : "bg-amber-200"}`}
-                        style={{ width: `${barWidth}%` }}
-                      />
-                    </div>
-                    {ratingCounts && (
-                      <span className={`text-xs font-medium tabular-nums shrink-0 ${selected ? "text-amber-700" : "text-slate-400"}`}>
-                        {count}
-                      </span>
+                    <Star size={14} fill="currentColor" className="shrink-0 text-amber-400" />
+                    <span>{stars} &amp; up</span>
+                    {count > 0 && (
+                      <span className="ml-auto text-xs font-medium tabular-nums text-slate-400 dark:text-slate-500">{count}</span>
                     )}
                   </button>
                 );
               })}
               {filters.minRating > 0 && (
                 <button onClick={() => setFilters((prev) => ({ ...prev, minRating: 0 }))}
-                  className="w-full text-left px-3 py-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                  className="w-full text-left px-3 py-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                   Clear rating
                 </button>
@@ -224,21 +209,21 @@ const LeftSideFilter = ({
         </div>
 
         {/* In Stock Toggle */}
-        <div className="mb-6 border-b border-slate-100 pb-6">
+        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("stock")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Availability</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Availability</h4>
             {expandedSections.stock ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {expandedSections.stock && (
-            <label className="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <div className="relative">
                 <input type="checkbox" checked={filters.inStock} onChange={(e) => setFilters((prev) => ({ ...prev, inStock: e.target.checked }))}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                <div className="w-9 h-5 bg-slate-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-slate-500 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
               </div>
-              <Package size={15} className="text-slate-400" />
-              <span className="text-sm text-slate-700 group-hover:text-slate-900 transition-colors">In Stock Only</span>
+              <Package size={15} className="text-slate-400 dark:text-slate-500" />
+              <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">In Stock Only</span>
             </label>
           )}
         </div>
@@ -246,16 +231,16 @@ const LeftSideFilter = ({
         {/* Categories */}
         <div className="mb-6">
           <button onClick={() => toggleSection("categories")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Categories</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Categories</h4>
             {expandedSections.categories ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {expandedSections.categories && (
             <div className="space-y-3">
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input type="text" placeholder="Search categories..." value={categorySearch}
                   onChange={(e) => setCategorySearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-slate-400"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-slate-400 dark:focus:border-slate-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
@@ -264,13 +249,13 @@ const LeftSideFilter = ({
                     <label key={category._id} className="flex items-center gap-3 cursor-pointer group">
                       <input type="checkbox" checked={filters.categories.includes(category._id)}
                         onChange={() => handleCategoryChange(category._id)}
-                        className="w-4 h-4 accent-slate-900 rounded border-slate-300"
+                        className="w-4 h-4 accent-slate-900 dark:accent-white rounded border-slate-300 dark:border-slate-600"
                       />
-                      <span className="text-sm text-slate-600 group-hover:text-slate-900 transition-colors">{category.name}</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{category.name}</span>
                     </label>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-400 italic text-center py-2">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center py-2">
                     {categorySearch ? "No categories found" : "No categories available"}
                   </p>
                 )}
@@ -285,35 +270,35 @@ const LeftSideFilter = ({
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Active Filters</p>
             <div className="flex flex-wrap gap-2">
               {isPriceActive && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-xs rounded-md">
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
                   Price: {filters.priceRange[0]} - {filters.priceRange[1]}
-                  <button onClick={clearPriceFilter} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                  <button onClick={clearPriceFilter} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
                 </span>
               )}
               {filters.minRating > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-xs rounded-md">
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
                   ★ {filters.minRating}+
-                  <button onClick={() => setFilters((prev) => ({ ...prev, minRating: 0 }))} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                  <button onClick={() => setFilters((prev) => ({ ...prev, minRating: 0 }))} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
                 </span>
               )}
               {filters.inStock && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-xs rounded-md">
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
                   In Stock
-                  <button onClick={() => setFilters((prev) => ({ ...prev, inStock: false }))} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                  <button onClick={() => setFilters((prev) => ({ ...prev, inStock: false }))} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
                 </span>
               )}
               {filters.sortBy !== "newest" && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-xs rounded-md">
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
                   {SORT_OPTIONS.find(o => o.value === filters.sortBy)?.label || filters.sortBy}
-                  <button onClick={() => setFilters((prev) => ({ ...prev, sortBy: "newest" }))} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                  <button onClick={() => setFilters((prev) => ({ ...prev, sortBy: "newest" }))} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
                 </span>
               )}
               {filters.categories.map((catId) => {
                 const category = categories.find((c) => c._id === catId);
                 return category ? (
-                  <span key={catId} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-xs rounded-md">
+                  <span key={catId} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
                     {category.name}
-                    <button onClick={() => handleCategoryChange(catId)} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                    <button onClick={() => handleCategoryChange(catId)} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
                   </span>
                 ) : null;
               })}

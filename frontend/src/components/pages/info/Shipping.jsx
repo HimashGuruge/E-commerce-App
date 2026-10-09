@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "@/utils/api";
+import { getPublicSettings } from "@/utils/siteSettings";
 import {
   MapPin, Phone, Truck, CreditCard, ChevronRight,
   CheckCircle2, PlusCircle, Home, Package, Shield,
@@ -27,11 +28,11 @@ export default function Shipping() {
   useEffect(() => {
     const fetchShippingSettings = async () => {
       try {
-        const res = await api.get("/api/settings/public");
-        if (res.data?.success && res.data?.settings?.shipping) {
+        const settings = await getPublicSettings();
+        if (settings?.shipping) {
           setShippingSettings({
-            standardCost: res.data.settings.shipping.standardCost,
-            freeThreshold: res.data.settings.shipping.freeThreshold,
+            standardCost: settings.shipping.standardCost,
+            freeThreshold: settings.shipping.freeThreshold,
           });
         }
       } catch (err) { console.error("Failed to load shipping settings:", err); }

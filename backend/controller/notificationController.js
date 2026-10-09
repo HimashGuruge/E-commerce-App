@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import { emitToUser } from "../services/socketService.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import Order from "../models/Order.js";
@@ -132,6 +133,8 @@ export const replyToUser = asyncHandler(async (req, res) => {
     userRead: false,
     adminRead: true,
   });
+  // Real-time: push the reply straight to the user's open chat + badge
+  emitToUser(req.params.userId, "chat:new-message", msg);
   res.status(201).json({ success: true, message: msg });
 });
 

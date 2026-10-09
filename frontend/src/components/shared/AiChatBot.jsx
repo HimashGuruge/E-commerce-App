@@ -7,9 +7,20 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/utils/api";
+import { onSocketEvent } from "@/utils/socket";
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload.jsx";
+import ReactMarkdown from "react-markdown";
 import { Bot, MessageCircle, Send, User, X } from "lucide-react";
+import { getPublicSettings, getCachedSettings } from "@/utils/siteSettings";
+
+// Bot messages are stored clean in the DB, but defensively drop anything that
+// would ever look like SSE control markers (e.g. ": keepalive", "[DONE]").
+const cleanBotText = (raw) =>
+  String(raw ?? "")
+    .split("\n")
+    .filter((l) => !l.trim().startsWith(":") && l.trim() !== "[DONE]")
+    .join("\n");
 
 // Helper to compute animation duration based on user preference
 const getAnimationDuration = () => {
@@ -58,13 +69,12 @@ const MessageBubble = React.memo(({ msg, userProfilePic }) => {
         className={`relative px-3.5 py-2.5 text-sm leading-relaxed break-words max-w-[80%] ${
           isUser
             ? "text-white shadow-md"
-            : "text-slate-800 border shadow-sm"
+            : "text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm bot-mb"
         }`}
         style={{
-          whiteSpace: "pre-wrap",
+          whiteSpace: isUser ? "pre-wrap" : undefined,
           borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-          backgroundColor: isUser ? "var(--chat-color)" : "#ffffff",
-          borderColor: isUser ? "transparent" : "#e5e7eb",
+          backgroundColor: isUser ? "var(--chat-color)" : undefined,
         }}
       >
           {/* Sender label for admin/AI */}
@@ -91,11 +101,17 @@ const MessageBubble = React.memo(({ msg, userProfilePic }) => {
           </div>
         )}
 
-        {/* Message text */}
-        <div className={`${isUser ? "pr-6" : ""}`}>{msg.message}</div>
+        {/* Message text: user = plain, bot = light markdown (lists, bold, prices) */}
+        <div className={`${isUser ? "pr-6" : "bot-md"}`}>
+          {isUser ? (
+            msg.message
+          ) : (
+            <ReactMarkdown>{cleanBotText(msg.message)}</ReactMarkdown>
+          )}
+        </div>
 
         {/* Timestamp and status */}
-        <div className={`text-[10px] mt-1.5 flex items-center ${isUser ? "justify-end" : "justify-start"} ${isUser ? "text-white/70" : "text-slate-400"}`}>
+        <div className={`text-[10px] mt-1.5 flex items-center ${isUser ? "justify-end" : "justify-start"} ${isUser ? "text-white/70" : "text-slate-400 dark:text-slate-500"}`}>
           <span>{formatTime(msg.createdAt)}</span>
           {isUser && (
             <span className="inline-flex ml-1">
@@ -120,7 +136,7 @@ const MessageBubble = React.memo(({ msg, userProfilePic }) => {
       {/* User avatar on the right */}
       {isUser && (
         <div
-          className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white shadow-sm bg-cover bg-center shrink-0 overflow-hidden"
+          className="w-6 h-6 rounded-full bg-gray-100 dark:bg-slate-700 border-2 border-white dark:border-slate-900 shadow-sm bg-cover bg-center shrink-0 overflow-hidden"
           style={userProfilePic ? { backgroundImage: `url(${userProfilePic})` } : {}}
         >
           {!userProfilePic && (
@@ -139,10 +155,10 @@ const MessageBubble = React.memo(({ msg, userProfilePic }) => {
 ===================== */
 const TypingIndicator = ({ ariaLabel = "Assistant is typing" }) => (
   <div className="flex justify-start mb-2 px-3" role="status" aria-label={ariaLabel}>
-    <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-1.5 border border-gray-100">
-      <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce [animation-delay:-0.3s]"></div>
-      <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce [animation-delay:-0.15s]"></div>
-      <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce"></div>
+    <div className="bg-white dark:bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-1.5 border border-gray-100 dark:border-slate-700">
+      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-500 animate-bounce [animation-delay:-0.3s]"></div>
+      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-500 animate-bounce [animation-delay:-0.15s]"></div>
+      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-500 animate-bounce"></div>
     </div>
   </div>
 );
@@ -253,24 +269,22 @@ export default function ChatBot() {
   }, [primaryColor]);
 
   useEffect(() => {
-    const fetchColor = () => {
-      api
-        .get("/api/settings/public")
-        .then(({ data }) => {
-          const s = data?.settings;
-          const color =
-            s?.chatWidgetColor || s?.primaryColor || "#F85606";
-          setPrimaryColor(color);
-          cachedChatColor = color;
-          setChatColorCookie(color);
-        })
-        .catch(() => {});
+    const applyColor = (s) => {
+      if (!s) return;
+      const color = s.chatWidgetColor || s.primaryColor || "#F85606";
+      setPrimaryColor(color);
+      cachedChatColor = color;
+      setChatColorCookie(color);
     };
-    fetchColor();
 
-    const handleSettingsUpdate = () => {
-      cachedChatColor = null; // invalidate on admin save so we re-fetch
-      fetchColor();
+    // Prefer the module-level cache; fall back to the shared one-shot fetch
+    const cached = getCachedSettings();
+    if (cached) applyColor(cached);
+    getPublicSettings().then(applyColor).catch(() => {});
+
+    const handleSettingsUpdate = (e) => {
+      // Event detail always carries the freshly-fetched settings
+      applyColor(e.detail || getCachedSettings());
     };
     if (typeof window !== "undefined") {
       window.addEventListener("settingsUpdated", handleSettingsUpdate);
@@ -314,6 +328,16 @@ export default function ChatBot() {
   const recognitionRef = useRef(null);
   const recognitionTimeoutRef = useRef(null);
   const hasFetchedSession = useRef(false);
+  const inputAreaRef = useRef(null);
+
+  // Auto-grow the message textarea up to a comfortable height
+  const autoGrowInput = useCallback(() => {
+    const el = inputAreaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.min(Math.max(el.scrollHeight, 42), 96);
+    el.style.height = `${next}px`;
+  }, []);
 
   // Constants (memoized)
   const token = localStorage.getItem("token");
@@ -447,7 +471,7 @@ export default function ChatBot() {
     }
   }, [handleScroll, isOpen]);
 
-  // Auto-scroll logic for new messages
+  // Auto-scroll logic for new messages + typing indicator
   useLayoutEffect(() => {
     if (!isOpen || !mainRef.current || isChatLoading) return;
 
@@ -469,8 +493,11 @@ export default function ChatBot() {
     if (hasNewMessage && shouldAutoScroll) {
       scrollToBottom("smooth");
       prevMessageLength.current = currentLength;
+    } else if (loading && shouldAutoScroll) {
+      // Keep the typing dots in view while waiting for the reply
+      scrollToBottom("smooth");
     }
-  }, [allMessages, isOpen, shouldAutoScroll, scrollToBottom, isChatLoading]);
+  }, [allMessages, isOpen, shouldAutoScroll, scrollToBottom, isChatLoading, loading]);
 
   // Reset state when chat closes
   useEffect(() => {
@@ -537,6 +564,21 @@ export default function ChatBot() {
       return () => window.removeEventListener("authChange", handleAuthChange);
     }
   }, [fetchChatUnreadCount, fetchUserProfile]);
+
+  // Real-time: push new chat messages instantly (replaces 5s polling as primary path)
+  useEffect(() => {
+    return onSocketEvent("chat:new-message", (msg) => {
+      if (!msg?._id) return;
+      if (msg._id === lastMessageIdRef.current) return; // already visible
+      lastMessageIdRef.current = msg._id;
+      setAllMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev; // dedupe vs poller
+        const next = [...prev, msg];
+        return next.length > 20 ? next.slice(-20) : next;
+      });
+      if (!msg.userRead) setChatUnreadCount((n) => n + 1);
+    });
+  }, []);
 
   useEffect(() => {
     fetchUserProfile();
@@ -702,10 +744,11 @@ export default function ChatBot() {
         createdAt: new Date().toISOString(),
       };
 
-      // Clear input immediately
-      setAllMessages((prev) => [...prev, optimisticUserMsg]);
-      setLoading(true);
-      setInput("");
+       // Clear input immediately
+       setAllMessages((prev) => [...prev, optimisticUserMsg]);
+       setLoading(true);
+       setInput("");
+       requestAnimationFrame(autoGrowInput);
 
       // Extract and clear selected image before upload
       setSelectedImage(null);
@@ -803,7 +846,7 @@ export default function ChatBot() {
         setIsUploading(false);
       }
     },
-    [loading, selectedLang, playAudio, hasMore, isChatLoading, userProfilePic, selectedImage, imagePreview],
+    [loading, selectedLang, playAudio, hasMore, isChatLoading, userProfilePic, selectedImage, imagePreview, autoGrowInput],
   );
 
   // Sync ref so voice handler always has the latest sendMessage
@@ -1020,6 +1063,18 @@ export default function ChatBot() {
         .chat-ping { background-color: rgba(var(--chat-color-r), var(--chat-color-g), var(--chat-color-b), 0.3) !important; }
         .chat-color-light-bg { background-color: rgba(var(--chat-color-r), var(--chat-color-g), var(--chat-color-b), 0.08) !important; }
         .chat-shadow { box-shadow: 0 4px 24px rgba(var(--chat-color-r), var(--chat-color-g), var(--chat-color-b), 0.15) !important; }
+        /* Compact markdown inside bot bubbles */
+        .bot-mb { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .bot-mb > * { margin: 0.15em 0; }
+        .bot-mb p { margin: 0; }
+        .bot-mb ul, .bot-mb ol { margin-left: 1.1em; padding: 0; }
+        .bot-mb li { margin: 0.05em 0; }
+        .bot-mb strong { font-weight: 600; }
+        .bot-mb em { font-style: italic; }
+        .bot-mb code { font-family: ui-monospace, monospace; font-size: 0.85em; background: rgba(100,116,139,0.12); padding: 0 0.25em; border-radius: 4px; }
+        .bot-mb h1, .bot-mb h2, .bot-mb h3 { font-size: 0.95em; font-weight: 600; margin: 0.2em 0 0.05em; }
+        .bot-mb a { color: inherit; text-decoration: underline; }
+        .bot-mb p:last-child { margin-bottom: 0; }
       `}</style>
       <div className="fixed bottom-5 right-5 sm:bottom-8 sm:right-8 z-[1000] font-sans antialiased">
         {/* Toggle Button */}
@@ -1048,7 +1103,7 @@ export default function ChatBot() {
         {/* Chat Window */}
         {isOpen && (
           <div
-            className={`absolute bottom-20 right-0 w-[calc(100vw-2rem)] sm:w-[380px] h-[80vh] sm:h-[600px] bg-white rounded-2xl flex flex-col shadow-2xl overflow-hidden border border-gray-100 ${animationDuration}`}
+            className={`absolute bottom-20 right-0 w-[calc(100vw-2rem)] sm:w-[380px] h-[80vh] sm:h-[600px] bg-white dark:bg-slate-950 rounded-2xl flex flex-col shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 ${animationDuration}`}
           >
             {/* Offline indicator banner */}
             {!isOnline && (
@@ -1104,14 +1159,15 @@ export default function ChatBot() {
             {/* Messages Area */}
             <main
               ref={mainRef}
-              className="relative flex-1 p-4 overflow-y-auto space-y-3"
-              style={{ backgroundColor: '#f8fafc' }}
+              className="relative flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 dark:bg-slate-900"
             >
               <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+                .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+                .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
               `}</style>
 
               {/* Loading state when opening chat */}
@@ -1131,18 +1187,37 @@ export default function ChatBot() {
                     </div>
                   )}
 
-                  {/* Empty state */}
-                  {!isChatLoading && allMessages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                    {/* Empty state with quick-start suggestions */}
+                    {!isChatLoading && allMessages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 gap-3">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center chat-color-light-bg">
                         <MessageCircle className="w-7 h-7 chat-color-text" />
                       </div>
                       <div className="text-center max-w-[260px]">
-                        <p className="font-semibold text-slate-700 text-sm">
+                        <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm">
                           Welcome!
                         </p>
-                        <p className="text-xs mt-0.5 text-slate-400">
+                        <p className="text-xs mt-0.5 text-slate-400 dark:text-slate-500">
                           How can I help you today?
+                        </p>
+                      </div>
+                      <div className="flex flex-col w-full px-6 gap-2 mt-1">
+                        {[
+                          "Track my order",
+                          "What's in my cart?",
+                          "What products do you have?",
+                        ].map((q) => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => sendMessage(q, false)}
+                            className="text-left text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-[var(--chat-color)] hover:text-white hover:border-transparent rounded-xl px-3.5 py-2.5 transition-all chat-color-ring focus:outline-none shadow-sm"
+                          >
+                            {q}
+                          </button>
+                        ))}
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center px-2 pt-1">
+                          Type <span className="font-semibold">@admin</span> any time to contact a person.
                         </p>
                       </div>
                     </div>
@@ -1151,16 +1226,40 @@ export default function ChatBot() {
                       {/* Show "Beginning of conversation" when no more messages */}
                       {!hasMore && allMessages.length > 0 && (
                         <div className="flex justify-center py-2">
-                          <span className="text-[9px] text-slate-400 bg-white px-2.5 py-1 rounded-full shadow-sm border border-slate-200/60">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-full shadow-sm border border-slate-200/60 dark:border-slate-700">
                             Beginning of conversation
                           </span>
                         </div>
                       )}
 
-                      {/* Display all messages */}
-                      {allMessages.map((m) => (
-                        <MessageBubble key={m._id || m.tempId} msg={m} userProfilePic={userProfilePic} />
-                      ))}
+                        {/* Display messages with day dividers */}
+                        {allMessages.map((m, i) => {
+                          const prev = allMessages[i - 1];
+                          const dayLabelFor = (d) => {
+                            if (!d) return null;
+                            const dt = new Date(d);
+                            const today = new Date();
+                            const yest = new Date(); yest.setDate(today.getDate() - 1);
+                            const sameDay = (a, b) => a.toDateString() === b.toDateString();
+                            if (sameDay(dt, today)) return "Today";
+                            if (sameDay(dt, yest)) return "Yesterday";
+                            return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                          };
+                          const dayNow = dayLabelFor(m.createdAt);
+                          const dayPrev = dayLabelFor(prev?.createdAt);
+                          return (
+                            <React.Fragment key={m._id || m.tempId}>
+                              {dayNow && (prev ? dayNow !== dayPrev : true) && (
+                                <div className="flex justify-center py-1 pointer-events-none">
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm border border-slate-200/70 dark:border-slate-700">
+                                    {dayNow}
+                                  </span>
+                                </div>
+                              )}
+                              <MessageBubble msg={m} userProfilePic={userProfilePic} />
+                            </React.Fragment>
+                          );
+                        })}
                     </>
                   )}
                 </>
@@ -1193,7 +1292,7 @@ export default function ChatBot() {
               {showJumpButton && !isChatLoading && (
                 <button
                   onClick={() => scrollToBottom("smooth")}
-                  className="sticky bottom-3 left-1/2 -translate-x-1/2 z-10 bg-white shadow-lg text-slate-600 px-3.5 py-2 rounded-full hover:shadow-xl transition-all flex items-center gap-2 border border-slate-200/80 chat-color-border-hover focus:outline-none chat-color-ring"
+                    className="sticky bottom-3 left-1/2 -translate-x-1/2 z-10 bg-white dark:bg-slate-800 shadow-lg text-slate-600 dark:text-slate-300 px-3.5 py-2 rounded-full hover:shadow-xl transition-all flex items-center gap-2 border border-slate-200/80 dark:border-slate-700 focus:outline-none chat-color-ring"
                 >
                   <svg className="w-3.5 h-3.5 chat-color-text" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path d="M19 9l-7 7-7-7"/>
@@ -1204,7 +1303,7 @@ export default function ChatBot() {
             </main>
 
             {/* Input Footer */}
-            <footer className="bg-white border-t border-gray-100 shrink-0">
+            <footer className="bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800 shrink-0">
               {/* Image Preview */}
               {imagePreview && (
                 <div className="pt-3 px-3">
@@ -1239,10 +1338,11 @@ export default function ChatBot() {
               >
                 {/* Image Upload Button */}
                 <label
+                  title="Attach an image"
                   className={`p-2 rounded-xl transition-all cursor-pointer ${
                     isUploading
                       ? "opacity-40 cursor-not-allowed"
-                      : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   } focus:outline-none chat-color-ring`}
                 >
                   <input
@@ -1266,14 +1366,15 @@ export default function ChatBot() {
                 {/* Voice Input Button */}
                 <button
                   type="button"
+                  title={isListening ? "Stop listening" : "Talk instead of typing"}
                   onClick={startVoiceInput}
                   disabled={loading || isChatLoading || isUploading}
                   className={`p-2 rounded-xl transition-all ${
                     isListening
                       ? "bg-red-500 text-white shadow-md"
-                      : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                   } disabled:opacity-40 focus:outline-none chat-color-ring`}
-                  aria-label={isListening ? "Listening..." : "Voice input"}
+                      : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    } disabled:opacity-40 focus:outline-none chat-color-ring`}
+                  aria-label={isListening ? "Stop listening" : "Voice input"}
                 >
                   {isListening ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1286,34 +1387,45 @@ export default function ChatBot() {
                   )}
                 </button>
 
-                {/* Text Input */}
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={
-                      isChatLoading
-                        ? "Loading chat..."
-                        : isListening
-                          ? "Listening..."
-                          : isUploading
-                            ? "Uploading..."
-                            : "Type your message..."
-                    }
-                    disabled={loading || isListening || isChatLoading || isUploading}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white chat-color-ring transition-all placeholder-slate-400 disabled:opacity-40"
-                    aria-label="Message input"
-                  />
-                </div>
+                 {/* Text Input (multiline: Enter sends, Shift+Enter adds newline) */}
+                 <div className="flex-1">
+                   <textarea
+                     ref={inputAreaRef}
+                     rows={1}
+                     value={input}
+                     onChange={(e) => {
+                       setInput(e.target.value);
+                       autoGrowInput();
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === "Enter" && !e.shiftKey) {
+                         e.preventDefault();
+                         if (!isChatLoading && !isUploading) sendMessage(input, false);
+                       }
+                     }}
+                      placeholder={
+                        isChatLoading
+                          ? "Loading chat..."
+                          : isListening
+                            ? "Listening..."
+                            : isUploading
+                              ? "Uploading..."
+                              : "Type a message…"
+                      }
+                      disabled={loading || isListening || isChatLoading || isUploading}
+                      className="w-full px-3.5 py-2 min-h-[42px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 leading-snug resize-none overflow-y-auto focus:outline-none focus:bg-white dark:focus:bg-slate-700 chat-color-ring transition-all placeholder-slate-400 disabled:opacity-40"
+                     aria-label="Message input"
+                   />
+                 </div>
 
-                {/* Send Button */}
-                <button
-                  type="submit"
-                  disabled={(!input.trim() && !selectedImage) || loading || isChatLoading || isUploading}
-                  className="p-2.5 chat-color-bg chat-color-bg-hover text-white rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-md hover:shadow-lg focus:outline-none chat-color-ring-btn"
-                  aria-label="Send message"
-                >
+                 {/* Send Button */}
+                 <button
+                   type="submit"
+                   title="Send message"
+                   disabled={(!input.trim() && !selectedImage) || loading || isChatLoading || isUploading}
+                   className="p-2.5 chat-color-bg chat-color-bg-hover text-white rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-md hover:shadow-lg focus:outline-none chat-color-ring-btn"
+                   aria-label="Send message"
+                 >
                   <Send className="w-4 h-4" />
                 </button>
               </form>

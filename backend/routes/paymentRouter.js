@@ -21,7 +21,7 @@ router.post("/stripe-fail", authMiddleware, handleStripeFailure);
 router.post("/cod", authMiddleware, placeCODOrder);
 
 // Cancel order route
-router.post("/cancel/:id", authMiddleware, cancelOrder);
+router.post("/cancel/:orderId", authMiddleware, cancelOrder);
 
 export default router;
 

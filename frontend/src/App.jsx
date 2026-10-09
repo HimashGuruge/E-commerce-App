@@ -1,7 +1,10 @@
 import React, { useEffect } from "react";
 import api from "@/utils/api";
+import { initSocket, destroySocket } from "@/utils/socket";
 import { injectTheme, injectFont, injectNavbar } from "@/utils/color";
+import usePublicSettings from "@/hooks/usePublicSettings";
 import Homepage from "./components/pages/shop/Homepage.jsx";
+
 import CategoryPage from "./components/pages/shop/CategoryPage.jsx";
 import ProductOverview from "./components/pages/shop/Productoverview.jsx";
 
@@ -100,34 +103,47 @@ function AppLayout() {
 }
 
 function App() {
+  const { settings } = usePublicSettings();
+
   useEffect(() => {
-    const applySettings = (s) => {
-      if (!s) return;
-      if (s.primaryColor) injectTheme(s.primaryColor);
-      if (s.chatWidgetColor || s.primaryColor) {
-        const color = s.chatWidgetColor || s.primaryColor;
-        const root = document.documentElement;
-        root.style.setProperty("--chat-color", color);
-        root.style.setProperty("--chat-color-r", parseInt(color.slice(1,3), 16));
-        root.style.setProperty("--chat-color-g", parseInt(color.slice(3,5), 16));
-        root.style.setProperty("--chat-color-b", parseInt(color.slice(5,7), 16));
-        // Save to cookie for all components to read instantly on mount
-        document.cookie = `opencodeChatColor=${encodeURIComponent(color)}; max-age=31536000; path=/`;
-      }
-      if (s.fontFamily) injectFont(s.fontFamily, s.fontUrl);
-      injectNavbar(s);
-      window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: s }));
-    };
+    if (!settings) return;
+    if (settings.primaryColor) injectTheme(settings.primaryColor);
+    if (settings.chatWidgetColor || settings.primaryColor) {
+      const color = settings.chatWidgetColor || settings.primaryColor;
+      const root = document.documentElement;
+      root.style.setProperty("--chat-color", color);
+      root.style.setProperty("--chat-color-r", parseInt(color.slice(1,3), 16));
+      root.style.setProperty("--chat-color-g", parseInt(color.slice(3,5), 16));
+      root.style.setProperty("--chat-color-b", parseInt(color.slice(5,7), 16));
+      // Save to cookie for all components to read instantly on mount
+      document.cookie = `opencodeChatColor=${encodeURIComponent(color)}; max-age=31536000; path=/`;
+    }
+    if (settings.fontFamily) injectFont(settings.fontFamily, settings.fontUrl);
+    injectNavbar(settings);
+    window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: settings }));
+  }, [settings]);
 
+  useEffect(() => {
     const fetchSettings = () => {
-      api.get("/api/settings/public")
-        .then((res) => { if (res.data?.success) applySettings(res.data.settings); })
-        .catch(() => {});
+      import("@/utils/siteSettings").then(({ getPublicSettings }) =>
+        getPublicSettings({ force: true }).then((s) => {
+          if (s) window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: s }));
+        }).catch(() => {})
+      );
     };
-
-    fetchSettings();
     const interval = setInterval(fetchSettings, 60000);
-    return () => clearInterval(interval);
+    const handleAuthChange = () => {
+      if (localStorage.getItem("token")) initSocket();
+      else destroySocket();
+    };
+    window.addEventListener("authChange", handleAuthChange);
+    // Connect immediately if already logged in (page reload)
+    if (localStorage.getItem("token")) initSocket();
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("authChange", handleAuthChange);
+      destroySocket();
+    };
   }, []);
 
   return (

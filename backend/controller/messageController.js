@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
@@ -182,7 +183,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
   const userPhone = user?.phone || "";
   let aiMessageText = "";
 
-  // 4. Call SIM.ai
+  // 4. Call OpenAI (GPT)
   try {
     const langInstruction = effectiveLang === "si-LK"
       ? "IMPORTANT: You MUST reply in Sinhala language using Sinhala Unicode characters (සිංහල අකුරෙන්). Do NOT reply in English or Singlish.\n"
@@ -250,17 +251,119 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
     const finalPrompt = context + langInstruction + (messageText || "");
 
-    const requestBody = {
-      input: finalPrompt,
-      conversationId: userId.toString(),
-    };
-    console.log("📨 Prompt length:", finalPrompt.length, "chars");
-    console.log("🔑 SIM API Key exists:", !!simConfig.apiKey);
+    const apiKey = simConfig.apiKey;
+    const workflowUrl = simConfig.workflowUrl;
 
-    let simRes;
-    let simData = null;
-    const MAX_RETRIES = 2;
+    const SIM_SELECTED_OUTPUTS = process.env.SIM_SELECTED_OUTPUTS || "agent1.content";
+
+    const requestBody = {
+      input: {
+        conversationId: userId.toString(),
+        input: finalPrompt,
+      },
+      stream: true,
+      selectedOutputs: SIM_SELECTED_OUTPUTS.split(",").map((s) => s.trim()),
+      includeThinking: false,
+      includeToolCalls: false,
+    };
+
+    // Parses the agent-events-v1 stream per docs.sim.ai (Workflows > Deployment > Agent stream events).
+    // Returns { ok, text, terminalError } where text is the settled final answer.
+    async function consumeSimStream(body) {
+      const reader = body.getReader();
+      const decoder = new TextDecoder();
+      const answers = new Map();
+      let lineBuffer = "";
+      let lastChunkRaw = "";
+
+      // Process one complete SSE line; returns terminal info if present
+      function handleLine(line) {
+        if (!line.startsWith("data:")) return null;
+        const payload = line.startsWith("data: ") ? line.slice(6) : line.slice(5);
+        let frame;
+        try { frame = JSON.parse(payload); } catch { return null; }
+        if (frame === "[DONE]") return null;
+        if (typeof frame !== "object" || frame === null) return null;
+
+        const { blockId, event } = frame;
+        if (event === undefined) {
+          if (typeof frame.chunk === "string" && blockId != null) {
+            answers.set(blockId, (answers.get(blockId) ?? "") + frame.chunk);
+            lastChunkRaw = payload;
+          }
+          return null;
+        }
+        switch (event) {
+          case "chunk_reset":
+            if (blockId != null) answers.set(blockId, "");
+            break;
+          case "thinking":
+          case "tool":
+            break; // consumed by policy switch; nothing to append
+          case "stream_error":
+            console.error("⚠️ SIM stream_error (non-terminal):", String(frame.error || "").substring(0, 300));
+            break;
+          case "final": {
+            const d = frame.data;
+            if (d && d.success === false) {
+              return { type: "error", error: String(d.error || "workflow failed") };
+            }
+            return { type: "final" };
+          }
+          case "error":
+            return { type: "error", error: String(frame.error || "stream error") };
+          default:
+            break; // unknown event types are ignored per spec
+        }
+        return null;
+      }
+
+      let terminal = null;
+      let raw = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        raw += decoder.decode(value, { stream: true });
+        lineBuffer += raw.replace(/\u0000/g, "");
+        raw = "";
+
+        let nl;
+        while ((nl = lineBuffer.indexOf("\n")) !== -1) {
+          const line = lineBuffer.slice(0, nl).replace(/\r$/, "");
+          lineBuffer = lineBuffer.slice(nl + 1);
+          if (line.trim() === "" || line.startsWith(":")) continue;
+          const result = handleLine(line);
+          if (result?.type === "error" || result?.type === "final") {
+            terminal = result;
+            break;
+          }
+        }
+        if (terminal) break;
+      }
+      // flush trailing line
+      if (!terminal) {
+        const rest = lineBuffer.trim();
+        if (rest && !rest.startsWith(":")) handleLine(rest);
+      }
+
+      const text = [...answers.values()].join("").trim();
+      if (terminal?.type === "error") {
+        return { ok: false, terminalError: terminal.error, sample: (raw || "").substring(0, 300) };
+      }
+      return { ok: true, text, sampleText: text.substring(0, 300) };
+    }
+
+    console.log("📨 Prompt length:", finalPrompt.length, "chars");
+    console.log("🔑 SIM API Key exists:", !!apiKey);
+
+    if (!apiKey || !workflowUrl) {
+      throw new Error("SIM.AI is not configured (SIM_API_KEY / SIM_WORKFLOW_URL).");
+    }
+
+    let rawText = null;
     let lastErrorBody = null;
+    const MAX_RETRIES = 2;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       if (attempt > 0) {
@@ -270,33 +373,45 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
 
-        simRes = await fetch(simConfig.workflowUrl, {
+        const simRes = await fetch(workflowUrl, {
           method: "POST",
           headers: {
-            "X-API-Key": simConfig.apiKey,
+            "X-API-Key": apiKey,
+            "X-Sim-Stream-Protocol": "agent-events-v1",
             "Content-Type": "application/json",
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
         if (simRes.ok) {
-          simData = await simRes.json();
+          const result = await consumeSimStream(simRes.body);
+          clearTimeout(timeoutId);
+
+          if (!result.ok) {
+            // Terminal stream failure — surface it, no point retrying
+            console.error("❌ SIM.ai terminal stream error:", result.terminalError.substring(0, 300));
+            throw new Error("SIM.AI workflow run failed");
+          }
+
+          console.log("🔍 SIM.ai answer preview:", result.sampleText);
+          rawText = result.text;
+          lastErrorBody = null;
           break;
         }
 
-        // Non-OK response
+        clearTimeout(timeoutId);
         const errorBody = await simRes.text().catch(() => "");
         console.error(`❌ SIM.ai attempt ${attempt + 1} failed:`, simRes.status, errorBody.substring(0, 200));
 
-        // Skip retry on 429 (rate limit/quota inside SIM.ai's 500) — won't recover in seconds
-        const isRateLimited = errorBody.includes(':429') || errorBody.includes('"429');
-        if (isRateLimited) {
-          throw new Error("SIM.ai rate limited");
+        if ([401, 402, 403].includes(simRes.status)) {
+          throw new Error(`SIM.AI rejected the API key (status ${simRes.status})`);
+        }
+
+        if (errorBody.includes(':429') || errorBody.includes('"429')) {
+          throw new Error("SIM.AI rate limited");
         }
 
         if (attempt < MAX_RETRIES) {
@@ -306,10 +421,14 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
         throw new Error(`SIM.ai failed (status ${simRes.status})`);
       } catch (err) {
-        if (err.message === "SIM.ai rate limited") {
+        if (err.message === "SIM.AI rate limited" || err.message?.startsWith?.("SIM.AI rejected")) {
           throw err;
         }
-        if (err.message?.includes?.("SIM.ai failed") && attempt < MAX_RETRIES) {
+        const retryableNetwork =
+          err.code?.startsWith?.("UND_ERR") ||
+          err.name === "AbortError" ||
+          /UND_ERR|timeout|EHOST|ENETUNREACH|ECONNREFUSED|fetch failed/i.test(`${err.cause?.code || ""} ${err.message || ""}`);
+        if ((retryableNetwork || err.message?.includes?.("SIM.ai failed")) && attempt < MAX_RETRIES) {
           lastErrorBody = null;
           continue;
         }
@@ -317,30 +436,11 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
       }
     }
 
-    if (!simData) {
+    if (rawText === null) {
       throw new Error("AI service temporarily unavailable. Please try again later.");
     }
 
-    console.log("🔍 SIM.ai response:", JSON.stringify(simData, null, 2).substring(0, 500));
-
-    // Extract response from various possible response structures
-    let raw;
-    if (simData.output?.content) {
-      raw = simData.output.content;
-    } else if (simData.output) {
-      raw = simData.output;
-    } else if (simData.result) {
-      raw = simData.result;
-    } else if (simData.data?.output) {
-      raw = simData.data.output;
-    } else if (simData.response) {
-      raw = simData.response;
-    } else {
-      console.log("⚠️ Unexpected SIM.ai response structure:", Object.keys(simData));
-      raw = "";
-    }
-
-    aiMessageText = typeof raw === "string" ? raw.trim() : "";
+    aiMessageText = (rawText || "").trim();
 
     // Fallback if empty or invalid
     if (!aiMessageText || aiMessageText === "[object Object]") {
@@ -350,8 +450,8 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
         : "Sorry, I couldn't generate a response. Please try @admin for help.";
     }
   } catch (err) {
-    logger.error("SIM.ai error:", err.message || err);
-    console.error("❌ SIM.ai fetch failed:", err);
+    logger.error("GPT error:", err.message || err);
+    console.error("❌ GPT fetch failed:", err);
 
     // Intelligent fallback: use already-fetched data to generate a useful reply
     const fallbackParts = [];
@@ -418,6 +518,9 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
     adminRead: true,
     userRead: false,
   });
+  // Real-time: push the AI reply to the user's open chat + refresh badge
+  emitToUser(userId, "chat:new-message", aiMsg);
+  emitToAdmins("chat:unseen-user", { userId, userName: user?.name || "A user" });
 
   res.status(201).json({
     success: true,

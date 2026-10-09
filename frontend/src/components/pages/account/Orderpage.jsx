@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { ShoppingBag, ArrowRight, RefreshCw, ChevronLeft, ChevronRight, Package, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "@/utils/api";
+import { onSocketEvent } from "@/utils/socket";
 import OrderStatusBadge from "@/components/pages/account/OrderStatusBadge";
 import OrderProgressTracker from "@/components/pages/account/OrderProgressTracker";
 import Swal from "sweetalert2";
@@ -194,6 +195,13 @@ export default function OrderPage() {
   useEffect(() => {
     fetchOrders(statusFilter, 1);
   }, [statusFilter, fetchOrders]);
+
+  // Real-time: refresh instantly when the server pushes a status change
+  useEffect(() => {
+    return onSocketEvent("order:update", () => {
+      fetchOrders(statusFilter, page);
+    });
+  }, [fetchOrders, statusFilter, page]);
 
   const handleFilterChange = (s) => {
     setStatusFilter(s);

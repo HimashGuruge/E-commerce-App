@@ -566,7 +566,7 @@ const handleEditCategory = async (cat) => {
         const generatedVariants = generateVariants();
         const totalVars = generatedVariants.length;
 
-        // Upload variant images and group images to Supabase first
+        // Upload variant images and group images to the backend (multer/local storage) first
         const uploadedVariantImages = {};
         const uploadedGroupImages = {};
         
@@ -618,7 +618,6 @@ const handleEditCategory = async (cat) => {
           }
           
           return {
-            skuSuffix: Object.values(variant).join("-"),
             attributes: variant,
             price: price,
             sellingPrice: price,

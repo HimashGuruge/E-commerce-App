@@ -12,7 +12,17 @@ const generateToken = (user) => {
 
 export const Loginuser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+
+  if (!email?.trim() || !password) {
+    res.status(400);
+    throw new Error("Email and password are required");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400);
+    throw new Error("Please enter a valid email address");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
 
   if (!user || !user.password) {
     res.status(401);

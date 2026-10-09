@@ -22,6 +22,56 @@ export const createParentProduct = asyncHandler(async (req, res) => {
   });
 });
 
+const buildVariantSku = (attributes) => {
+  const entries = Object.entries(attributes || {}).sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) return "";
+  return entries.map(([key, value]) => `${key}_` + String(value)).join("-");
+};
+
+const resolveSku = (v, parentProductId) => {
+  const suffix = buildVariantSku(v.attributes);
+  return v.sku || (suffix ? `SKU-${suffix}-${parentProductId}` : `SKU-${parentProductId}`);
+};
+
+let txnCapable = null;
+const canUseTransactions = async () => {
+  if (txnCapable === null) {
+    try {
+      const hello = await mongoose.connection.db.adminCommand({ hello: 1 });
+      txnCapable = Boolean(hello.isreplicaset);
+    } catch {
+      txnCapable = false;
+    }
+  }
+  return txnCapable;
+};
+
+const saveVariantsAndLink = async (parentProductId, variantsWithSku) => {
+  const useTxn = await canUseTransactions();
+  if (!useTxn) {
+    const docs = await Variant.insertMany(variantsWithSku);
+    await Product.findByIdAndUpdate(parentProductId, {
+      $push: { variants: { $each: docs.map((v) => v._id) } },
+    });
+    return docs;
+  }
+  const session = await mongoose.startSession();
+  try {
+    let docs;
+    await session.withTransaction(async () => {
+      docs = await Variant.insertMany(variantsWithSku, { session });
+      await Product.findByIdAndUpdate(
+        parentProductId,
+        { $push: { variants: { $each: docs.map((v) => v._id) } } },
+        { session }
+      );
+    });
+    return docs;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export const createVariants = asyncHandler(async (req, res) => {
   const { variants } = req.body;
   if (!variants || !Array.isArray(variants) || variants.length === 0) {
@@ -30,6 +80,11 @@ export const createVariants = asyncHandler(async (req, res) => {
   }
   const parentProductId = req.params.parentProductId;
   for (const v of variants) {
+    const resolvedSku = resolveSku(v, parentProductId);
+    if (await Variant.findOne({ sku: resolvedSku })) {
+      res.status(409);
+      throw new Error(`Variant with SKU "${resolvedSku}" already exists`);
+    }
     if (v.price !== undefined && v.price <= 0 && v.sellingPrice !== undefined && v.sellingPrice <= 0) {
       res.status(400);
       throw new Error("Variant price must be greater than 0");
@@ -39,19 +94,26 @@ export const createVariants = asyncHandler(async (req, res) => {
       throw new Error("Variant stock cannot be negative");
     }
   }
-  const variantsWithSku = variants.map((v, idx) => ({
+  const variantsWithSku = variants.map((v) => ({
     ...v,
     parentProduct: parentProductId,
-    sku: v.sku || `SKU-${parentProductId}-${idx + 1}`,
+    sku: resolveSku(v, parentProductId),
+    variantSku: buildVariantSku(v.attributes),
     price: v.price || v.sellingPrice || 0,
     attributes: v.attributes || {},
     sellingPrice: v.sellingPrice || v.price || 0,
     stock: v.stock ?? 0,
   }));
-  const createdVariants = await Variant.insertMany(variantsWithSku);
-  await Product.findByIdAndUpdate(parentProductId, {
-    $push: { variants: { $each: createdVariants.map((v) => v._id) } },
-  });
+  let createdVariants;
+  try {
+    createdVariants = await saveVariantsAndLink(parentProductId, variantsWithSku);
+  } catch (err) {
+    if (err.code === 11000) {
+      res.status(409);
+      throw new Error("Duplicate variant: an identical variant already exists for this product");
+    }
+    throw err;
+  }
   res.status(201).json({ success: true, variants: createdVariants });
 });
 
@@ -71,15 +133,20 @@ export const generateVariants = asyncHandler(async (req, res) => {
   };
 
   generate(0, {});
-  const variantsWithSku = variants.map((v, idx) => ({
-    ...v,
-    sku: `SKU-${parentProductId}-gen-${idx + 1}`,
-    stock: v.stock ?? 0,
-  }));
-  const created = await Variant.insertMany(variantsWithSku);
-  await Product.findByIdAndUpdate(parentProductId, {
-    $push: { variants: { $each: created.map((v) => v._id) } },
+  const variantsWithSku = variants.map((v) => {
+    const attrs = {};
+    for (const opt of options) attrs[opt.name] = v[opt.name];
+    return {
+      parentProduct: parentProductId,
+      sku: resolveSku({ sku: undefined, attributes: attrs }, parentProductId),
+      variantSku: buildVariantSku(attrs),
+      attributes: attrs,
+      price: v.price || 0,
+      sellingPrice: v.price || 0,
+      stock: v.stock ?? 0,
+    };
   });
+  const created = await saveVariantsAndLink(parentProductId, variantsWithSku);
   res.status(201).json({ success: true, variants: created });
 });
 

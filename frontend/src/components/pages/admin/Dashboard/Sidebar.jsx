@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { NavLink, Link } from "react-router-dom";
 import api from "@/utils/api";
+import { getPublicSettings } from "@/utils/siteSettings";
 import { RxDashboard, RxGear } from "react-icons/rx";
 import {
   MdOutlineGridView,
@@ -240,12 +241,10 @@ export default function Sidebar({
     };
   }, [fetchBadgeData]);
 
-  // Listen for settings updates
+  // Listen for settings updates (detail carries the fresh settings)
   useEffect(() => {
-    const handleSettingsUpdate = () => {
-      api.get("/api/settings/public").then((res) => {
-        if (res.data?.success) setSettings(res.data.settings);
-      }).catch(() => {});
+    const handleSettingsUpdate = (e) => {
+      if (e.detail) setSettings(e.detail);
     };
     window.addEventListener("settingsUpdated", handleSettingsUpdate);
     return () => window.removeEventListener("settingsUpdated", handleSettingsUpdate);
@@ -268,8 +267,8 @@ export default function Sidebar({
     // Fetch fresh data
     fetchUserData();
     fetchBadgeData();
-    api.get("/api/settings/public").then((res) => {
-      if (res.data?.success) setSettings(res.data.settings);
+    getPublicSettings().then((s) => {
+      if (s) setSettings(s);
     }).catch(() => {});
     // Refresh more frequently (15 seconds)
     const interval = setInterval(fetchBadgeData, 15000);
