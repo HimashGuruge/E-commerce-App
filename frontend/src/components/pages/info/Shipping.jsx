@@ -100,6 +100,9 @@ export default function Shipping() {
     fetchUserCurrentDetails();
   }, []);
 
+  const subTotal = orderData?.total || 0;
+  const deliveryFee = subTotal >= shippingSettings.freeThreshold ? 0 : shippingSettings.standardCost;
+
   const handleProceed = () => {
     let finalData = {};
 
@@ -129,8 +132,6 @@ export default function Shipping() {
       return;
     }
 
-    const subTotal = orderData?.total || 0;
-    const deliveryFee = subTotal >= shippingSettings.freeThreshold ? 0 : shippingSettings.standardCost;
     const finalOrderData = {
       ...orderData,
       shippingAddress: { ...finalData },

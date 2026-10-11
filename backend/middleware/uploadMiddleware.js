@@ -95,12 +95,16 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Multer configuration with size limit (5MB for images, 10MB for documents)
+// Max upload size — 15 MB default, override with `MAX_UPLOAD_MB` in .env
+const MAX_FILE_MB = parseInt(process.env.MAX_UPLOAD_MB, 10) || 15;
+const MAX_FILE_SIZE = MAX_FILE_MB * 1024 * 1024;
+
+// Multer configuration with shared size limit (applies to every upload instance)
 const uploadConfig = {
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB default
+    fileSize: MAX_FILE_SIZE
   }
 };
 

@@ -1,10 +1,12 @@
 import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
+import Category from "../models/Category.js";
 import Feedback from "../models/Feedback.js";
 import Order from "../models/Order.js";
 import logger from "../utils/logger.js";
 import { productUpload } from "../middleware/uploadMiddleware.js";
+import { recalcParentStock } from "./productVariantController.js";
 
 export const onUpload = asyncHandler(async (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -38,15 +40,33 @@ export const onUpload = asyncHandler(async (req, res) => {
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Keep the storefront contract: `price` is the list/crossed-out price and
+// `sellingPrice` is the price actually charged (stored as `price` in the DB).
+const formatProduct = (p) => {
+  const doc = typeof p.toObject === "function" ? p.toObject() : { ...p };
+  const rawList = doc.originalPrice;
+  const charged = doc.price;
+  const listPrice =
+    rawList != null && Number(rawList) !== Number(charged) ? rawList : null;
+  return {
+    ...doc,
+    price: listPrice != null ? listPrice : charged,
+    originalPrice: listPrice,
+    sellingPrice: charged,
+    productName: doc.name,
+    productId: doc._id.toString(),
+  };
+};
+
 const SORT_FIELDS = {
   "price-asc": { price: 1 },
   "price-desc": { price: -1 },
-  "selling-price-asc": { sellingPrice: 1 },
-  "selling-price-desc": { sellingPrice: -1 },
-  "sellingprice-asc": { sellingPrice: 1 },
-  "sellingprice-desc": { sellingPrice: -1 },
-  "sellingPrice-asc": { sellingPrice: 1 },
-  "sellingPrice-desc": { sellingPrice: -1 },
+  "selling-price-asc": { price: 1 },
+  "selling-price-desc": { price: -1 },
+  "sellingprice-asc": { price: 1 },
+  "sellingprice-desc": { price: -1 },
+  "sellingPrice-asc": { price: 1 },
+  "sellingPrice-desc": { price: -1 },
   newest: { createdAt: -1 },
   "created-at-desc": { createdAt: -1 },
   "createdat-desc": { createdAt: -1 },
@@ -130,8 +150,8 @@ const normalizeSortParam = (raw) => {
   const direction = dir === "desc" ? -1 : 1;
   const fieldMap = {
     price: "price",
-    sellingPrice: "sellingPrice",
-    "selling-price": "sellingPrice",
+    sellingPrice: "price",
+    "selling-price": "price",
     rating: "rating",
     name: "name",
     createdAt: "createdAt",
@@ -142,11 +162,7 @@ const normalizeSortParam = (raw) => {
 
 const paginateResponse = ({ results, totalCount, page, limit }) => ({
   success: true,
-  products: results.map((p) => ({
-    ...p.toObject(),
-    productName: p.name,
-    productId: p._id.toString(),
-  })),
+  products: results.map(formatProduct),
   page,
   limit,
   totalCount,
@@ -174,14 +190,7 @@ export const getAllProducts = asyncHandler(async (req, res) => {
 
   if (pageNum === null) {
     const products = await base;
-    return res.json({
-      success: true,
-      products: products.map((p) => ({
-        ...p.toObject(),
-        productName: p.name,
-        productId: p._id.toString(),
-      })),
-    });
+    return res.json({ success: true, products: products.map(formatProduct) });
   }
 
   const [results, totalCount] = await Promise.all([
@@ -201,21 +210,27 @@ export const productFindById = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Product not found");
   }
-  res.json({
-    success: true,
-    product: {
-      ...product.toObject(),
-      productName: product.name,
-      productId: product._id.toString(),
-    },
-  });
+  res.json({ success: true, product: formatProduct(product) });
 });
 
 export const getProductsByCategory = asyncHandler(async (req, res) => {
   const { sort, sortBy, page, limit } = req.query;
+  const raw = String(req.params.category).trim();
+  // Products store the category NAME (e.g. "Electronics"), but the route
+  // param is the slug (e.g. "electronics"). Resolve it once, case-insensitive.
+  let categoryName = raw;
+  if (raw) {
+    const cat = await Category.findOne({
+      $or: [
+        { slug: new RegExp(`^${escapeRegExp(raw)}$`, "i") },
+        { name: new RegExp(`^${escapeRegExp(raw)}$`, "i") },
+      ],
+    }).catch(() => null);
+    if (cat?.name) categoryName = cat.name;
+  }
   const query = applyFilters(
-    { category: req.params.category },
-    { category: req.params.category, includeAll: "true" }
+    { category: new RegExp(`^${escapeRegExp(categoryName)}$`, "i") },
+    { category: new RegExp(`^${escapeRegExp(categoryName)}$`, "i"), includeAll: "true" }
   );
 
   let base = Product.find(query).populate("variants");
@@ -241,16 +256,22 @@ export const getProductsByIds = asyncHandler(async (req, res) => {
   }
   const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
   const products = await Product.find({ _id: { $in: validIds } });
-  const formattedProducts = products.map((p) => ({
-    ...p.toObject(),
-    productName: p.name,
-    productId: p._id.toString(),
-  }));
+  const formattedProducts = products.map(formatProduct);
   res.json({ success: true, products: formattedProducts });
 });
 
+// The form sends `highlights[]`; persist it into the model's `tags` array so
+// nothing typed by an admin is silently discarded.
+const normalizeHighlights = (data) => {
+  if (Array.isArray(data.highlights)) {
+    data.tags = data.highlights;
+  }
+  delete data.highlights;
+  return data;
+};
+
 export const addproduct = asyncHandler(async (req, res) => {
-  const productData = { ...req.body };
+  const productData = normalizeHighlights({ ...req.body });
   if (productData.productName) {
     productData.name = productData.productName;
     delete productData.productName;
@@ -261,18 +282,11 @@ export const addproduct = asyncHandler(async (req, res) => {
     productData.approvedByAdmin = false;
   }
   const product = await Product.create(productData);
-  res.status(201).json({
-    success: true,
-    product: {
-      ...product.toObject(),
-      productName: product.name,
-      productId: product._id.toString(),
-    },
-  });
+  res.status(201).json({ success: true, product: formatProduct(product) });
 });
 
 export const updateProduct = asyncHandler(async (req, res) => {
-  const productData = { ...req.body };
+  const productData = normalizeHighlights({ ...req.body });
   if (productData.productName) {
     productData.name = productData.productName;
     delete productData.productName;
@@ -290,18 +304,20 @@ export const updateProduct = asyncHandler(async (req, res) => {
     throw new Error("You can only edit your own products");
   }
 
-  const updated = await Product.findByIdAndUpdate(req.params.id, productData, { 
-    new: true, 
-    runValidators: true 
+  // For variant parents, stock is always the sum of variant stocks — ignore any manual value
+  if (product.isVariantParent) {
+    delete productData.stock;
+  }
+  const updated = await Product.findByIdAndUpdate(req.params.id, productData, {
+    new: true,
+    runValidators: true
   });
-  res.json({
-    success: true,
-    product: {
-      ...updated.toObject(),
-      productName: updated.name,
-      productId: updated._id.toString(),
-    },
-  });
+  let finalUpdated = updated;
+  if (product.isVariantParent) {
+    await recalcParentStock(updated._id);
+    finalUpdated = await Product.findById(updated._id);
+  }
+  res.json({ success: true, product: formatProduct(finalUpdated) });
 });
 
 export const deleteProduct = asyncHandler(async (req, res) => {
@@ -440,11 +456,7 @@ export const getProductRecommendations = asyncHandler(async (req, res) => {
     _id: { $ne: product._id },
     status: { $in: ["active", "ready"] },
   }).limit(parseInt(req.query.limit) || 6);
-  const formattedRecommendations = recommendations.map((p) => ({
-    ...p.toObject(),
-    productName: p.name,
-    productId: p._id.toString(),
-  }));
+  const formattedRecommendations = recommendations.map(formatProduct);
   res.json({ success: true, recommendations: formattedRecommendations });
 });
 
@@ -459,6 +471,6 @@ export const adminApproveProduct = asyncHandler(async (req, res) => {
   product.approvedByAdmin = true;
   product.status = "active";
   await product.save();
-  res.json({ success: true, product });
+  res.json({ success: true, product: formatProduct(product) });
 });
 

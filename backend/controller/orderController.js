@@ -1,11 +1,12 @@
 import asyncHandler from "express-async-handler";
-import { emitToUser } from "../services/socketService.js";
+import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
 import Message from "../models/Message.js";
 import logger from "../utils/logger.js";
 import SiteConfig from "../models/SiteConfig.js";
+import { generateReviewReminders } from "../services/reviewReminderService.js";
 
 export const getOrdersByUser = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -59,6 +60,11 @@ export const cancelOrder = asyncHandler(async (req, res) => {
   if (!order) {
     res.status(404);
     throw new Error("Order not found");
+  }
+  // Only the order owner or an admin may cancel
+  if (order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to cancel this order");
   }
   order.orderStatus = "cancelled";
   order.cancelledBy = req.user._id;
@@ -142,13 +148,22 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
     };
     const emoji = statusEmoji[req.body.status] || "📦";
     const trackingInfo = req.body.trackingNumber ? `\nTracking: ${req.body.trackingNumber} (${req.body.courier || "N/A"})` : "";
-    await Message.create({
+    const statusMsg = await Message.create({
       sender: req.user._id,
+      recipient: order.user?._id || order.user,
+      orderRef: order._id,
       message: `${emoji} Order #${order._id} status updated: ${oldStatus} → ${req.body.status}${trackingInfo}`,
       senderType: "bot",
       isAdmin: true,
       adminRead: true,
       userRead: false,
+    });
+    // Real-time: push the bot status note to the buyer's open chat instantly
+    emitToUser(order.user?._id || order.user, "chat:new-message", statusMsg);
+    // Ping admins so their chat centre refreshes without waiting for polling
+    emitToAdmins("chat:unseen-user", {
+      userId: order.user?._id || order.user,
+      userName: order.user?.name || "A user",
     });
   } catch (err) {
     logger.error("Failed to send order status notification:", err);
@@ -159,6 +174,14 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
     orderId: order._id,
     orderStatus: order.orderStatus,
   });
+  // Review reminders: fire when the order first reaches "delivered"
+  if (oldStatus !== "delivered" && order.orderStatus === "delivered") {
+    try {
+      await generateReviewReminders(order);
+    } catch (err) {
+      logger.error("Failed to generate review reminders:", err.message);
+    }
+  }
 
   res.json({ success: true, order });
 });

@@ -2,6 +2,25 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
+import logger from "../utils/logger.js";
+
+// Recompute a parent product's total stock from its variants
+export const recalcParentStock = async (parentProductId) => {
+  try {
+    if (!parentProductId || !mongoose.Types.ObjectId.isValid(parentProductId)) return null;
+    const parentId = new mongoose.Types.ObjectId(parentProductId);
+    const agg = await Variant.aggregate([
+      { $match: { parentProduct: parentId } },
+      { $group: { _id: null, total: { $sum: "$stock" } } },
+    ]);
+    const total = agg[0]?.total || 0;
+    await Product.findByIdAndUpdate(parentId, { stock: total });
+    return total;
+  } catch (err) {
+    logger.warn(`Failed to recalc parent stock for ${parentProductId}`, { error: err.message });
+    return null;
+  }
+};
 
 export const createParentProduct = asyncHandler(async (req, res) => {
   const productData = { ...req.body };
@@ -53,6 +72,7 @@ const saveVariantsAndLink = async (parentProductId, variantsWithSku) => {
     await Product.findByIdAndUpdate(parentProductId, {
       $push: { variants: { $each: docs.map((v) => v._id) } },
     });
+    await recalcParentStock(parentProductId);
     return docs;
   }
   const session = await mongoose.startSession();
@@ -66,6 +86,7 @@ const saveVariantsAndLink = async (parentProductId, variantsWithSku) => {
         { session }
       );
     });
+    await recalcParentStock(parentProductId);
     return docs;
   } finally {
     await session.endSession();
@@ -167,12 +188,14 @@ export const getVariantBySku = asyncHandler(async (req, res) => {
 export const updateVariant = asyncHandler(async (req, res) => {
   const variant = await Variant.findByIdAndUpdate(req.params.variantId, req.body, {
     new: true,
+    runValidators: true,
   });
   if (!variant) {
     res.status(404);
     throw new Error("Variant not found");
   }
-  res.json({ success: true, variant });
+  const total = await recalcParentStock(variant.parentProduct);
+  res.json({ success: true, variant, totalStock: total ?? undefined });
 });
 
 export const updateVariantStock = asyncHandler(async (req, res) => {
@@ -180,13 +203,14 @@ export const updateVariantStock = asyncHandler(async (req, res) => {
   const variant = await Variant.findByIdAndUpdate(
     req.params.variantId,
     { stock },
-    { new: true }
+    { new: true, runValidators: true }
   );
   if (!variant) {
     res.status(404);
     throw new Error("Variant not found");
   }
-  res.json({ success: true, variant });
+  const total = await recalcParentStock(variant.parentProduct);
+  res.json({ success: true, variant, totalStock: total ?? undefined });
 });
 
 export const deleteVariant = asyncHandler(async (req, res) => {
@@ -198,7 +222,8 @@ export const deleteVariant = asyncHandler(async (req, res) => {
   await Product.findByIdAndUpdate(variant.parentProduct, {
     $pull: { variants: variant._id },
   });
-  res.json({ success: true, message: "Variant deleted" });
+  const total = await recalcParentStock(variant.parentProduct);
+  res.json({ success: true, message: "Variant deleted", totalStock: total ?? undefined });
 });
 
 export const getProductWithVariants = asyncHandler(async (req, res) => {

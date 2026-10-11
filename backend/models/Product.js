@@ -3,9 +3,11 @@ import mongoose from "mongoose";
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    altNames: [{ type: String, default: [] }],
     description: { type: String },
     price: { type: Number, required: true },
     originalPrice: { type: Number },
+    whatsInTheBox: { type: String },
     category: { type: String, required: true },
     subcategory: { type: String },
     brand: { type: String },

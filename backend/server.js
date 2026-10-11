@@ -108,10 +108,13 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-// Rate limiting
+// Rate limiting — skipped entirely outside production so dev/test traffic
+// (rapid uploads, polling, retries) never hits the in-memory budget.
+const skipWhenNotProd = (req) => process.env.NODE_ENV !== "production";
 const authLimiter = rateLimit({
   windowMs: rateLimitConfig.loginWindowMin * 60 * 1000,
   max: rateLimitConfig.loginMax,
+  skip: skipWhenNotProd,
   message: { success: false, error: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -120,6 +123,7 @@ app.use("/api/users/login", authLimiter);
 app.use("/api/messages/sendmessage", rateLimit({
   windowMs: 60 * 1000,
   max: 30,
+  skip: skipWhenNotProd,
   message: { success: false, error: "Too many messages, please slow down" },
 }));
 
@@ -130,6 +134,7 @@ app.use("/api/messages/sendmessage", rateLimit({
 app.use("/api", rateLimit({
   windowMs: rateLimitConfig.apiWindowMin * 60 * 1000,
   max: rateLimitConfig.apiMax,
+  skip: skipWhenNotProd,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: "Too many requests, please try again later" },
@@ -194,6 +199,15 @@ if (process.env.STORAGE !== 'supabase') {
 }
 
 app.use((err, req, res, next) => {
+  // Multer file-size limit -> clear 413 instead of a generic 500
+  if (err && err.name === "MulterError" && err.code === "LIMIT_FILE_SIZE") {
+    const maxMb = (parseInt(process.env.MAX_UPLOAD_MB, 10) || 15);
+    logger.warn(`Upload rejected: file exceeds ${maxMb} MB`);
+    return res.status(413).json({
+      success: false,
+      error: `File too large — max upload size is ${maxMb} MB`,
+    });
+  }
   // Controllers set res.status(...) before throwing, so that code wins over err.status
   const status = res.statusCode >= 400 ? res.statusCode : err.status || 500;
   logger.error(err.stack);

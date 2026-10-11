@@ -7,8 +7,35 @@ import Variant from "../models/Variant.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
+import { recalcParentStock } from "./productVariantController.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Reduce real stock for a finalized order and re-sync parent totals (idempotent)
+export const finalizeStockForOrder = async (order) => {
+  if (!order || order.stockFinalized) return;
+  const parentIds = new Set();
+  for (const item of order.items) {
+    if (item.variant) {
+      await Variant.findByIdAndUpdate(item.variant, {
+        $inc: { stock: -item.quantity },
+        $set: { reservedStock: 0 },
+      });
+      const variant = await Variant.findById(item.variant);
+      if (variant?.parentProduct) parentIds.add(String(variant.parentProduct));
+    } else if (item.product) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: -item.quantity },
+        $set: { reservedStock: 0 },
+      });
+    }
+  }
+  for (const parentId of parentIds) {
+    await recalcParentStock(parentId);
+  }
+  order.stockFinalized = true;
+  await order.save();
+};
 
 // Shared input validation for checkout endpoints (Stripe + COD)
 const validateCheckoutBody = (req, res) => {
@@ -172,15 +199,11 @@ export const createStripeSession = asyncHandler(async (req, res) => {
       orderStatus: "pending",
     });
 
-    // Finalize stock reservation - clear reservedStock after successful order creation
+    // Clear the transient hold; real stock drops only on payment/cod via finalizeStockForOrder
     for (const reservation of reservations) {
       if (reservation) {
         const model = mongoose.model(reservation.constructor.modelName);
-        await model.findByIdAndUpdate(
-          reservation._id,
-          { $set: { reservedStock: 0 } },
-          { new: true }
-        );
+        await model.findByIdAndUpdate(reservation._id, { $set: { reservedStock: 0 } }, { new: true });
       }
     }
 
@@ -217,7 +240,8 @@ export const verifyStripePayment = asyncHandler(async (req, res) => {
     order.paymentStatus = "paid";
     order.orderStatus = "processing";
     await order.save();
-    res.json({ success: true, order });
+    await finalizeStockForOrder(order);
+    res.json({ success: true, order: await Order.findById(order._id) });
   } else {
     res.status(400);
     throw new Error("Payment not completed");
@@ -278,17 +302,8 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
       shippingCost,
     });
 
-    // Finalize stock reservation - clear reservedStock after successful order creation
-    for (const reservation of reservations) {
-      if (reservation) {
-        const model = mongoose.model(reservation.constructor.modelName);
-        await model.findByIdAndUpdate(
-          reservation._id,
-          { $set: { reservedStock: 0 } },
-          { new: true }
-        );
-      }
-    }
+    // COD: order counts immediately, so finalize real stock now
+    await finalizeStockForOrder(order);
 
     await notifyAdminsOfOrder(order);
 
@@ -299,16 +314,6 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
     throw err;
   }
 });
-
-const deductStockForOrder = async (order) => {
-  for (const item of order.items) {
-    if (item.variant) {
-      await Variant.findByIdAndUpdate(item.variant, { $inc: { reservedStock: -item.quantity } });
-    } else {
-      await Product.findByIdAndUpdate(item.product, { $inc: { reservedStock: -item.quantity } });
-    }
-  }
-};
 
 const notifyAdminsOfOrder = async (order) => {
   try {
@@ -350,7 +355,7 @@ export const handleStripeWebhook = async (req, res) => {
         order.paymentStatus = "paid";
         order.orderStatus = "processing";
         await order.save();
-        // Stock already reserved during checkout, no need to deduct again
+        await finalizeStockForOrder(order);
         await notifyAdminsOfOrder(order);
       }
     }

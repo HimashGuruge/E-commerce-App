@@ -17,15 +17,16 @@ import {
   // Chat controllers (you need to add these imports)
   getChat,
   replyToUser,
-  markUserChatAsRead
+  markUserChatAsRead,
+  getReviewEligibility
 } from '../controller/notificationController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // ========== USER NOTIFICATION ROUTES ==========
-// These are for regular users (customers)
 router.get('/user', authMiddleware, getUserNotifications);                    // Get user notifications
+router.get('/review-eligibility/:productId', authMiddleware, getReviewEligibility); // Check review eligibility
 router.get('/unread-count', authMiddleware, getUnreadCount);                  // Get unread count
 router.post('/mark-all-read', authMiddleware, markAllAsRead);                 // Mark all as read
 router.delete('/clear-all', authMiddleware, clearAllNotifications);           // Clear all notifications

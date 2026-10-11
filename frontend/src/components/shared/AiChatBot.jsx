@@ -213,11 +213,6 @@ export default function ChatBot() {
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
 
-  // Auto polling states
-  const [pollingInterval, setPollingInterval] = useState(null);
-  const pollingIntervalRef = useRef(null);
-  const [isPolling, setIsPolling] = useState(false);
-
   // Audio state
   const isSpeakingRef = useRef(false);
   const lastMessageIdRef = useRef(null);
@@ -393,7 +388,7 @@ export default function ChatBot() {
       setIsHistoryLoading(true);
       try {
         const params = { limit: 20 };
-        if (isLoadMore && cursor) params.cursor = cursor;
+        if (isLoadMore && cursor) params.before = cursor;
 
         const { data } = await api.get(
           `/api/messages/getmessages`,
@@ -402,9 +397,6 @@ export default function ChatBot() {
 
         if (data.success) {
           const fetchedMessages = data.messages || [];
-
-          // Debug: Log image data from MongoDB
-          const msgsWithImages = fetchedMessages.filter(m => m.imageUrl).length;
 
           if (isLoadMore) {
             const currentScrollHeight = mainRef.current?.scrollHeight || 0;
@@ -583,8 +575,6 @@ export default function ChatBot() {
   useEffect(() => {
     fetchUserProfile();
     fetchChatUnreadCount();
-    const interval = setInterval(fetchChatUnreadCount, 60000);
-    return () => clearInterval(interval);
   }, [fetchChatUnreadCount, fetchUserProfile]);
 
   // Clear badge when chat opens + mark messages as read in backend
@@ -640,76 +630,46 @@ export default function ChatBot() {
     }
   }, []);
 
-  // Polling for new messages
-  const checkForNewMessages = useCallback(async () => {
-    if (!isOpen || loading || isChatLoading) return;
+  // Catch-up after a (re)connect: one one-shot fetch of messages missed
+  // while the socket was down. Not polling — fires only on socket connect.
+  const catchUpMessages = useCallback(async () => {
     if (!localStorage.getItem("token")) return;
-
     try {
       const params = { limit: 20 };
       if (lastMessageIdRef.current) params.after = lastMessageIdRef.current;
-
       const { data } = await api.get(`/api/messages/getmessages`, { params });
-
       const newMessages = data?.messages || [];
+      if (newMessages.length === 0) return;
 
-      if (newMessages.length > 0) {
-        const last = newMessages[newMessages.length - 1];
-        if (last?._id) lastMessageIdRef.current = last._id;
+      const last = newMessages[newMessages.length - 1];
+      if (last?._id) lastMessageIdRef.current = last._id;
 
-        setAllMessages((prev) => {
-          const messageMap = new Map();
-          // Only use server messages (real _id from DB) — skip optimistic (temp-*) messages
-          const serverMsgs = newMessages.filter((msg) => msg._id && !String(msg._id).startsWith("temp-"));
-          prev.forEach((msg) => {
-            if (msg._id && String(msg._id).startsWith("temp-")) return; // skip optimistic
-            messageMap.set(msg._id.toString(), msg);
-          });
-          serverMsgs.forEach((msg) => {
-            if (msg._id) messageMap.set(msg._id.toString(), msg);
-          });
-
-          const allMsgs = Array.from(messageMap.values()).sort(
-            (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
-          );
-
-          if (allMsgs.length > 20 && !hasMore) {
-            return allMsgs.slice(-20);
-          }
-          return allMsgs;
-        });
-      }
+      setAllMessages((prev) => {
+        const seen = new Set(prev.map((m) => m._id && String(m._id).replace(/^temp-/, "")).filter(Boolean));
+        const missing = newMessages.filter((msg) => msg._id && !String(msg._id).startsWith("temp-") && !seen.has(msg._id.toString()));
+        if (missing.length === 0) return prev;
+        const merged = [...prev, ...missing];
+        return merged.length > 20 ? merged.slice(-20) : merged;
+      });
+      setChatUnreadCount((n) => n + newMessages.filter((m) => !m.userRead).length);
     } catch (err) {
-      console.error("❌ Polling error:", err);
-    }
-  }, [isOpen, loading, hasMore, isChatLoading]);
-
-  const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current || isChatLoading) return;
-    setIsPolling(true);
-    const interval = setInterval(checkForNewMessages, 5000);
-    pollingIntervalRef.current = interval;
-    setPollingInterval(interval);
-  }, [checkForNewMessages, isChatLoading]);
-
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-      setPollingInterval(null);
-      setIsPolling(false);
+      console.error("❌ Catch-up fetch error:", err);
     }
   }, []);
 
-  // Auto polling effect
+  const catchUpOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen && !isChatLoading) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-    return stopPolling;
-  }, [isOpen, startPolling, stopPolling, isChatLoading]);
+    catchUpOpenRef.current = isOpen && !isChatLoading;
+  }, [isOpen, isChatLoading]);
+
+  useEffect(() => {
+    return onSocketEvent("connect", () => {
+      if (!localStorage.getItem("token")) return;
+      if (typeof window !== "undefined" && document.visibilityState === "hidden") return;
+      fetchChatUnreadCount();
+      if (catchUpOpenRef.current) catchUpMessages();
+    });
+  }, [fetchChatUnreadCount, catchUpMessages]);
 
   // ==================================================
   // sendMessage function
@@ -810,7 +770,10 @@ export default function ChatBot() {
 
           setAllMessages((prev) => {
             const filtered = prev.filter((m) => m._id !== tempId);
-            const updated = [...filtered, ...newMsgs];
+            // The socket push may have already delivered these replies — dedupe
+            const seen = new Set(filtered.map((m) => (m._id ? m._id.toString() : null)));
+            const fresh = newMsgs.filter((m) => m._id && !seen.has(m._id.toString()));
+            const updated = [...filtered, ...fresh];
             if (updated.length > 20 && !hasMore) {
               return updated.slice(-20);
             }
@@ -1021,9 +984,9 @@ export default function ChatBot() {
 
           if (data.success) {
             const messages = data.messages || [];
-            setAllMessages(messages.slice(-20));
-            if (data.nextCursor) setCursor(data.nextCursor);
-            if (data.hasMore !== undefined) setHasMore(data.hasMore);
+            setAllMessages(messages);
+            setCursor(data.nextCursor);
+            setHasMore(data.hasMore);
             const last = messages[messages.length - 1];
             if (last?._id) lastMessageIdRef.current = last._id;
           }
@@ -1144,14 +1107,6 @@ export default function ChatBot() {
                       </div>
                     )}
                   </div>
-                  {isPolling && (
-                    <div className="flex items-center gap-1 bg-white/15 px-2 py-1 rounded-lg">
-                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-[7px] font-semibold text-white/80 uppercase tracking-wider">
-                        Live
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </header>

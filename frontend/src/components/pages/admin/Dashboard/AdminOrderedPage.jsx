@@ -33,44 +33,47 @@ import toast, { Toaster } from "react-hot-toast";
 import Swal from "sweetalert2";
 
 const STATUS_OPTIONS = [
-  "Pending",
-  "Processing",
-  "Shipped",
-  "Delivered",
-  "Cancelled",
+  "pending",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "failed",
 ];
 
 const API_BASE_URL = "";
 
-const TRACKER_STEPS = { Pending: 0, Processing: 1, Shipped: 2, Delivered: 3 };
+const TRACKER_STEPS = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
+
+const capitalize = (value = "") => value.charAt(0).toUpperCase() + value.slice(1);
 
 const STATUS_CONFIG = {
-  Pending: {
+  pending: {
     color: "bg-amber-50 text-amber-600 border-amber-100",
     icon: <FiClock className="animate-spin-slow" />,
     pulse: "shadow-amber-100 animate-pulse",
   },
-  Processing: {
+  processing: {
     color: "bg-brand-50 text-brand-600 border-brand-100",
     icon: <FiRefreshCw className="animate-spin" />,
     pulse: "shadow-emerald-100 animate-pulse",
   },
-  Shipped: {
+  shipped: {
     color: "bg-purple-50 text-purple-600 border-purple-100",
     icon: <FiTruck className="translate-x-1 duration-700" />,
     pulse: "shadow-purple-100",
   },
-  Delivered: {
+  delivered: {
     color: "bg-brand-50 text-brand-600 border-brand-100",
     icon: <FiCheckCircle />,
     pulse: "shadow-emerald-100",
   },
-  Cancelled: {
+  cancelled: {
     color: "bg-rose-50 text-rose-600 border-rose-100",
     icon: <FiXCircle />,
     pulse: "shadow-rose-100",
   },
-  Failed: {
+  failed: {
     color: "bg-red-50 text-red-600 border-red-100",
     icon: <FiXCircle />,
     pulse: "shadow-red-100",
@@ -85,6 +88,7 @@ export default function AdminOrderedPage() {
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("table");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [tempSearch, setTempSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -130,7 +134,7 @@ export default function AdminOrderedPage() {
     for (const orderId of selectedOrders) {
       try {
         await api.put(`/api/orders/admin/update-order-status/${orderId}`, {
-          status: "Delivered",
+          status: "delivered",
         });
         successCount++;
       } catch {
@@ -190,10 +194,17 @@ export default function AdminOrderedPage() {
   };
 
   const term = searchTerm.toLowerCase();
-  const filteredOrders = orders.filter((order) =>
-    String(order.orderId ?? "").toLowerCase().includes(term) ||
-    String(order.shippingAddress?.customerName ?? "").toLowerCase().includes(term)
-  );
+  const filteredOrders = orders.filter((order) => {
+    if (statusFilter !== "all" && order.orderStatus !== statusFilter) return false;
+    return (
+      String(order.orderId ?? "").toLowerCase().includes(term) ||
+      String(order.shippingAddress?.fullName ?? "").toLowerCase().includes(term)
+    );
+  });
+  const statusCounts = orders.reduce((acc, order) => {
+    acc[order.orderStatus] = (acc[order.orderStatus] || 0) + 1;
+    return acc;
+  }, {});
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -266,16 +277,16 @@ export default function AdminOrderedPage() {
               </p>
             </div>
             <div
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${STATUS_CONFIG[order.status]?.color || STATUS_CONFIG.Pending.color}`}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
             >
-              {STATUS_CONFIG[order.status]?.icon || <FiClock />}{" "}
-              {order.status}
+              {STATUS_CONFIG[order.orderStatus]?.icon || <FiClock />}{" "}
+              {order.orderStatus}
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <p className="text-xs text-slate-500 truncate max-w-[150px]">
-              {order.shippingAddress?.customerName || "Guest"}
+              {order.shippingAddress?.fullName || order.user?.name || "Guest"}
             </p>
             <button
               onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
@@ -312,7 +323,7 @@ export default function AdminOrderedPage() {
                         <p className="text-xs font-bold text-slate-800 truncate">
                           {item.name}
                         </p>
-                        <p className="text-[9px] text-slate-400">Qty: {item.qty}</p>
+                        <p className="text-[9px] text-slate-400">Qty: {item.quantity}</p>
                       </div>
                       <p className="text-xs font-bold text-brand-600">
                         Rs. {item.price?.toLocaleString()}
@@ -332,7 +343,7 @@ export default function AdminOrderedPage() {
                   Update Status
                 </p>
 
-                {order.status === "Failed" ? (
+                {order.orderStatus === "failed" ? (
                   <button
                     onClick={() => handleDeleteFailedOrder(order._id, order.orderId)}
                     className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-xs font-black transition-all"
@@ -343,19 +354,19 @@ export default function AdminOrderedPage() {
                 ) : (
                   <>
                     <select
-                      value={order.status}
+                      value={order.orderStatus}
                       disabled={updatingId === order._id}
                       onChange={(e) => {
                         const val = e.target.value;
 
-                        if (val === "Shipped") {
+                        if (val === "shipped") {
                           toast.error("Shipping details ඇතුළත් කරන්න.");
                           return;
                         }
                         handleStatusUpdate(
                           order._id,
                           val,
-                          order.trackingNumber,
+                          tempTracking[order._id] || order.trackingNumber,
                         );
                       }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 outline-none mb-2"
@@ -364,14 +375,14 @@ export default function AdminOrderedPage() {
                         <option
                           key={opt}
                           value={opt}
-                          disabled={opt === "Shipped"}
+                          disabled={opt === "shipped"}
                         >
-                          {opt}
+                          {capitalize(opt)}
                         </option>
                       ))}
                     </select>
 
-                    {(order.status === "Processing" ||
+                    {(order.orderStatus === "processing" ||
                       editingOrderId === order._id) && (
                       <div className="relative flex items-center">
                         <input
@@ -387,11 +398,11 @@ export default function AdminOrderedPage() {
                         />
                         <button
                           onClick={() =>
-                            handleStatusUpdate(
-                              order._id,
-                              "Shipped",
-                              tempTracking[order._id] || order.trackingNumber,
-                            )
+                                handleStatusUpdate(
+                                  order._id,
+                                  "shipped",
+                                  tempTracking[order._id] || order.trackingNumber,
+                                )
                           }
                           className="absolute right-1 bg-brand-600 text-white p-1.5 rounded-lg"
                         >
@@ -400,7 +411,7 @@ export default function AdminOrderedPage() {
                       </div>
                     )}
 
-                    {order.status === "Shipped" && order.trackingNumber && (
+                    {order.orderStatus === "shipped" && order.trackingNumber && (
                       <div className="flex items-center justify-between">
                         <button
                           onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
@@ -477,7 +488,57 @@ export default function AdminOrderedPage() {
               />
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             </div>
+
+            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
+              <button
+                onClick={() => setViewMode("table")}
+                title="Table view"
+                className={`p-2 rounded-lg transition-colors ${viewMode === "table" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                <FiList size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode("grid")}
+                title="Card view (status management)"
+                className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                <FiGrid size={16} />
+              </button>
+            </div>
           </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
+          {[
+            { key: "all", label: "All", count: orders.length },
+            ...STATUS_OPTIONS.map((s) => ({
+              key: s,
+              label: capitalize(s),
+              count: statusCounts[s] || 0,
+            })),
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setStatusFilter(tab.key);
+                setCurrentPage(1);
+              }}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                statusFilter === tab.key
+                  ? "bg-brand-600 text-white border-brand-600 shadow-md"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-brand-300 hover:text-brand-600"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  statusFilter === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {viewMode === "grid" && (
@@ -546,18 +607,55 @@ export default function AdminOrderedPage() {
                         #{order.orderId || order._id.slice(-6)}
                       </td>
                       <td className="px-4 py-3">
-                        {order.shippingAddress?.customerName || "Guest"}
+                        {order.shippingAddress?.fullName || order.user?.name || "Guest"}
                       </td>
                       <td className="px-4 py-3 text-slate-500">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase ${STATUS_CONFIG[order.status]?.color || STATUS_CONFIG.Pending.color}`}>
-                          {STATUS_CONFIG[order.status]?.icon || <FiClock />} {order.status}
-                        </span>
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={order.orderStatus}
+                            disabled={updatingId === order._id}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const trackingValue =
+                                tempTracking[order._id] || order.trackingNumber || "";
+                              if (val === "shipped" && !trackingValue.trim()) {
+                                toast.error("Shipping details ඇතුළත් කරන්න.");
+                                return;
+                              }
+                              handleStatusUpdate(order._id, val, trackingValue);
+                            }}
+                            className={`min-w-[110px] px-2 py-1 rounded-lg text-[9px] font-black uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
+                          >
+                            {STATUS_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {updatingId === order._id ? "Updating..." : capitalize(opt)}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Tracking No."
+                            value={tempTracking[order._id] ?? order.trackingNumber ?? ""}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) =>
+                              setTempTracking((prev) => ({
+                                ...prev,
+                                [order._id]: e.target.value,
+                              }))
+                            }
+                            className="w-36 px-2 py-1 border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-bold text-slate-700">
-                        Rs. {(order.items?.reduce((sum, item) => sum + (item.price || 0), 0) || 0).toLocaleString()}
+                        Rs. {(order.totalPrice ?? 0).toLocaleString()}
                       </td>
                     </tr>
                   ))}
