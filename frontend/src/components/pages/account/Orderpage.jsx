@@ -20,6 +20,7 @@ function getItemQty(item) {
 }
 
 const OrderCard = ({ order, index }) => {
+  const navigate = useNavigate();
   const status = order.orderStatus || order.status || "pending";
   const totalAmount = order.totalPrice || order.totalAmount || 0;
   const firstItem = order.items?.[0];
