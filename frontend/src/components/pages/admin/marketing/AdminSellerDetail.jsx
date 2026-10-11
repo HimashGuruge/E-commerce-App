@@ -131,7 +131,7 @@ export default function AdminSellerDetail() {
     );
   }
 
-  const TabContent = () => {
+  const getTabContent = () => {
     switch (activeTab) {
       case "products":
         return (
@@ -330,7 +330,7 @@ export default function AdminSellerDetail() {
       </div>
 
       {/* Tab Content */}
-      <TabContent />
+      {getTabContent()}
     </div>
   );
 }

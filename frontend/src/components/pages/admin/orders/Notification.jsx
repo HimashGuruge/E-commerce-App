@@ -7,6 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 import uploadToMedia from "@/components/utils/Mediaupload.jsx";
 import {
   MessageSquare,
@@ -119,6 +120,8 @@ export default function Notification() {
   const previousCountRef = useRef(0);
   const abortControllerRef = useRef(null);
   const swalRef = useRef(null);
+  const activeChatRef = useRef(null);
+  const isModalOpenRef = useRef(false);
 
   // Remove custom axiosInstance - use centralized api client instead
 
@@ -317,6 +320,43 @@ export default function Notification() {
     };
   }, [fetchNotifications, isPollingActive]);
 
+  useEffect(() => {
+    isModalOpenRef.current = isModalOpen;
+  }, [isModalOpen]);
+
+  const refreshOpenChat = useCallback(async (target) => {
+    if (!target) return;
+    const chatBox = document.getElementById("chat-box");
+    if (!chatBox) return;
+    try {
+      const { data } = await api.get(
+        `/api/notifications/admin/chat/${target.userId}`
+      );
+      const history = Array.isArray(data)
+        ? data
+        : data?.data || data?.chats || [];
+      chatBox.innerHTML = history
+        .map((msg) => renderBubble(msg, target.userImage))
+        .join("");
+      chatBox.scrollTop = chatBox.scrollHeight;
+    } catch {
+      // Leave the current view untouched if the refetch fails
+    }
+  }, []);
+
+  // Real-time: refresh immediately when the backend pushes an unseen user chat
+  // or a new message, so updates never wait for the next poll tick. Also
+  // refresh the open chat modal (if any) so new messages appear without a refresh.
+  useEffect(() => {
+    return onSocketEvent(
+      ["chat:unseen-user", "chat:new-message"],
+      () => {
+        fetchNotifications(false);
+        if (isModalOpenRef.current) refreshOpenChat(activeChatRef.current);
+      },
+    );
+  }, [fetchNotifications, refreshOpenChat]);
+
   const togglePolling = () => setIsPollingActive((prev) => !prev);
   const handleManualRefresh = () => fetchNotifications(false);
 
@@ -329,6 +369,7 @@ export default function Notification() {
       setNotifications((prev) =>
         prev.map((n) => (n.userId === userId ? { ...n, isRead: true } : n)),
       );
+      window.dispatchEvent(new CustomEvent("notificationsUpdated"));
     } catch {
       setError("Failed to mark as read");
     }
@@ -391,6 +432,10 @@ export default function Notification() {
         : data?.data || data?.chats || [];
       const userImage =
         userDetails[notification.userId]?.image || notification.userImage;
+      activeChatRef.current = {
+        userId: notification.userId,
+        userImage,
+      };
 
       swalRef.current = await Swal.fire({
         html: `
@@ -684,6 +729,7 @@ export default function Notification() {
           unlockBodyScroll();
           setIsModalOpen(false);
           document.body.style.overflow = "";
+          activeChatRef.current = null;
         },
       });
     } catch {
@@ -691,6 +737,7 @@ export default function Notification() {
       unlockBodyScroll();
       setIsModalOpen(false);
       document.body.style.overflow = "";
+      activeChatRef.current = null;
 
       Swal.fire({
         icon: "error",
@@ -711,6 +758,7 @@ export default function Notification() {
       );
 
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      window.dispatchEvent(new CustomEvent("notificationsUpdated"));
 
       Swal.fire({
         icon: "success",

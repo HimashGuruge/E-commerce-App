@@ -134,7 +134,7 @@ export default function Sidebar({
         `/api/orders/userplace/orders`,
       );
       const oCount = (ordersResponse.data.orders || []).filter(
-        (order) => order.status === "Pending",
+        (order) => order.orderStatus === "pending",
       ).length;
       setPendingOrdersCount(oCount);
       localStorage.setItem("pendingOrdersCount", oCount);
@@ -238,6 +238,18 @@ export default function Sidebar({
     window.addEventListener("feedbackUpdated", handleFeedbackUpdate);
     return () => {
       window.removeEventListener("feedbackUpdated", handleFeedbackUpdate);
+    };
+  }, [fetchBadgeData]);
+
+  // Listen for admin notification changes (mark read in chat center)
+  useEffect(() => {
+    const handleNotificationsUpdated = () => {
+      fetchBadgeData();
+    };
+
+    window.addEventListener("notificationsUpdated", handleNotificationsUpdated);
+    return () => {
+      window.removeEventListener("notificationsUpdated", handleNotificationsUpdated);
     };
   }, [fetchBadgeData]);
 

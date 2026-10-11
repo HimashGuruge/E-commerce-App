@@ -14,10 +14,11 @@ export default function usePublicSettings() {
       .then((s) => { if (active) setSettings(s); })
       .catch(() => {});
 
-    const handleUpdated = () => {
-      getPublicSettings({ force: true })
-        .then((s) => { if (active) setSettings(s); })
-        .catch(() => {});
+    // The event's detail already holds the fresh settings — applying them directly
+    // avoids a refetch per subscriber (which would multiply requests).
+    const handleUpdated = (e) => {
+      const s = e?.detail;
+      if (active && s) setSettings(s);
     };
     window.addEventListener("settingsUpdated", handleUpdated);
 

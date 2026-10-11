@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import api from "@/utils/api";
 import { getPublicSettings } from "@/utils/siteSettings";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { addToCart } from "@/components/utils/Cart.jsx";
 import { getWishlistLocal, addToWishlistLocal, removeFromWishlistLocal, isInWishlistLocal } from "@/components/utils/Wishlist.jsx";
 import ProductRecommendations from "@/components/home/ProductRecommendations.jsx";
@@ -43,6 +43,7 @@ import Swal from "sweetalert2";
 
 export default function ProductOverview() {
   const { productId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +73,7 @@ export default function ProductOverview() {
   const navigate = useNavigate();
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [reviewFilter, setReviewFilter] = useState("all");
+  const [canReviewState, setCanReviewState] = useState(null); // null = unknown, true/false = from API
   const [descExpanded, setDescExpanded] = useState(false);
   const [shippingSettings, setShippingSettings] = useState({
     courierName: "Domex",
@@ -714,6 +716,25 @@ export default function ProductOverview() {
     } catch (err) { console.error(err); }
   };
 
+  // Check verified-purchase eligibility for the "Write a Review" gate.
+  // Only logged-in buyers of a delivered product may review.
+  const fetchReviewEligibility = async () => {
+    const { token, userId } = getCurrentUser();
+    setCanReviewState(null);
+    if (!token || !userId || !productId) return;
+    try {
+      const res = await api.get(`/api/notifications/review-eligibility/${productId}`);
+      if (res.data?.success) {
+        setCanReviewState(Boolean(res.data.canReview));
+      }
+    } catch (err) {
+      // Not eligible / failed check — treat as cannot review
+      setCanReviewState(false);
+    }
+  };
+
+  const isLoggedIn = Boolean(getCurrentUser().userId);
+
   useEffect(() => {
     if (productId) {
       fetchRatingStats();
@@ -726,6 +747,19 @@ export default function ProductOverview() {
   useEffect(() => {
     loadQuestions(qaPage);
   }, [productId, qaPage]);
+
+  useEffect(() => {
+    fetchReviewEligibility();
+  }, [productId, isLoggedIn, userReviews.length]);
+
+  // Deep link from a review-reminder notification: auto-open the review form
+  useEffect(() => {
+    if (!searchParams.get("review")) return;
+    const { userId } = getCurrentUser();
+    if (userId) setShowReviewModal(true);
+    else Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to write a review' });
+    setSearchParams({}, { replace: true });
+  }, [searchParams]);
 
   // Submit review
   const submitReview = async () => {
@@ -1255,9 +1289,13 @@ export default function ProductOverview() {
                   })()}
 
                   {selectedVariant && (
-                    <div className="mt-2.5 p-2 bg-gray-50 rounded text-[11px] text-gray-600 border border-gray-100">
-                      Selected: {Object.entries(selectedVariant.attributes || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                      <span className="ml-2 text-gray-400">({currentStock} available)</span>
+                    <div className="mt-2.5 p-2.5 bg-gray-50 rounded text-xs border border-gray-100 flex items-center justify-between gap-3">
+                      <span className="text-gray-600 font-medium">
+                        Selected: {Object.entries(selectedVariant.attributes || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                      </span>
+                      <span className={`whitespace-nowrap font-semibold ${selectedVariant.stock > 0 ? "text-green-600" : "text-red-500"}`}>
+                        Stock Available: {selectedVariant.stock}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1679,9 +1717,24 @@ export default function ProductOverview() {
                       Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to write a review' });
                       return;
                     }
+                    // Eligible = bought + delivered, and haven't reviewed yet.
+                    // Fallback to true while unknown so we never block a valid buyer.
+                    if (canReviewState === false) {
+                      Swal.fire({
+                        icon: 'info',
+                        title: 'Purchase Required',
+                        text: 'You can only review products you have purchased and received.',
+                      });
+                      return;
+                    }
                     setShowReviewModal(true);
                   }}
-                  className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-1.5 rounded text-xs font-medium transition"
+                  title={canReviewState === false ? "You must purchase and receive this item to review it" : undefined}
+                  className={`px-4 py-1.5 rounded text-xs font-medium transition ${
+                    canReviewState === false
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-brand-500 hover:bg-brand-600 text-white"
+                  }`}
                 >
                   Write a Review
                 </button>
@@ -1761,7 +1814,7 @@ export default function ProductOverview() {
                           <FiThumbsUp className="w-2.5 h-2.5" /> {review.helpful || 0}
                         </button>
                         {review.isVerifiedPurchase && (
-                          <span className="text-[8px] text-green-600">✓ Verified</span>
+                          <span className="text-[8px] text-green-600 font-medium bg-green-50 px-1 py-0.5 rounded">✓ Verified Purchase</span>
                         )}
                       </div>
                     </div>

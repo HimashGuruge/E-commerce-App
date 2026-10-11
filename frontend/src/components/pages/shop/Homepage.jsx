@@ -12,6 +12,7 @@ import HomeContainer from "./HomeContainer.jsx";
 import ViewCartPage from "@/components/pages/account/ViewCart.jsx";
 import AboutPage from "@/components/pages/info/About.jsx";
 import ShipingPage from "@/components/pages/info/Shipping.jsx";
+import PaymentPage from "@/components/pages/admin/orders/Payment.jsx";
 import Login from "@/components/pages/auth/Login.jsx";
 import Signup from "@/components/pages/auth/SingUp.jsx";
 import ContactPage from "@/components/pages/info/ContactPage.jsx";
@@ -90,6 +91,8 @@ export default function Homepage() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/shippinginfopage" element={<Shippinginfopage />} />
           <Route path="/shipping/" element={<ShipingPage />} />
+          <Route path="/shipping" element={<ShipingPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/contact" element={<ContactPage />} />

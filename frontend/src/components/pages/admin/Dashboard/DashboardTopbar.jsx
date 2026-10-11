@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { RxHamburgerMenu, RxExit } from "react-icons/rx";
 import { FiSearch, FiPlus, FiX } from "react-icons/fi";
-import NotificationDrop from "@/components/utils/NotificationDrop";
 import {
   MdOutlineGridView,
   MdAddBox,
@@ -143,7 +142,6 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
           <button onClick={() => setShowMobileSearch(!showMobileSearch)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
             <FiSearch size={20} />
           </button>
-          <NotificationDrop />
           {user?.profileImage ? (
             <img src={user.profileImage} alt="" className="w-7 h-7 rounded-full object-cover" referrerPolicy="no-referrer" />
           ) : (
@@ -192,9 +190,6 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
             />
             {showDropdown && renderDropdown()}
           </div>
-          
-          {/* Notifications */}
-          <NotificationDrop />
           
           {/* Add Button */}
           <NavLink

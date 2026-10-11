@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import api from "@/utils/api";
 import uploadToMedia from "@/components/utils/Mediaupload.jsx";
 import { useNavigate, useParams } from "react-router-dom";
@@ -17,6 +17,24 @@ const Colors = {
   success: "#10b981",
   danger: "#ef4444",
 };
+
+const VARIANT_PRESETS = [
+  { id: "color-size", label: "Color + Size", attributes: ["Color", "Size"], options: { Color: ["Red", "Blue", "Black", "White"], Size: ["S", "M", "L", "XL"] } },
+  { id: "size", label: "Size Only", attributes: ["Size"], options: { Size: ["S", "M", "L", "XL", "XXL"] } },
+  { id: "model", label: "Phone Model", attributes: ["Model"], options: { Model: ["iPhone 14", "iPhone 15", "iPhone 16", "Samsung S23", "Samsung S24"] } },
+  { id: "storage", label: "Storage", attributes: ["Storage"], options: { Storage: ["64GB", "128GB", "256GB", "512GB", "1TB"] } },
+  { id: "color-storage", label: "Color + Storage", attributes: ["Color", "Storage"], options: { Color: ["Black", "White", "Blue", "Green"], Storage: ["128GB", "256GB", "512GB", "1TB"] } },
+  { id: "ram", label: "RAM", attributes: ["RAM"], options: { RAM: ["4GB", "8GB", "16GB", "32GB"] } },
+  { id: "material", label: "Material", attributes: ["Material"], options: { Material: ["Cotton", "Polyester", "Silk", "Wool", "Linen"] } },
+  { id: "pattern", label: "Pattern", attributes: ["Pattern"], options: { Pattern: ["Solid", "Striped", "Floral", "Plaid", "Geometric"] } },
+  { id: "flavor", label: "Flavor", attributes: ["Flavor"], options: { Flavor: ["Chocolate", "Vanilla", "Strawberry", "Coffee", "Mint"] } },
+  { id: "scent", label: "Scent", attributes: ["Scent"], options: { Scent: ["Lavender", "Rose", "Vanilla", "Citrus", "Ocean"] } },
+  { id: "weight", label: "Weight", attributes: ["Weight"], options: { Weight: ["100g", "250g", "500g", "1kg", "2kg"] } },
+  { id: "volume", label: "Volume", attributes: ["Volume"], options: { Volume: ["100ml", "250ml", "500ml", "1L", "2L"] } },
+  { id: "capacity", label: "Capacity", attributes: ["Capacity"], options: { Capacity: ["1000mAh", "2000mAh", "5000mAh", "10000mAh", "20000mAh"] } },
+  { id: "wattage", label: "Wattage", attributes: ["Wattage"], options: { Wattage: ["5W", "10W", "15W", "20W", "50W", "100W"] } },
+  { id: "edition", label: "Edition", attributes: ["Edition"], options: { Edition: ["Standard", "Deluxe", "Limited"] } },
+];
 
 const disabledStyle = {
   opacity: 0.6,
@@ -51,6 +69,7 @@ export default function AddProducts() {
   const [variantImages, setVariantImages] = useState({});
   const [variantStocks, setVariantStocks] = useState({});
   const [variantPrices, setVariantPrices] = useState({});
+  const [existingVariantIds, setExistingVariantIds] = useState({});
   const [groupImages, setGroupImages] = useState({});
   const [expandedGroups, setExpandedGroups] = useState({});
   const [newAttrName, setNewAttrName] = useState("");
@@ -76,6 +95,17 @@ export default function AddProducts() {
     highlights: "",
     whatsInTheBox: "",
   });
+
+  // Live total stock for variant parents (sum of every variant's stock). Always in sync
+  // as you type/edit a variant, so the UI reflects the real main-stock count instantly.
+  const totalVariantStock = useMemo(
+    () =>
+      Object.values(variantStocks).reduce(
+        (sum, v) => sum + (Number(v) || 0),
+        0
+      ),
+    [variantStocks]
+  );
 
   const handleAddCategory = async () => {
     const categoryName = formData.category.trim();
@@ -282,10 +312,12 @@ const handleEditCategory = async (cat) => {
           const stocks = {};
           const prices = {};
           const imgs = {};
+          const ids = {};
           variants.forEach(v => {
             const key = Object.values(v.attributes || {}).join("-");
             stocks[key] = v.stock;
             prices[key] = v.sellingPrice || v.price;
+            ids[key] = v._id;
             if (v.images && v.images.length > 0) {
               imgs[key] = v.images;
             }
@@ -293,6 +325,7 @@ const handleEditCategory = async (cat) => {
           setVariantStocks(stocks);
           setVariantPrices(prices);
           setVariantImages(imgs);
+          setExistingVariantIds(ids);
           
           // Expand first group
           if (variants.length > 0) {
@@ -700,13 +733,15 @@ const handleEditCategory = async (cat) => {
         : [];
       const allImgUrls = [...imagePreviews, ...newImgUrls];
       
+      const isParentEdit = Boolean(existingProduct?.isParent);
+
       const payload = {
         productName: formData.productName.trim(),
         altNames: formData.altNames ? formData.altNames.split(",").map(n => n.trim()).filter(n => n !== "") : [],
         images: allImgUrls,
         price: parseFloat(formData.price),
         sellingPrice: formData.sellingPrice ? parseFloat(formData.sellingPrice) : parseFloat(formData.price),
-        stock: parseInt(formData.stock) || 0,
+        stock: isParentEdit ? undefined : parseInt(formData.stock) || 0,
         description: formData.description.trim(),
         category: finalCategoryName,
         brand: formData.brand.trim(),
@@ -720,6 +755,23 @@ const handleEditCategory = async (cat) => {
         `/api/products/${productId}`,
         payload
       );
+      
+      setProgress(70);
+      // Persist variant + stock (and price) for existing variants. Each server call also
+      // re-computes the parent total stock, so the main-stock count stays accurate.
+      if (isParentEdit) {
+        const generated = generateVariants();
+        for (const variant of generated) {
+          const key = Object.values(variant).join("-");
+          const vid = existingVariantIds[key];
+          if (!vid) continue;
+          await api.patch(`/api/products/variants/${vid}`, {
+            stock: Number(variantStocks[key]) || 0,
+            price: Number(variantPrices[key]) || 0,
+            sellingPrice: Number(variantPrices[key]) || 0,
+          });
+        }
+      }
       
       setProgress(100);
       Swal.fire({ 
@@ -842,8 +894,21 @@ const handleEditCategory = async (cat) => {
             </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Stock Quantity</label>
-              <input type="number" name="stock" value={formData.stock} onChange={handleChange} placeholder="0" min="0" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+              {isParentProduct ? (
+                <>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Total Stock (auto)</label>
+                  <div style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", background: Colors.bgLight, display: "flex", alignItems: "center", justifyContent: "space-between", color: "#111827", fontWeight: 600, boxSizing: "border-box" }}>
+                    <span style={{ color: "#6b7280", fontWeight: 500, fontSize: "12px" }}>Sum of variant stocks</span>
+                    <span>{totalVariantStock}</span>
+                  </div>
+                  <p style={{ fontSize: "11px", color: Colors.grayLight, marginTop: "4px" }}>Enter each variant's stock below — this total updates instantly.</p>
+                </>
+              ) : (
+                <>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Stock Quantity</label>
+                  <input type="number" name="stock" value={formData.stock} onChange={handleChange} placeholder="0" min="0" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                </>
+              )}
             </div>
           </div>
 
@@ -976,263 +1041,134 @@ const handleEditCategory = async (cat) => {
             </div>
           </div>
 
-          <div style={{ background: "white", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            <div style={{ marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#374151", marginBottom: "12px" }}>Product Type</h2>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div 
+          <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-slate-100">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-slate-700 mb-3">Product Type</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
                   onClick={() => setIsParentProduct(false)}
-                  style={{ 
-                    padding: "16px", 
-                    borderRadius: "12px", 
-                    border: `2px solid ${!isParentProduct ? Colors.primary : Colors.border}`,
-                    background: !isParentProduct ? "#eff6ff" : "white",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}
+                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${!isParentProduct ? "border-violet-600 bg-violet-50" : "border-slate-200 hover:border-slate-300"}`}
                 >
-                  <div style={{ fontSize: "14px", fontWeight: "600", color: !isParentProduct ? Colors.primary : "#374151", marginBottom: "4px" }}>Simple Product</div>
-                  <div style={{ fontSize: "12px", color: Colors.gray }}>One size, one price, one stock</div>
-                </div>
-                
-                <div 
+                  <div className={`text-sm font-semibold ${!isParentProduct ? "text-violet-700" : "text-slate-700"}`}>Simple Product</div>
+                  <div className="text-xs text-slate-500 mt-0.5">One size, one price, one stock</div>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setIsParentProduct(true)}
-                  style={{ 
-                    padding: "16px", 
-                    borderRadius: "12px", 
-                    border: `2px solid ${isParentProduct ? Colors.purple : Colors.border}`,
-                    background: isParentProduct ? "#faf5ff" : "white",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}
+                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${isParentProduct ? "border-violet-600 bg-violet-50" : "border-slate-200 hover:border-slate-300"}`}
                 >
-                  <div style={{ fontSize: "14px", fontWeight: "600", color: isParentProduct ? Colors.purple : "#374151", marginBottom: "4px" }}>Product with Variants</div>
-                  <div style={{ fontSize: "12px", color: Colors.gray }}>Multiple sizes/colors/prices</div>
-                </div>
+                  <div className={`text-sm font-semibold ${isParentProduct ? "text-violet-700" : "text-slate-700"}`}>Product with Variants</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Multiple sizes/colors/prices</div>
+                </button>
               </div>
             </div>
 
             {isParentProduct && (
               <div>
-                <div style={{ padding: "16px", background: "#f0f9ff", borderRadius: "12px", border: "1px solid #bae6fd", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "14px", fontWeight: "600", color: "#0369a1", marginBottom: "8px" }}>How to use variants:</div>
-                  <div style={{ fontSize: "13px", color: "#075985", marginBottom: "12px" }}>
-                    <strong>Step 1:</strong> Add attributes like "Color", "Size", "Material"<br/>
-                    <strong>Step 2:</strong> Add values for each attribute (e.g., Color: Red, Blue, Black)<br/>
-                    <strong>Step 3:</strong> Set stock & price for each variant below
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#0c4a6e", background: "white", padding: "12px", borderRadius: "8px", marginBottom: "12px" }}>
-                    <strong>Example:</strong> If you add Color (Red, Blue) + Size (S, M, L)<br/>
-                    → System creates <strong>6 variants</strong>: Red-S, Red-M, Red-L, Blue-S, Blue-M, Blue-L
-                  </div>
-                  
-                  <div style={{ fontSize: "12px", color: "#0369a1", marginBottom: "8px" }}><strong>Quick presets:</strong></div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Color", "Size"]);
-                        setAttributeOptions({
-                          Color: ["Red", "Blue", "Black", "White"],
-                          Size: ["S", "M", "L", "XL"]
-                        });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #7c3aed", borderRadius: "16px", color: "#7c3aed", cursor: "pointer" }}
-                    >
-                      + Color + Size
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Model"]);
-                        setAttributeOptions({ Model: ["iPhone 14", "iPhone 15", "iPhone 16", "Samsung S23", "Samsung S24"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
-                    >
-                      + Phone Model
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Storage"]);
-                        setAttributeOptions({ Storage: ["64GB", "128GB", "256GB", "512GB", "1TB"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
-                    >
-                      + Storage
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["RAM"]);
-                        setAttributeOptions({ RAM: ["4GB", "8GB", "16GB", "32GB"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
-                    >
-                      + RAM
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Size"]);
-                        setAttributeOptions({ Size: ["S", "M", "L", "XL", "XXL"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #7c3aed", borderRadius: "16px", color: "#7c3aed", cursor: "pointer" }}
-                    >
-                      + Size Only
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Material"]);
-                        setAttributeOptions({ Material: ["Cotton", "Polyester", "Silk", "Wool", "Linen"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
-                    >
-                      + Material
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Scent"]);
-                        setAttributeOptions({ Scent: ["Lavender", "Rose", "Vanilla", "Citrus", "Ocean"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
-                    >
-                      + Scent
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Color", "Storage"]);
-                        setAttributeOptions({
-                          Color: ["Black", "White", "Blue", "Green"],
-                          Storage: ["128GB", "256GB", "512GB", "1TB"]
-                        });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #ec4899", borderRadius: "16px", color: "#ec4899", cursor: "pointer" }}
-                    >
-                      + Color + Storage
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Flavor"]);
-                        setAttributeOptions({ Flavor: ["Chocolate", "Vanilla", "Strawberry", "Coffee", "Mint"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #f59e0b", borderRadius: "16px", color: "#f59e0b", cursor: "pointer" }}
-                    >
-                      + Flavor
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Weight"]);
-                        setAttributeOptions({ Weight: ["100g", "250g", "500g", "1kg", "2kg"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #f59e0b", borderRadius: "16px", color: "#f59e0b", cursor: "pointer" }}
-                    >
-                      + Weight
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Volume"]);
-                        setAttributeOptions({ Volume: ["100ml", "250ml", "500ml", "1L", "2L"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #06b6d4", borderRadius: "16px", color: "#06b6d4", cursor: "pointer" }}
-                    >
-                      + Volume
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Pattern"]);
-                        setAttributeOptions({ Pattern: ["Solid", "Striped", "Floral", "Plaid", "Geometric"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #8b5cf6", borderRadius: "16px", color: "#8b5cf6", cursor: "pointer" }}
-                    >
-                      + Pattern
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Wattage"]);
-                        setAttributeOptions({ Wattage: ["5W", "10W", "15W", "20W", "50W", "100W"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #ef4444", borderRadius: "16px", color: "#ef4444", cursor: "pointer" }}
-                    >
-                      + Wattage
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Capacity"]);
-                        setAttributeOptions({ Capacity: ["1000mAh", "2000mAh", "5000mAh", "10000mAh", "20000mAh"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #ef4444", borderRadius: "16px", color: "#ef4444", cursor: "pointer" }}
-                    >
-                      + Capacity
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setVariantAttributes(["Edition"]);
-                        setAttributeOptions({ Edition: ["Standard", "Deluxe", "Limited", "Collector's", "Anniversary"] });
-                      }}
-                      style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #6366f1", borderRadius: "16px", color: "#6366f1", cursor: "pointer" }}
-                    >
-                      + Edition
-                    </button>
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5 rounded-xl bg-slate-50 ring-1 ring-slate-100 px-4 py-3 mb-4 text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">How it works:</span>
+                  <span>1. Pick attributes</span>
+                  <span>·</span>
+                  <span>2. Add their values</span>
+                  <span>·</span>
+                  <span>3. Set stock & price per combination</span>
+                  <span className="text-slate-400">— e.g. Color (Red, Blue) + Size (S, M, L) = 6 variants</span>
+                </div>
+
+                <div className="mb-4">
+                  <div className="text-xs font-semibold text-slate-500 mb-2">Start from a preset</div>
+                  <div className="flex flex-wrap gap-2">
+                    {VARIANT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setVariantAttributes([...preset.attributes]);
+                          setAttributeOptions({ ...preset.options });
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium rounded-full bg-white border border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 transition-colors"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: "16px" }}>
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-                    <input 
-                      type="text" 
-                      value={newAttrName} 
-                      onChange={(e) => setNewAttrName(e.target.value)} 
-                      placeholder="e.g., Color, Size, Material" 
-                      style={{ flex: 1, padding: "10px 14px", border: `1px solid ${Colors.border}`, borderRadius: "8px", fontSize: "13px", outline: "none" }}
-                      onKeyPress={(e) => e.key === "Enter" && addVariantAttribute()}
+                <div className="mb-4">
+                  <div className="text-sm font-semibold text-slate-700 mb-2">Or add your own options</div>
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newAttrName}
+                      onChange={(e) => setNewAttrName(e.target.value)}
+                      placeholder='Type an option name, e.g. "Color"'
+                      className="flex-1 px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                      onKeyDown={(e) => e.key === "Enter" && addVariantAttribute()}
                     />
-                    <button type="button" onClick={addVariantAttribute} style={{ padding: "10px 16px", background: Colors.purple, color: "white", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>
+                    <button
+                      type="button"
+                      onClick={addVariantAttribute}
+                      className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                    >
                       Add
                     </button>
                   </div>
 
                   {variantAttributes.length === 0 ? (
-                    <p style={{ fontSize: "13px", color: Colors.grayLight, fontStyle: "italic" }}>No attributes added yet. Add attributes above (e.g., Color, Size)</p>
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-5 text-center">
+                      <div className="text-sm text-slate-500">No options yet — pick a preset above or add one here.</div>
+                    </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                      {variantAttributes.map(attr => (
-                        <div key={attr} style={{ padding: "14px", background: Colors.bgLight, borderRadius: "10px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                            <span style={{ fontSize: "14px", fontWeight: "600", color: Colors.purple }}>{attr}</span>
-                            <button type="button" onClick={() => removeVariantAttribute(attr)} style={{ color: Colors.danger, background: "none", border: "none", cursor: "pointer", fontSize: "12px" }}>Remove</button>
+                    <div className="flex flex-col gap-3">
+                      {variantAttributes.map((attr) => (
+                        <div key={attr} className="rounded-xl bg-white ring-1 ring-slate-100 p-4">
+                          <div className="flex items-center justify-between mb-2.5">
+                            <span className="text-sm font-semibold text-violet-700">{attr}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeVariantAttribute(attr)}
+                              className="text-xs font-medium text-slate-400 hover:text-red-600 transition-colors"
+                            >
+                              Remove
+                            </button>
                           </div>
-                          
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
-                            {(attributeOptions[attr] || []).map(value => (
-                              <div key={value} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: "white", borderRadius: "6px", fontSize: "13px", border: `1px solid ${Colors.border}` }}>
-                                <span>{value}</span>
-                                <button type="button" onClick={() => removeAttributeOption(attr, value)} style={{ color: Colors.danger, background: "none", border: "none", cursor: "pointer", fontSize: "14px" }}>x</button>
-                              </div>
+
+                          <div className="flex flex-wrap gap-1.5 mb-2.5">
+                            {(attributeOptions[attr] || []).map((value) => (
+                              <span
+                                key={value}
+                                className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 text-xs bg-violet-50 text-violet-800 rounded-full"
+                              >
+                                {value}
+                                <button
+                                  type="button"
+                                  onClick={() => removeAttributeOption(attr, value)}
+                                  aria-label={`Remove ${value}`}
+                                  className="w-4 h-4 grid place-items-center rounded-full text-violet-400 hover:bg-violet-100 hover:text-violet-700 text-[11px] leading-none"
+                                >
+                                  ×
+                                </button>
+                              </span>
                             ))}
                           </div>
-                          
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            <input 
-                              type="text" 
-                              value={newAttrValue[attr] || ""} 
-                              onChange={(e) => setNewAttrValue({ ...newAttrValue, [attr]: e.target.value })} 
-                              placeholder={`Add ${attr} value`}
-                              style={{ flex: 1, padding: "8px 12px", border: `1px solid ${Colors.border}`, borderRadius: "6px", fontSize: "13px", outline: "none" }}
-                              onKeyPress={(e) => e.key === "Enter" && addAttributeOption(attr)}
+
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              value={newAttrValue[attr] || ""}
+                              onChange={(e) => setNewAttrValue({ ...newAttrValue, [attr]: e.target.value })}
+                              placeholder={`Add a ${attr.toLowerCase()} value`}
+                              className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                              onKeyDown={(e) => e.key === "Enter" && addAttributeOption(attr)}
                             />
-                            <button type="button" onClick={() => addAttributeOption(attr)} style={{ padding: "8px 14px", background: Colors.purple, color: "white", border: "none", borderRadius: "6px", fontSize: "12px", cursor: "pointer" }}>Add</button>
+                            <button
+                              type="button"
+                              onClick={() => addAttributeOption(attr)}
+                              className="px-3.5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                            >
+                              Add
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -1243,86 +1179,85 @@ const handleEditCategory = async (cat) => {
                 {variantAttributes.length > 0 && Object.values(attributeOptions).some(arr => arr.length > 0) && (
                   <div style={{ marginBottom: "16px" }}>
                     {/* Variant Summary */}
-                    <div style={{ padding: "14px", background: "#fefce8", borderRadius: "10px", border: "1px solid #fde047", marginBottom: "16px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: "600", color: "#a16207" }}>
-                        {generateVariants().length} variants in {Object.keys(getGroupedVariants()).length} {variantAttributes[0]} groups
+                    <div className="inline-flex items-center gap-2 px-3.5 py-2 mb-4 rounded-full bg-violet-50 ring-1 ring-violet-100">
+                      <span className={`h-2 w-2 rounded-full ${generateVariants().length > 0 ? "bg-emerald-500" : "bg-amber-400"}`}></span>
+                      <span className="text-xs font-semibold text-violet-800">
+                        {generateVariants().length} variants · grouped by {variantAttributes[0]}
                       </span>
+                      <span className="text-xs text-slate-400">total stock updates automatically</span>
                     </div>
 
                     {/* Grouped Variant UI */}
-                    <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "12px" }}>
-                      Set Stock & Price per Variant
+                    <div className="text-sm font-semibold text-slate-700 mb-3">
+                      Set price & stock for each combination
                     </div>
 
                     {Object.entries(getGroupedVariants()).map(([groupName, variants]) => {
                       const isExpanded = expandedGroups[groupName] !== false;
                       return (
-                        <div key={groupName} style={{ marginBottom: "12px", background: "white", borderRadius: "12px", border: `1px solid ${Colors.border}`, overflow: "hidden" }}>
+                        <div key={groupName} className="mb-3 rounded-xl bg-white ring-1 ring-slate-100 overflow-hidden">
                           {/* Group Header */}
-                          <div 
+                          <div
                             onClick={() => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
-                            style={{ 
-                              padding: "14px 16px", 
-                              background: isExpanded ? Colors.bgLight : "white",
-                              display: "flex", 
-                              alignItems: "center", 
-                              justifyContent: "space-between",
-                              cursor: "pointer",
-                              borderBottom: isExpanded ? `1px solid ${Colors.border}` : "none"
-                            }}
+                            className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${isExpanded ? "bg-slate-50" : "bg-white hover:bg-slate-50/60"}`}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === "Enter" && setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                              <span style={{ fontSize: "12px", color: Colors.gray }}>{isExpanded ? "▼" : "▶"}</span>
-                              <span style={{ fontSize: "14px", fontWeight: "600", color: Colors.purple }}>{variantAttributes[0]}: {groupName}</span>
-                              <span style={{ fontSize: "11px", color: Colors.gray }}>({variants.length} items)</span>
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-xs text-slate-400 transition-transform duration-200" style={{ transform: isExpanded ? "rotate(0deg)" : "" }}>{isExpanded ? "▾" : "▸"}</span>
+                              <span className="text-sm font-semibold text-violet-700">{variantAttributes[0]}: {groupName}</span>
+                              <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{variants.length}</span>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div className="flex items-center gap-2">
                               {(groupImages[groupName] || []).length > 0 ? (
-                                <img src={groupImages[groupName][0].preview} alt="" style={{ width: "32px", height: "32px", objectFit: "cover", borderRadius: "6px" }} />
+                                <img src={groupImages[groupName][0].preview} alt="" className="w-8 h-8 object-cover rounded-md ring-1 ring-slate-100" />
                               ) : (
-                                <span style={{ fontSize: "10px", color: Colors.grayLight }}>No img</span>
+                                <span className="text-[10px] text-slate-300">no image</span>
                               )}
                             </div>
                           </div>
 
                           {/* Expanded Group Content */}
                           {isExpanded && (
-                            <div style={{ padding: "16px" }}>
+                            <div className="p-4">
                               {/* Group Image Upload */}
-                              <div style={{ marginBottom: "16px", paddingBottom: "16px", borderBottom: `1px dashed ${Colors.border}` }}>
-                                <div style={{ fontSize: "12px", fontWeight: "600", color: Colors.gray, marginBottom: "8px" }}>
-                                  Main Image for {variantAttributes[0]}: {groupName} (applies to all)
+                              <div className="mb-4 pb-4 border-b border-dashed border-slate-200">
+                                <div className="text-xs font-medium text-slate-500 mb-2">
+                                  Images for {variantAttributes[0]}: {groupName} <span className="text-slate-400">(applies to all in this group)</span>
                                 </div>
-                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                <div className="flex gap-2 flex-wrap">
                                   {(groupImages[groupName] || []).map((img, i) => (
-                                    <div key={i} style={{ position: "relative" }}>
-                                      <img src={img.preview} alt="" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }} />
-                                      <button 
+                                    <div key={i} className="relative">
+                                      <img src={img.preview} alt="" className="w-14 h-14 object-cover rounded-lg ring-1 ring-slate-200" />
+                                      <button
                                         type="button"
                                         onClick={() => {
                                           const updated = (groupImages[groupName] || []).filter((_, idx) => idx !== i);
                                           setGroupImages(prev => ({ ...prev, [groupName]: updated }));
                                         }}
-                                        style={{ position: "absolute", top: "-6px", right: "-6px", width: "16px", height: "16px", background: Colors.danger, color: "white", border: "none", borderRadius: "50%", fontSize: "10px", cursor: "pointer" }}
-                                      >x</button>
+                                        aria-label={`Remove image ${i + 1}`}
+                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 grid place-items-center bg-red-500 text-white rounded-full text-[10px] hover:bg-red-600"
+                                      >
+                                        ×
+                                      </button>
                                     </div>
                                   ))}
-                                  <label style={{ cursor: "pointer", width: "60px", height: "60px", border: `2px dashed ${Colors.border}`, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-                                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                                  <label className="w-14 h-14 grid place-items-center cursor-pointer border-2 border-dashed border-slate-200 rounded-lg hover:border-violet-300 transition-colors">
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                                       const files = Array.from(e.target.files);
                                       if (files.length > 0) {
                                         const newImgs = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
                                         setGroupImages(prev => ({ ...prev, [groupName]: [...(prev[groupName] || []), ...newImgs] }));
                                       }
                                     }} />
-                                    <span style={{ fontSize: "20px", color: Colors.grayLight }}>+</span>
-                                    <span style={{ fontSize: "9px", color: Colors.grayLight }}>Group</span>
+                                    <span className="text-lg leading-none text-slate-300">+</span>
                                   </label>
                                 </div>
                               </div>
 
                               {/* Individual Variants */}
-                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px" }}>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                                 {variants.map((variant, idx) => {
                                   const variantKey = Object.values(variant).join("-");
                                   const variantImg = variantImages[variantKey] || groupImages[groupName] || [];
@@ -1331,80 +1266,65 @@ const handleEditCategory = async (cat) => {
                                   const basePrice = formData.sellingPrice || formData.price || 0;
                                   
                                   return (
-                                    <div key={idx} style={{ background: Colors.bgLight, borderRadius: "10px", padding: "12px" }}>
-                                      <div style={{ fontSize: "12px", fontWeight: "600", color: Colors.purple, marginBottom: "10px", textAlign: "center" }}>
+                                    <div key={idx} className="rounded-xl bg-slate-50/70 p-3">
+                                      <div className="text-xs font-semibold text-violet-700 text-center mb-2">
                                         {Object.values(variant).join(" / ")}
                                       </div>
                                       
                                       {/* Variant Image */}
-                                      <div style={{ marginBottom: "10px" }}>
-                                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center", position: "relative" }}>
+                                      <div className="mb-2.5 flex justify-center">
+                                        <div className="flex gap-1.5 flex-wrap justify-center relative">
                                           {(variantImg || []).slice(0, 2).map((img, i) => (
-                                            <div key={i} style={{ position: "relative" }}>
-                                              <img src={img.preview || img} alt="" style={{ width: "36px", height: "36px", objectFit: "cover", borderRadius: "6px" }} />
+                                            <div key={i} className="relative">
+                                              <img src={img.preview || img} alt="" className="w-9 h-9 object-cover rounded-md ring-1 ring-slate-200" />
                                               <button
                                                 type="button"
                                                 onClick={() => {
                                                   const newImgs = (variantImg || []).filter((_, idx) => idx !== i);
                                                   setVariantImages(prev => ({ ...prev, [variantKey]: newImgs }));
                                                 }}
-                                                style={{
-                                                  position: "absolute",
-                                                  top: "-4px",
-                                                  right: "-4px",
-                                                  width: "16px",
-                                                  height: "16px",
-                                                  background: Colors.danger,
-                                                  color: "white",
-                                                  border: "none",
-                                                  borderRadius: "50%",
-                                                  fontSize: "10px",
-                                                  cursor: "pointer",
-                                                  display: "flex",
-                                                  alignItems: "center",
-                                                  justifyContent: "center",
-                                                  lineHeight: 1,
-                                                }}
+                                                aria-label={`Remove image ${i + 1}`}
+                                                className="absolute -top-1 -right-1 w-4 h-4 grid place-items-center bg-red-500 text-white rounded-full text-[9px] leading-none hover:bg-red-600"
                                               >
                                                 ×
                                               </button>
                                             </div>
                                           ))}
+                                          <label className="cursor-pointer block">
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                                              const files = Array.from(e.target.files);
+                                              if (files.length > 0) {
+                                                const newImgs = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
+                                                setVariantImages(prev => ({ ...prev, [variantKey]: [...(prev[variantKey] || []), ...newImgs] }));
+                                              }
+                                            }} />
+                                            <span className="inline-block px-2 py-1 text-[10px] font-medium text-emerald-600 border border-dashed border-emerald-300 rounded-md hover:bg-emerald-50 transition-colors">+ Image</span>
+                                          </label>
                                         </div>
-                                        <label style={{ display: "block", textAlign: "center", marginTop: "6px", cursor: "pointer" }}>
-                                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
-                                            const files = Array.from(e.target.files);
-                                            if (files.length > 0) {
-                                              const newImgs = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
-                                              setVariantImages(prev => ({ ...prev, [variantKey]: [...(prev[variantKey] || []), ...newImgs] }));
-                                            }
-                                          }} />
-                                          <span style={{ fontSize: "10px", color: Colors.primary }}>+ Image</span>
-                                        </label>
                                       </div>
 
                                       {/* Stock & Price */}
-                                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                                      <div className="grid grid-cols-2 gap-1.5">
                                         <div>
-                                          <label style={{ fontSize: "10px", color: Colors.gray, display: "block", marginBottom: "2px" }}>Stock</label>
+                                          <label className="block text-[10px] text-slate-500 mb-0.5">Stock</label>
                                           <input
                                             type="number"
                                             min="0"
                                             value={variantStock}
                                             onChange={(e) => setVariantStocks(prev => ({ ...prev, [variantKey]: parseInt(e.target.value) || 0 }))}
                                             placeholder="0"
-                                            style={{ width: "100%", padding: "6px", border: `1px solid ${Colors.border}`, borderRadius: "6px", fontSize: "12px", textAlign: "center" }}
+                                            className={`w-full px-2 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white text-center ${Number(variantStock) === 0 ? "border-amber-300 text-amber-700" : "border-slate-200"}`}
                                           />
                                         </div>
                                         <div>
-                                          <label style={{ fontSize: "10px", color: Colors.gray, display: "block", marginBottom: "2px" }}>Price</label>
+                                          <label className="block text-[10px] text-slate-500 mb-0.5">Price</label>
                                           <input
                                             type="number"
                                             min="0"
                                             value={variantPrice}
                                             onChange={(e) => setVariantPrices(prev => ({ ...prev, [variantKey]: parseFloat(e.target.value) || basePrice }))}
                                             placeholder={basePrice}
-                                            style={{ width: "100%", padding: "6px", border: `1px solid ${Colors.border}`, borderRadius: "6px", fontSize: "12px", textAlign: "center" }}
+                                            className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white text-center"
                                           />
                                         </div>
                                       </div>

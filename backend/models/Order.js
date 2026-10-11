@@ -38,6 +38,7 @@ const orderSchema = new mongoose.Schema(
     cancelledBy: { type: String },
     cancellationReason: { type: String },
     seenByAdmin: { type: Boolean, default: false },
+    stockFinalized: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

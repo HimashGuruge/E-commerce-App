@@ -94,6 +94,24 @@ export default function Payment() {
     };
   }, [orderedata]);
 
+  // Item payload shape the backend checkout endpoints require (items[].productId/quantity)
+  const buildCheckoutItems = () =>
+    items.map((item) => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      productName: item.productName,
+      quantity: item.qty || 1,
+      price: item.price || 0,
+      sellingPrice:
+        item.sellingPrice ||
+        item.lastPrice ||
+        item.lastPrices ||
+        item.price ||
+        0,
+      images: item.images,
+      lastPrices: item.lastPrices,
+    }));
+
   // ==================== ✅ STRIPE BACK BUTTON DETECTION ====================
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -153,7 +171,8 @@ export default function Payment() {
       params.has("payment-failed") || params.has("cancel");
 
     if (!orderedata && !isPaymentFailed) {
-      navigate("/cart");
+      navigate("/viewcart");
+      return;
     }
 
     const interval = setInterval(() => {
@@ -241,25 +260,10 @@ export default function Payment() {
           orderedata.shippingAddress?.customerName || getUserFullName(),
       };
 
-      const itemsWithSellingPrice = items.map((item) => ({
-        productId: item.productId,
-        productName: item.productName,
-        qty: item.qty,
-        price: item.price || 0,
-        sellingPrice:
-          item.sellingPrice ||
-          item.lastPrice ||
-          item.lastPrices ||
-          item.price ||
-          0,
-        images: item.images,
-        lastPrices: item.lastPrices,
-      }));
-
       const { data } = await api.post(
         `/api/payment/create-checkout-session`,
         {
-          orderedItems: itemsWithSellingPrice,
+          items: buildCheckoutItems(),
           deliveryFee: deliveryFee,
           shippingAddress: shippingAddressWithName,
           contactPhone: getUserPhone(),
@@ -503,25 +507,10 @@ export default function Payment() {
           orderedata.shippingAddress?.customerName || getUserFullName(),
       };
 
-      const itemsWithSellingPrice = items.map((item) => ({
-        productId: item.productId,
-        productName: item.productName,
-        qty: item.qty,
-        price: item.price || 0,
-        sellingPrice:
-          item.sellingPrice ||
-          item.lastPrice ||
-          item.lastPrices ||
-          item.price ||
-          0,
-        images: item.images,
-        lastPrices: item.lastPrices,
-      }));
-
-      const response = await api.post(
+      await api.post(
         `/api/payment/cod`,
         {
-          orderedItems: itemsWithSellingPrice,
+          items: buildCheckoutItems(),
           shippingAddress: shippingAddressWithName,
           contactPhone: getUserPhone(),
           totalAmount: finalTotal,

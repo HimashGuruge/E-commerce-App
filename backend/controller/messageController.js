@@ -115,6 +115,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
     const systemReply = await Message.create({
       sender: adminUser?._id || userId,
+      recipient: userId,
       message: replyText,
       language: language || "en-US",
       senderType: "bot",
@@ -122,6 +123,11 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
       adminRead: true,
       userRead: false,
     });
+
+    // Real-time: push the canned reply to the user's open chat + alert admins
+    emitToUser(userId, "chat:new-message", systemReply);
+    const userForBadge = await User.findById(userId).select("name").lean().catch(() => null);
+    emitToAdmins("chat:unseen-user", { userId, userName: userForBadge?.name || "A user" });
 
     return res.status(201).json({
       success: true,
@@ -145,6 +151,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
     const helpReply = await Message.create({
       sender: adminUser?._id || userId,
+      recipient: userId,
       message: helpText,
       language: language || "en-US",
       senderType: "bot",
@@ -152,6 +159,9 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
       adminRead: true,
       userRead: false,
     });
+
+    // Real-time: push the help reply to the user's open chat
+    emitToUser(userId, "chat:new-message", helpReply);
 
     return res.status(201).json({
       success: true,
@@ -510,6 +520,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
   // 6. Save AI response
   const aiMsg = await Message.create({
     sender: adminUser?._id || userId,
+    recipient: userId,
     message: aiMessageText,
     language: effectiveLang,
     senderType: "bot",
@@ -534,35 +545,48 @@ export const getUserMessages = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const since = req.query.since;
   const after = req.query.after;
+  const before = req.query.before;
 
-  const query = {
-    $or: [{ sender: req.user._id }, { isAdmin: true }],
+  const base = {
+    $or: [{ sender: req.user._id }, { recipient: req.user._id }],
   };
-  if (since) {
-    query.createdAt = { $gt: new Date(since) };
-  }
+  if (since) base.createdAt = { $gt: new Date(since) };
+  if (after) base._id = { $gt: after };
+  if (before) base._id = { $lt: before };
+
+  let messages, hasMore, nextCursor;
+
   if (after) {
-    query._id = { $gt: after };
+    // Polling: return everything newer than `after`, ascending (catch-up).
+    messages = await Message.find(base).sort({ createdAt: 1 }).limit(limit);
+    hasMore = false;
+    nextCursor = messages.length ? messages[0]._id : null;
+  } else {
+    // Initial load / load-older: fetch the newest `limit` in-page messages,
+    // present them ascending (oldest first) to match the UI.
+    const newestFirst = await Message.find(base).sort({ createdAt: -1 }).limit(limit);
+    messages = newestFirst.reverse();
+    nextCursor = messages.length ? messages[0]._id : null;
+
+    if (before) {
+      // Loading older pages: more exist if we returned a full page.
+      hasMore = messages.length === limit;
+    } else {
+      const total = await Message.countDocuments(base);
+      hasMore = total > limit;
+    }
   }
-
-  const messages = await Message.find(query)
-    .sort({ createdAt: 1 })
-    .limit(limit);
-
-  const total = await Message.countDocuments({
-    $or: [{ sender: req.user._id }, { isAdmin: true }],
-  });
 
   await Message.updateMany(
-    { isAdmin: true, userRead: false },
+    { recipient: req.user._id, userRead: false },
     { $set: { userRead: true } }
   );
 
   res.json({
     success: true,
     messages,
-    hasMore: total > limit,
-    total,
+    hasMore,
+    nextCursor,
   });
 });
 
@@ -570,34 +594,37 @@ export const getUserMessages = asyncHandler(async (req, res) => {
 export const initializeChat = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
 
-  // Mark admin messages as read when user opens chat (filter by isAdmin flag, not sender)
+  // Mark admin messages as read when user opens chat (scoped to this user only)
   await Message.updateMany(
-    { isAdmin: true, userRead: false },
+    { recipient: req.user._id, userRead: false },
     { $set: { userRead: true } }
   );
 
-  const messages = await Message.find({
-    $or: [{ sender: req.user._id }, { isAdmin: true }],
+  // Return the newest `limit` messages, presented ascending (oldest first) for the UI.
+  const newestFirst = await Message.find({
+    $or: [{ sender: req.user._id }, { recipient: req.user._id }],
   })
-    .sort({ createdAt: 1 })
+    .sort({ createdAt: -1 })
     .limit(limit);
+  const messages = newestFirst.reverse();
 
   const total = await Message.countDocuments({
-    $or: [{ sender: req.user._id }, { isAdmin: true }],
+    $or: [{ sender: req.user._id }, { recipient: req.user._id }],
   });
 
   res.json({
     success: true,
     messages,
     hasMore: total > limit,
+    nextCursor: messages.length ? messages[0]._id : null,
   });
 });
 
 // --- GET /api/messages/unread-chat-count (USER-facing) ---
 export const getUserUnreadCount = asyncHandler(async (req, res) => {
-  // Count admin messages the user hasn't read yet
+  // Count admin messages this user hasn't read yet
   const count = await Message.countDocuments({
-    isAdmin: true,
+    recipient: req.user._id,
     userRead: false,
   });
   res.json({ success: true, count });
@@ -623,7 +650,7 @@ export const markAdminNotificationsAsRead = asyncHandler(async (req, res) => {
 // --- PUT /api/messages/mark-user-read (USER-facing) ---
 export const markUserMessagesAsRead = asyncHandler(async (req, res) => {
   await Message.updateMany(
-    { isAdmin: true, userRead: false },
+    { recipient: req.user._id, userRead: false },
     { $set: { userRead: true } }
   );
   res.json({ success: true });

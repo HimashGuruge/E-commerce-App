@@ -7,6 +7,21 @@ import Order from "../models/Order.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
+import { recalcParentStock } from "./productVariantController.js";
+import { markRemindersSubmitted, hasFullyReturnedItem } from "../services/reviewReminderService.js";
+// After restocking returned items, sync the owning parent products' totals
+const resyncParentsForItems = async (items) => {
+  const parentIds = new Set();
+  for (const item of items) {
+    if (item.variant) {
+      const variant = await mongoose.model("Variant").findById(item.variant);
+      if (variant?.parentProduct) parentIds.add(String(variant.parentProduct));
+    }
+  }
+  for (const parentId of parentIds) {
+    await recalcParentStock(parentId);
+  }
+};
 
 // ========== HELPER: Sync Product Rating ==========
 
@@ -223,7 +238,7 @@ export const processRefund = asyncHandler(async (req, res) => {
     throw new Error("Return request not found");
   }
 
-  // Deduct stock for returned items
+  // Restock returned items
   for (const item of returnRequest.items) {
     if (item.variant) {
       await mongoose.model("Variant").findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
@@ -231,6 +246,8 @@ export const processRefund = asyncHandler(async (req, res) => {
       await mongoose.model("Product").findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } });
     }
   }
+
+  await resyncParentsForItems(returnRequest.items);
 
   res.json({ success: true, returnRequest, message: "Refund processing initiated" });
 });
@@ -287,16 +304,77 @@ export const createFeedback = asyncHandler(async (req, res) => {
 
 export const submitFeedback = asyncHandler(async (req, res) => {
   const { productId, rating, comment, images } = req.body;
-  const feedback = await Feedback.create({
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    res.status(400);
+    throw new Error("Valid productId is required");
+  }
+  const r = Number(rating);
+  if (!Number.isInteger(r) || r < 1 || r > 5) {
+    res.status(400);
+    throw new Error("Rating must be an integer from 1 to 5");
+  }
+  if (!comment || !String(comment).trim()) {
+    res.status(400);
+    throw new Error("Comment is required");
+  }
+
+  // Verified purchase: a qualifying DELIVERED order containing the product.
+  // The frontend is never trusted for verification.
+  const qualifyingOrder = await Order.findOne({
+    user: req.user._id,
+    orderStatus: "delivered",
+    "items.product": productId,
+  });
+  if (!qualifyingOrder) {
+    res.status(403);
+    throw new Error("You can only review products you have purchased and received");
+  }
+
+  // A fully returned/refunded item does not qualify for a review.
+  const orderItem = qualifyingOrder.items.find(
+    (i) => String(i.product) === String(productId)
+  );
+  if (orderItem && (await hasFullyReturnedItem(qualifyingOrder, orderItem))) {
+    res.status(403);
+    throw new Error("This item was returned, so it cannot be reviewed");
+  }
+
+  // One review per customer per product (policy), enforced server-side.
+  const existing = await Feedback.findOne({
     user: req.user._id,
     product: productId,
-    rating,
-    comment,
-    images,
-    status: "pending",
-  });
+  }).sort({ createdAt: 1 });
+  if (existing) {
+    res.status(409);
+    throw new Error("You have already reviewed this product");
+  }
+
+  let feedback;
+  try {
+    feedback = await Feedback.create({
+      user: req.user._id,
+      product: productId,
+      order: qualifyingOrder._id,
+      rating: r,
+      comment,
+      images: Array.isArray(images) ? images : [],
+      status: "approved",
+      isVerifiedPurchase: true,
+    });
+  } catch (err) {
+    // Lost a concurrent insert race: the unique (user, product) index
+    // rejected it. Same outcome as the 409 pre-check above.
+    if (err?.code === 11000) {
+      res.status(409);
+      throw new Error("You have already reviewed this product");
+    }
+    throw err;
+  }
 
   await updateProductRating(productId);
+  // Completing the review closes its reminder (reading ≠ completing).
+  await markRemindersSubmitted(qualifyingOrder._id);
 
   res.status(201).json({ success: true, feedback });
 });

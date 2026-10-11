@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/utils/api";
 import { onSocketEvent } from "@/utils/socket";
-import { Bell, Truck, MessageSquare, Package, CheckCircle, CheckCheck, Volume2, VolumeX, Monitor, X } from "lucide-react";
+import { Bell, Truck, MessageSquare, Package, CheckCircle, CheckCheck, Star, Volume2, VolumeX, Monitor, X } from "lucide-react";
 
 const POLLING_INTERVAL = 30000;
 
@@ -11,9 +11,10 @@ const TYPE_CONFIG = {
   order_update: { icon: Truck, color: "text-blue-500", bg: "bg-blue-50" },
   order_delivered: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-50" },
   admin_reply: { icon: MessageSquare, color: "text-brand-500", bg: "bg-brand-50" },
+  REVIEW_REMINDER: { icon: Star, color: "text-yellow-500", bg: "bg-yellow-50" },
 };
 
-const SHOW_TYPES = new Set(["order_placed", "order_update", "order_delivered", "admin_reply"]);
+const SHOW_TYPES = new Set(["order_placed", "order_update", "order_delivered", "admin_reply", "REVIEW_REMINDER"]);
 
 function groupByDate(notifications) {
   const groups = {};
@@ -149,7 +150,12 @@ export default function NotificationWidget() {
       await markAsRead(notification._id);
     }
 
-    if (notification.type === "admin_reply") {
+    if (notification.type === "REVIEW_REMINDER") {
+      // Deep link straight to the product's review section
+      const params = new URLSearchParams({ review: "1" });
+      const productId = notification.product?._id || notification.productId;
+      if (productId) navigate(`/shop/productoverview/${productId}?${params.toString()}`);
+    } else if (notification.type === "admin_reply") {
       window.dispatchEvent(new CustomEvent("trigger-chatbot-message"));
     } else if (notification.type === "order_update") {
       navigate("/orders");
@@ -195,7 +201,7 @@ export default function NotificationWidget() {
   // Real-time: refresh unread count when the server pushes an update
   useEffect(() => {
     if (!token) return;
-    return onSocketEvent(["order:update", "chat:new-message"], () => fetchUnreadCount());
+    return onSocketEvent(["order:update", "chat:new-message", "notification:new"], () => fetchUnreadCount());
   }, [token, fetchUnreadCount]);
 
   useEffect(() => {
