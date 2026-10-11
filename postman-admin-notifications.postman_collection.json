@@ -1,0 +1,79 @@
+{
+  "info": {
+    "name": "Admin Notifications Badge",
+    "_exporter_id": "manual",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "email", "value": "admin@example.com" },
+    { "key": "password", "value": "admin123" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Login (admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": [
+            "const j = pm.response.json();",
+            "if (j && j.token) { pm.collectionVariables.set('token', j.token); console.log('TOKEN SAVED'); }"
+          ]
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/users/login", "host": ["{{baseUrl}}"], "path": ["api", "users", "login"] },
+        "body": { "mode": "raw", "raw": "{ \"email\": \"{{email}}\", \"password\": \"{{password}}\" }", "options": { "raw": { "language": "json" } } }
+      }
+    },
+    {
+      "name": "2. Admin unread count (BEFORE)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/notifications/admin/unread-count", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "admin", "unread-count"] }
+      }
+    },
+    {
+      "name": "3. Mark ALL admin notifications read",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/notifications/admin/mark-all-read", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "admin", "mark-all-read"] }
+      }
+    },
+    {
+      "name": "4. Admin unread count (AFTER - expect 0)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/notifications/admin/unread-count", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "admin", "unread-count"] }
+      }
+    },
+    {
+      "name": "5. All admin notifications (chat list)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/notifications/admin/all", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "admin", "all"] }
+      }
+    },
+    {
+      "name": "6. Mark ONE user chat read (userId)",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/admin/mark-read/:userId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notifications", "admin", "mark-read", ":userId"],
+          "variable": [{ "key": "userId", "value": "<paste a userId from request 5>" }]
+        }
+      }
+    }
+  ]
+}
