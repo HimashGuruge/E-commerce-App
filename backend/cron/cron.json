@@ -1,10 +1,9 @@
 {
   "jobs": [
     {
-      "name": "delivery-cron",
-      "script": "delivery-cron.mjs",
+      "name": "auto-deliver",
       "schedule": "daily at 3:00 AM",
-      "description": "Auto-deliver orders in 'shipped' status older than 3 days"
+      "description": "In-process cron (trackingService.js). Auto-delivers orders in 'shipped' status older than 3 days and pushes order:update to buyers."
     },
     {
       "name": "keep-alive",
