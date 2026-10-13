@@ -1,4 +1,0 @@
-e2e-server.err.log
-e2e-server.out.log
-backend/public/uploads/*
-*.log
