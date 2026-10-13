@@ -28,6 +28,11 @@ export const createParentProduct = asyncHandler(async (req, res) => {
     productData.name = productData.productName;
     delete productData.productName;
   }
+  // If seller is creating the product, attach seller and mark for approval
+  if (req.user.role === "seller") {
+    productData.seller = req.user._id;
+    productData.approvedByAdmin = false;
+  }
   const product = await Product.create({ ...productData, isVariantParent: true });
   res.status(201).json({
     success: true,

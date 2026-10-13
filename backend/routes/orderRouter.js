@@ -14,7 +14,7 @@ import {
   getUserOrderStatusSummary,
 } from "../controller/orderController.js";
 
-import authMiddleware from "../middleware/authMiddleware.js";
+import authMiddleware, { adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -38,7 +38,7 @@ router.get("/stats", authMiddleware, getDashboardStats);
 
 router.delete(
   "/admin/failed-order/:orderId",
-  authMiddleware,
+  adminOnly,
   adminDeleteFailedOrder,
 );
 

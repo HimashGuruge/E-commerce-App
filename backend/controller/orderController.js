@@ -8,6 +8,19 @@ import logger from "../utils/logger.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
 
+// Legacy orders may lack item.name/image (never saved at creation).
+// Fall back to the live Product/Variant so images and names always render.
+async function ensureItemMetadata(order) {
+  for (const item of order.items || []) {
+    if (item.image && item.name) continue;
+    const product = await Product.findById(item.product);
+    const variant = item.variant ? await Variant.findById(item.variant) : null;
+    if (!product && !variant) continue;
+    if (!item.image) item.image = variant?.images?.[0] || product?.images?.[0] || "";
+    if (!item.name) item.name = variant?.sku ? `${product?.name || ""} - ${variant.sku}` : product?.name || "";
+  }
+}
+
 export const getOrdersByUser = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
@@ -23,6 +36,13 @@ export const getOrdersByUser = asyncHandler(async (req, res) => {
       .limit(limit),
     Order.countDocuments(filter),
   ]);
+
+  for (const order of orders) {
+    await ensureItemMetadata(order);
+    if (order.orderStatus !== "shipped" && order.orderStatus !== "delivered") {
+      delete order.trackingNumber;
+    }
+  }
 
   res.json({
     success: true,
@@ -51,6 +71,14 @@ export const getOrderById = asyncHandler(async (req, res) => {
   if (order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
     res.status(403);
     throw new Error("Not authorized");
+  }
+  await ensureItemMetadata(order);
+  if (
+    req.user.role !== "admin" &&
+    order.orderStatus !== "shipped" &&
+    order.orderStatus !== "delivered"
+  ) {
+    delete order.trackingNumber;
   }
   res.json({ success: true, order });
 });
@@ -135,8 +163,14 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
   const oldStatus = order.orderStatus;
   order.orderStatus = req.body.status;
   if (req.body.trackingNumber) order.trackingNumber = req.body.trackingNumber;
+  if (req.body.status === "pending" || req.body.status === "processing") {
+    order.trackingNumber = undefined;
+  }
   if (req.body.courier) order.courier = req.body.courier;
   await order.save();
+
+  // Real-time: refresh admin pending-orders badge without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: order._id });
 
   // Notify user of status change
   try {
@@ -147,7 +181,7 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
       cancelled: "❌",
     };
     const emoji = statusEmoji[req.body.status] || "📦";
-    const trackingInfo = req.body.trackingNumber ? `\nTracking: ${req.body.trackingNumber} (${req.body.courier || "N/A"})` : "";
+    const trackingInfo = order.trackingNumber ? `\nTracking: ${order.trackingNumber} (${order.courier || "N/A"})` : "";
     const statusMsg = await Message.create({
       sender: req.user._id,
       recipient: order.user?._id || order.user,

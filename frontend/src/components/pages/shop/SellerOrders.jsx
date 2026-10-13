@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { FiShoppingCart, FiSearch, FiChevronLeft, FiChevronRight, FiUser, FiPhone, FiMail } from "react-icons/fi";
+import { FiShoppingCart, FiSearch, FiChevronLeft, FiChevronRight, FiUser, FiPhone, FiMail, FiTruck, FiCheckCircle, FiClock } from "react-icons/fi";
+import Swal from "sweetalert2";
 import api from "@/utils/api";
 
 const statusColors = {
@@ -16,6 +17,7 @@ export default function SellerOrders() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [updatingId, setUpdatingId] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -33,6 +35,49 @@ export default function SellerOrders() {
   }, [page, statusFilter]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  const handleStatus = async (order, nextStatus) => {
+    const labels = { processing: "Start processing", shipped: "Mark as shipped", delivered: "Mark as delivered" };
+    let trackingNumber = undefined;
+    let courier = undefined;
+
+    if (nextStatus === "shipped") {
+      const res = await Swal.fire({
+        title: "Mark as shipped",
+        html: `<input id="swal-tracking" class="swal2-input" placeholder="Tracking number (optional)" />
+               <input id="swal-courier" class="swal2-input" placeholder="Courier (optional)" />`,
+        showCancelButton: true,
+        confirmButtonText: "Continue",
+        cancelButtonText: "Cancel",
+        preConfirm: () => {
+          trackingNumber = document.querySelector("#swal-tracking")?.value?.trim() || undefined;
+          courier = document.querySelector("#swal-courier")?.value?.trim() || undefined;
+          return true;
+        },
+      });
+      if (!res.isConfirmed) return;
+    }
+
+    setUpdatingId(order._id);
+    try {
+      const { data } = await api.put(`/api/sellers/orders/${order._id}/status`, {
+        status: nextStatus,
+        trackingNumber,
+        courier,
+      });
+      if (data.success) {
+        window.dispatchEvent(new Event("seller-orders-changed"));
+        Swal.fire({ toast: true, position: "top-end", timer: 2000, showConfirmButton: false, icon: "success", title: labels[nextStatus] });
+        await fetchOrders();
+      } else {
+        alert(data.error || "Update failed");
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || "Update failed");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -77,6 +122,42 @@ export default function SellerOrders() {
                   <p className="text-sm font-bold text-slate-900 mt-1">Rs. {(order.totalPrice || 0).toLocaleString()}</p>
                 </div>
               </div>
+              {(order.orderStatus === "pending" || order.orderStatus === "processing" || order.orderStatus === "shipped") && (
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  {order.orderStatus === "pending" && (
+                    <button
+                      onClick={() => handleStatus(order, "processing")}
+                      disabled={updatingId === order._id}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 disabled:opacity-50"
+                    >
+                      <FiClock className="w-4 h-4" /> Start Processing
+                    </button>
+                  )}
+                  {order.orderStatus === "processing" && (
+                    <button
+                      onClick={() => handleStatus(order, "shipped")}
+                      disabled={updatingId === order._id}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      <FiTruck className="w-4 h-4" /> Mark as Shipped
+                    </button>
+                  )}
+                  {order.orderStatus === "shipped" && (
+                    <button
+                      onClick={() => handleStatus(order, "delivered")}
+                      disabled={updatingId === order._id}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <FiCheckCircle className="w-4 h-4" /> Mark as Delivered
+                    </button>
+                  )}
+                  {order.trackingNumber && (
+                    <span className="text-xs text-slate-500">
+                      Tracking: {order.trackingNumber}{order.courier ? ` · ${order.courier}` : ""}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 {order.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">

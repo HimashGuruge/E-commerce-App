@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUsers, FiCheck, FiX, FiAlertCircle, FiSearch, FiRefreshCw, FiToggleLeft, FiPercent, FiEye } from "react-icons/fi";
+import { FiUsers, FiCheck, FiX, FiAlertCircle, FiSearch, FiRefreshCw, FiToggleLeft, FiPercent, FiEye, FiBell } from "react-icons/fi";
 import { MdStore, MdCheckCircle, MdCancel, MdBlock } from "react-icons/md";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
@@ -19,6 +19,11 @@ export default function AdminSellerManagement() {
   const [search, setSearch] = useState("");
   const [stats, setStats] = useState(null);
   const navigate = useNavigate();
+  const [alertTarget, setAlertTarget] = useState(null); // seller the alert modal is open for
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertError, setAlertError] = useState("");
+  const [alertSending, setAlertSending] = useState(false);
 
   const fetchSellers = useCallback(async () => {
     setLoading(true);
@@ -115,6 +120,38 @@ export default function AdminSellerManagement() {
     }
   };
 
+  const openAlertModal = (seller) => {
+    setAlertTarget(seller);
+    setAlertTitle("");
+    setAlertMessage("");
+    setAlertError("");
+  };
+
+  const closeAlertModal = () => {
+    setAlertTarget(null);
+    setAlertTitle("");
+    setAlertMessage("");
+    setAlertError("");
+  };
+
+  const sendAlert = async () => {
+    const title = alertTitle.trim();
+    const message = alertMessage.trim();
+    if (!title) { setAlertError("Title is required."); return; }
+    if (!message) { setAlertError("Message is required."); return; }
+    setAlertError("");
+    setAlertSending(true);
+    try {
+      await api.post(`/api/notifications/admin/seller/${alertTarget.user._id}`, { title, message });
+      Swal.fire({ icon: "success", title: `Alert sent to ${alertTarget.shopName}`, timer: 1500, showConfirmButton: false });
+      closeAlertModal();
+    } catch (err) {
+      setAlertError(err.response?.data?.error || "Failed to send alert");
+    } finally {
+      setAlertSending(false);
+    }
+  };
+
   const filtered = sellers.filter((s) =>
     s.shopName?.toLowerCase().includes(search.toLowerCase()) ||
     s.ownerName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -204,6 +241,9 @@ export default function AdminSellerManagement() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => openAlertModal(seller)} className="flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-slate-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-all" title="Send alert to seller">
+                    <FiBell className="w-4 h-4" /> Alert
+                  </button>
                   <button onClick={() => navigate(`/admin/dashboard/sellers/${seller._id}`)} className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all" title="View Details">
                     <FiEye className="w-4 h-4" />
                   </button>
@@ -240,6 +280,67 @@ export default function AdminSellerManagement() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
           <FiUsers className="w-12 h-12 mx-auto text-slate-300 mb-3" />
           <p className="text-slate-500 font-medium">No {filter !== "all" ? filter : ""} sellers found</p>
+        </div>
+      )}
+
+      {/* Send Alert modal */}
+      {alertTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={alertSending ? undefined : closeAlertModal} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Send Alert</h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  To: {alertTarget.shopName} {alertTarget.user?.email ? `(${alertTarget.user.email})` : ""}
+                </p>
+              </div>
+              <button onClick={closeAlertModal} disabled={alertSending} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                <FiX className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
+                <input
+                  value={alertTitle}
+                  onChange={(e) => setAlertTitle(e.target.value)}
+                  placeholder="e.g. Important update"
+                  disabled={alertSending}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-brand-500 outline-none text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
+                <textarea
+                  value={alertMessage}
+                  onChange={(e) => setAlertMessage(e.target.value)}
+                  placeholder="What do you want the seller to know?"
+                  rows={4}
+                  disabled={alertSending}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-brand-500 outline-none text-sm resize-none"
+                />
+              </div>
+              {alertError && (
+                <p className="text-xs text-red-600 flex items-center gap-1.5">
+                  <FiAlertCircle className="w-3.5 h-3.5" /> {alertError}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={closeAlertModal} disabled={alertSending} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+                Cancel
+              </button>
+              <button
+                onClick={sendAlert}
+                disabled={alertSending}
+                className="px-4 py-2 text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {alertSending && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                {alertSending ? "Sending..." : "Send Alert"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

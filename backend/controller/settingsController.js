@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import SiteConfig from "../models/SiteConfig.js";
 import { sendEmail } from "../utils/mailer.js";
+import { emitToAll } from "../services/socketService.js";
 
 const getFirstConfig = async () => {
   let config = await SiteConfig.findOne();
@@ -78,6 +79,8 @@ export const updateSettings = asyncHandler(async (req, res) => {
     });
   }
   await config.save();
+  // Real-time: tell all clients the theme changed so they can refetch public settings
+  emitToAll("settings:updated", {});
   res.json({ success: true, settings: config, message: "Settings updated successfully" });
 });
 

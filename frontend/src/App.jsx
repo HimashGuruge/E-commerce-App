@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import api from "@/utils/api";
-import { initSocket, destroySocket } from "@/utils/socket";
+import { initSocket, destroySocket, onSocketEvent } from "@/utils/socket";
 import { injectTheme, injectFont, injectNavbar } from "@/utils/color";
 import usePublicSettings from "@/hooks/usePublicSettings";
 import Homepage from "./components/pages/shop/Homepage.jsx";
@@ -124,14 +124,6 @@ function App() {
   }, [settings]);
 
   useEffect(() => {
-    const fetchSettings = () => {
-      import("@/utils/siteSettings").then(({ getPublicSettings }) =>
-        getPublicSettings({ force: true }).then((s) => {
-          if (s) window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: s }));
-        }).catch(() => {})
-      );
-    };
-    const interval = setInterval(fetchSettings, 60000);
     const handleAuthChange = () => {
       if (localStorage.getItem("token")) initSocket();
       else destroySocket();
@@ -139,8 +131,16 @@ function App() {
     window.addEventListener("authChange", handleAuthChange);
     // Connect immediately if already logged in (page reload)
     if (localStorage.getItem("token")) initSocket();
+    // Real-time: refetch public settings the moment an admin changes them
+    const unsub = onSocketEvent("settings:updated", () => {
+      import("@/utils/siteSettings").then(({ getPublicSettings }) =>
+        getPublicSettings({ force: true }).then((s) => {
+          if (s) window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: s }));
+        }).catch(() => {})
+      );
+    });
     return () => {
-      clearInterval(interval);
+      unsub();
       window.removeEventListener("authChange", handleAuthChange);
       destroySocket();
     };
