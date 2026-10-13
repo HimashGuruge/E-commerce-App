@@ -32,3 +32,9 @@ export const emitToAdmins = (event, payload) => {
   if (!socketIo) return;
   socketIo.to("admins").emit(event, payload);
 };
+
+// Push an event to every connected client (e.g. site settings changed)
+export const emitToAll = (event, payload) => {
+  if (!socketIo) return;
+  socketIo.emit(event, payload);
+};

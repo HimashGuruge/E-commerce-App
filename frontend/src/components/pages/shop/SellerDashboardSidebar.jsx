@@ -4,14 +4,17 @@ import { RxDashboard, RxExit } from "react-icons/rx";
 import {
   MdOutlineGridView, MdAddBox, MdShoppingCart, MdMessage, MdCampaign, MdSettings, MdStore,
 } from "react-icons/md";
-import { FiBarChart2, FiExternalLink } from "react-icons/fi";
+import { FiBarChart2, FiExternalLink, FiBell } from "react-icons/fi";
 import { TbPackages } from "react-icons/tb";
 import api from "@/utils/api";
+import { onSocketEvent } from "@/utils/socket";
 
 export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile }) {
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
   const [pendingOrders, setPendingOrders] = useState(0);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     const fetchSeller = async () => {
@@ -20,7 +23,58 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
         if (data.success) setSeller(data.seller);
       } catch {}
     };
+    // Badge = orders waiting on the seller (pending + processing), same as the dashboard
+    const fetchPending = async () => {
+      try {
+        const [p, pr] = await Promise.all([
+          api.get("/api/sellers/orders?limit=1&status=pending"),
+          api.get("/api/sellers/orders?limit=1&status=processing"),
+        ]);
+        const total =
+          (p.data?.success ? p.data.totalCount || 0 : 0) +
+          (pr.data?.success ? pr.data.totalCount || 0 : 0);
+        setPendingOrders(total);
+      } catch {}
+    };
+    // Badge = unread admin alerts
+    const fetchAlerts = async () => {
+      try {
+        const { data } = await api.get("/api/notifications/seller");
+        if (data.success) setUnreadAlerts(data.unreadCount || 0);
+      } catch {}
+    };
+    const onAlertsChanged = (e) => setUnreadAlerts(e.detail || 0);
+
+    // Badge = unread customer messages
+    const fetchUnreadMessages = async () => {
+      try {
+        const { data } = await api.get("/api/sellers/messages/unread");
+        if (data.success) setUnreadMessages(data.unreadCount || 0);
+      } catch {}
+    };
+    const onMessagesChanged = (e) => setUnreadMessages(e.detail || 0);
+
     fetchSeller();
+    fetchPending();
+    fetchAlerts();
+    fetchUnreadMessages();
+    const refresh = () => fetchPending();
+    const unsubAlert = onSocketEvent(["seller:alert"], fetchAlerts);
+    // New customer message → refresh badge live (independent of the Messages page)
+    const unsubMsg = onSocketEvent(["seller:new-message"], fetchUnreadMessages);
+    // Polling fallback keeps the badge fresh if the socket is unavailable
+    const poll = setInterval(fetchUnreadMessages, 30000);
+    window.addEventListener("seller-orders-changed", refresh);
+    window.addEventListener("seller-alerts-changed", onAlertsChanged);
+    window.addEventListener("seller-messages-changed", onMessagesChanged);
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener("seller-orders-changed", refresh);
+      window.removeEventListener("seller-alerts-changed", onAlertsChanged);
+      window.removeEventListener("seller-messages-changed", onMessagesChanged);
+      unsubAlert();
+      unsubMsg();
+    };
   }, []);
 
   const navItemClass = ({ isActive }) =>
@@ -131,9 +185,20 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
             <span className="text-sm font-medium">Earnings</span>
           </NavLink>
 
+          <NavLink to="/seller/dashboard/notifications" className={navItemClass} onClick={() => closeMobile?.()}>
+            <FiBell size={18} className="text-brand-600" />
+            <span className="flex-1 text-sm font-medium">Notifications</span>
+            {unreadAlerts > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadAlerts}</span>
+            )}
+          </NavLink>
+
           <NavLink to="/seller/dashboard/messages" className={navItemClass} onClick={() => closeMobile?.()}>
             <MdMessage size={18} className="text-brand-600" />
-            <span className="text-sm font-medium">Messages</span>
+            <span className="flex-1 text-sm font-medium">Messages</span>
+            {unreadMessages > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadMessages}</span>
+            )}
           </NavLink>
 
           <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-2 px-2">Settings</div>

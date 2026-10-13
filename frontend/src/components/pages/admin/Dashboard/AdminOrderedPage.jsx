@@ -155,6 +155,14 @@ export default function AdminOrderedPage() {
         status,
         trackingNumber,
       });
+      if (status === "pending" || status === "processing") {
+        setTempTracking((prev) => {
+          const next = { ...prev };
+          delete next[orderId];
+          return next;
+        });
+        setEditingOrderId((prev) => (prev === orderId ? null : prev));
+      }
       toast.success(`Order marked as ${status}`);
       loadAllOrders();
     } catch (err) {
@@ -167,7 +175,7 @@ export default function AdminOrderedPage() {
 
   const handleDeleteFailedOrder = async (orderId, orderIdString) => {
     const result = await Swal.fire({
-      title: "Delete Failed Order?",
+      title: "Delete this order?",
       text: "This action cannot be undone!",
       icon: "warning",
       showCancelButton: true,
@@ -178,7 +186,7 @@ export default function AdminOrderedPage() {
 
     if (result.isConfirmed) {
       try {
-        await api.delete(`/api/orders/${orderId}`);
+        await api.delete(`/api/orders/admin/failed-order/${orderId}`);
         toast.success("Order deleted");
         loadAllOrders();
       } catch (err) {
@@ -343,13 +351,13 @@ export default function AdminOrderedPage() {
                   Update Status
                 </p>
 
-                {order.orderStatus === "failed" ? (
+                {order.orderStatus === "failed" || order.orderStatus === "cancelled" ? (
                   <button
                     onClick={() => handleDeleteFailedOrder(order._id, order.orderId)}
                     className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-xs font-black transition-all"
                   >
                     <FiTrash2 size={14} />
-                    Delete Failed Order
+                    Delete {order.orderStatus === "failed" ? "Failed" : "Cancelled"} Order
                   </button>
                 ) : (
                   <>
@@ -576,6 +584,7 @@ export default function AdminOrderedPage() {
                     <th className="px-4 py-3 font-bold text-slate-600">Date</th>
                     <th className="px-4 py-3 font-bold text-slate-600">Status</th>
                     <th className="px-4 py-3 font-bold text-slate-600">Amount</th>
+                    <th className="px-4 py-3 font-bold text-slate-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -639,7 +648,7 @@ export default function AdminOrderedPage() {
                               </option>
                             ))}
                           </select>
-                          <input
+                            <input
                             type="text"
                             placeholder="Tracking No."
                             value={tempTracking[order._id] ?? order.trackingNumber ?? ""}
@@ -650,12 +659,33 @@ export default function AdminOrderedPage() {
                                 [order._id]: e.target.value,
                               }))
                             }
+                            onBlur={(e) => {
+                              const val = (e.target.value || "").trim();
+                              const unchanged = val === (order.trackingNumber ?? "");
+                              if (val && !unchanged) {
+                                handleStatusUpdate(order._id, "shipped", val);
+                              }
+                            }}
                             className="w-36 px-2 py-1 border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:ring-2 focus:ring-brand-500"
                           />
                         </div>
                       </td>
                       <td className="px-4 py-3 font-bold text-slate-700">
                         Rs. {(order.totalPrice ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        {(order.orderStatus === "failed" ||
+                          order.orderStatus === "cancelled") && (
+                          <button
+                            onClick={() =>
+                              handleDeleteFailedOrder(order._id, order.orderId)
+                            }
+                            className="flex items-center gap-1 px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-[10px] font-black transition-colors"
+                          >
+                            <FiTrash2 size={12} />
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

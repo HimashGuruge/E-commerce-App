@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { NavLink, Link } from "react-router-dom";
 import api from "@/utils/api";
 import { getPublicSettings } from "@/utils/siteSettings";
+import { onSocketEvent } from "@/utils/socket";
 import { RxDashboard, RxGear } from "react-icons/rx";
 import {
   MdOutlineGridView,
@@ -16,7 +17,7 @@ import {
   MdSettings,
 } from "react-icons/md";
 import { TbUserShield } from "react-icons/tb";
-import { FiMessageSquare, FiHelpCircle, FiPackage } from "react-icons/fi";
+import { FiMessageSquare, FiHelpCircle, FiPackage, FiClock } from "react-icons/fi";
 import { MdStore } from "react-icons/md";
 
 export default function Sidebar({
@@ -276,16 +277,19 @@ export default function Sidebar({
     if (cachedSellers !== null) setPendingSellersCount(parseInt(cachedSellers) || 0);
     if (cachedReturns !== null) setPendingReturnsCount(parseInt(cachedReturns) || 0);
 
-    // Fetch fresh data
+    // Fetch fresh data once; live updates arrive via the socket (no HTTP polling)
     fetchUserData();
     fetchBadgeData();
     getPublicSettings().then((s) => {
       if (s) setSettings(s);
     }).catch(() => {});
-    // Refresh more frequently (15 seconds)
-    const interval = setInterval(fetchBadgeData, 15000);
-    return () => clearInterval(interval);
   }, [fetchUserData, fetchBadgeData]);
+
+  // Real-time: refresh the badge counts when the backend signals a change
+  // (new order / order status change / new pending feedback / new seller)
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", () => fetchBadgeData());
+  }, [fetchBadgeData]);
 
   // Get from localStorage for faster load
   const localStorageUserLoaded = useRef(false);
@@ -471,6 +475,18 @@ export default function Sidebar({
           >
             <MdAddBox size={20} className="text-brand-600" />
             <span className="text-sm font-medium">Add Product</span>
+          </NavLink>
+
+          {/* Pending Product Approvals */}
+          <NavLink
+            to="/admin/dashboard/pendingproducts"
+            className={navItemClass}
+            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
+          >
+            <FiClock size={20} className="text-brand-600" />
+            <span className="text-sm font-medium">
+              Pending Approvals
+            </span>
           </NavLink>
 
           {/* Notifications with Badge */}

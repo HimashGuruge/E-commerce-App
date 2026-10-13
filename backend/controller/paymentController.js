@@ -8,6 +8,8 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { recalcParentStock } from "./productVariantController.js";
+import { emitToAdmins } from "../services/socketService.js";
+import { notifyOrderSellers } from "../services/sellerMessagingService.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -151,6 +153,7 @@ export const createStripeSession = asyncHandler(async (req, res) => {
 
   let subtotal = 0;
   const lineItems = [];
+  const orderItems = [];
 
   for (const item of items) {
     let product, price, name, image;
@@ -167,6 +170,14 @@ export const createStripeSession = asyncHandler(async (req, res) => {
       image = product.images?.[0];
     }
     subtotal += price * item.quantity;
+    orderItems.push({
+      product: item.productId,
+      variant: item.variantId,
+      name,
+      image,
+      quantity: item.quantity,
+      price,
+    });
     lineItems.push({
       price_data: {
         currency: "usd",
@@ -186,18 +197,16 @@ export const createStripeSession = asyncHandler(async (req, res) => {
   try {
     const order = await Order.create({
       user: req.user._id,
-      items: items.map((item) => ({
-        product: item.productId,
-        variant: item.variantId,
-        quantity: item.quantity,
-        price: item.variantId ? undefined : undefined,
-      })),
+      items: orderItems,
       shippingAddress,
       paymentMethod: "stripe",
       totalPrice: subtotal + shippingCost,
       shippingCost,
       orderStatus: "pending",
     });
+
+    // Real-time: refresh admin pending-orders badge without HTTP polling
+    emitToAdmins("admin:stats-changed", { orderId: order._id });
 
     // Clear the transient hold; real stock drops only on payment/cod via finalizeStockForOrder
     for (const reservation of reservations) {
@@ -237,10 +246,14 @@ export const verifyStripePayment = asyncHandler(async (req, res) => {
 
   const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
   if (session.payment_status === "paid") {
+    const wasPaid = order.paymentStatus === "paid";
     order.paymentStatus = "paid";
     order.orderStatus = "processing";
     await order.save();
     await finalizeStockForOrder(order);
+    // Stripe webhook is the primary path; the client verify is a fallback
+    // that may run after the webhook, so only notify when truly new.
+    if (!wasPaid) await notifyAdminsOfOrder(order);
     res.json({ success: true, order: await Order.findById(order._id) });
   } else {
     res.status(400);
@@ -266,19 +279,25 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
   const orderItems = [];
 
   for (const item of items) {
-    let price;
+    let product, variant, price, name, image;
     if (item.variantId) {
-      const variant = await Variant.findById(item.variantId);
-      const product = await Product.findById(variant.parentProduct);
+      variant = await Variant.findById(item.variantId);
+      product = await Product.findById(variant.parentProduct);
       price = variant.price || product.price;
+      name = `${product.name} - ${variant.sku}`;
+      image = variant.images?.[0] || product.images?.[0];
     } else {
-      const product = await Product.findById(item.productId);
+      product = await Product.findById(item.productId);
       price = product.price;
+      name = product.name;
+      image = product.images?.[0];
     }
     subtotal += price * item.quantity;
     orderItems.push({
       product: item.productId,
       variant: item.variantId,
+      name,
+      image,
       quantity: item.quantity,
       price,
     });
@@ -305,6 +324,9 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
     // COD: order counts immediately, so finalize real stock now
     await finalizeStockForOrder(order);
 
+    // Real-time: refresh admin pending-orders badge without HTTP polling
+    emitToAdmins("admin:stats-changed", { orderId: order._id });
+
     await notifyAdminsOfOrder(order);
 
     res.status(201).json({ success: true, order });
@@ -319,8 +341,9 @@ const notifyAdminsOfOrder = async (order) => {
   try {
     const admins = await User.find({ role: "admin" });
     const messageText = `New order #${order._id} placed - Rs. ${order.totalPrice?.toLocaleString() || "N/A"}`;
+    let lastMsg = null;
     for (const admin of admins) {
-      await Message.create({
+      lastMsg = await Message.create({
         sender: order.user || admin._id,
         message: messageText,
         orderRef: order._id,
@@ -328,8 +351,11 @@ const notifyAdminsOfOrder = async (order) => {
         isAdmin: false,
         adminRead: false,
         userRead: true,
+        sellerRead: false, // Counts toward the seller's unread badge
       });
     }
+    // Real-time: let the seller's Messages page + badge react instantly
+    if (lastMsg) await notifyOrderSellers(order._id, lastMsg);
   } catch (err) {
     console.error("Failed to notify admins:", err);
   }

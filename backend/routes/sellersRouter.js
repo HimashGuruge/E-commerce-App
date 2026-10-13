@@ -9,7 +9,10 @@ import {
   getSellerOrders,
   getSellerEarnings,
   getSellerMessages,
+  getSellerUnreadCount,
+  markSellerMessagesRead,
   sendSellerMessage,
+  sellerUpdateOrderStatus,
   getPublicStore,
   adminGetAllSellers,
   adminApproveSeller,
@@ -29,8 +32,11 @@ router.put("/me", authMiddleware, updateSellerProfile);
 router.get("/dashboard", sellerOnly, getSellerDashboard);
 router.get("/products", sellerOnly, getSellerProducts);
 router.get("/orders", sellerOnly, getSellerOrders);
+router.put("/orders/:orderId/status", sellerOnly, sellerUpdateOrderStatus);
 router.get("/earnings", sellerOnly, getSellerEarnings);
 router.get("/messages", sellerOnly, getSellerMessages);
+router.get("/messages/unread", sellerOnly, getSellerUnreadCount);
+router.patch("/messages/read", sellerOnly, markSellerMessagesRead);
 router.post("/messages", sellerOnly, sendSellerMessage);
 
 // Public store route

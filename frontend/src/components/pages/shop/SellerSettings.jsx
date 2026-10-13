@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { FiSave, FiUser, FiMapPin, FiCreditCard, FiShoppingBag } from "react-icons/fi";
+import { useState, useEffect, useRef } from "react";
+import { FiSave, FiUser, FiMapPin, FiCreditCard, FiShoppingBag, FiUpload, FiImage } from "react-icons/fi";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import uploadToMedia from "@/components/utils/Mediaupload";
 
 export default function SellerSettings() {
   const [form, setForm] = useState({
@@ -13,6 +14,10 @@ export default function SellerSettings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const logoInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -41,6 +46,30 @@ export default function SellerSettings() {
   }, []);
 
   const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
+
+  // Upload shop logo / banner image and store the returned URL on the form
+  const handleImageUpload = async (field, file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      Swal.fire({ icon: "error", title: "Invalid file", text: "Please choose an image file." });
+      return;
+    }
+    const setUploading = field === "shopLogo" ? setLogoUploading : setBannerUploading;
+    setUploading(true);
+    try {
+      const url = await uploadToMedia(file, "profile");
+      if (!url) throw new Error("Upload failed");
+      setForm((f) => ({ ...f, [field]: url }));
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Upload failed",
+        text: err.response?.data?.error || err.message || "Could not upload the image. Try again.",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -85,15 +114,115 @@ export default function SellerSettings() {
               <textarea value={form.shopDescription} onChange={(e) => update("shopDescription", e.target.value)}
                 rows={3} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none resize-none" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
-              <input type="text" value={form.shopLogo} onChange={(e) => update("shopLogo", e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none" />
+            {/* Shop Logo */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Shop Logo</label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {form.shopLogo ? (
+                    <img src={form.shopLogo} alt="Shop logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <FiImage className="w-6 h-6 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={logoUploading}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 disabled:opacity-50 transition-colors"
+                  >
+                    {logoUploading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <FiUpload className="w-4 h-4" />
+                        Upload logo
+                      </>
+                    )}
+                  </button>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      handleImageUpload("shopLogo", e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 flex-shrink-0">or paste URL:</span>
+                    <input
+                      type="text"
+                      value={form.shopLogo}
+                      onChange={(e) => update("shopLogo", e.target.value)}
+                      placeholder="https://…"
+                      className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none min-w-0"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Banner URL</label>
-              <input type="text" value={form.shopBanner} onChange={(e) => update("shopBanner", e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none" />
+            {/* Shop Banner */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Shop Banner</label>
+              <div
+                className={`w-full h-32 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 ${
+                  form.shopBanner ? "" : "flex items-center justify-center"
+                }`}
+              >
+                {form.shopBanner ? (
+                  <img src={form.shopBanner} alt="Shop banner" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="flex items-center gap-2 text-sm text-slate-400">
+                    <FiImage className="w-5 h-5" /> No banner set
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={bannerUploading}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 disabled:opacity-50 transition-colors"
+                >
+                  {bannerUploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <FiUpload className="w-4 h-4" />
+                      Upload banner
+                    </>
+                  )}
+                </button>
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleImageUpload("shopBanner", e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-xs text-slate-400 flex-shrink-0 sm:ml-2">or paste URL:</span>
+                  <input
+                    type="text"
+                    value={form.shopBanner}
+                    onChange={(e) => update("shopBanner", e.target.value)}
+                    placeholder="https://…"
+                    className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none min-w-0"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>

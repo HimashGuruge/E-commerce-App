@@ -5,6 +5,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line, Doughnut, Bar } from "react-chartjs-2";
 import AddProducts from "@/components/pages/admin/products/AddProducts.jsx";
 import AdminAllProductView from "@/components/pages/admin/products/AdminAllProductView.jsx";
+import PendingProductApprovals from "@/components/pages/admin/products/PendingProductApprovals.jsx";
 import EditProducts from "@/components/pages/admin/products/EditProducts.jsx";
 import Notification from "@/components/pages/admin/orders/Notification.jsx";
 import StatCard from "@/components/pages/admin/Dashboard/StatCard.jsx";
@@ -275,6 +276,7 @@ export default function DashboardRoutes() {
       } />
 
       <Route path="adminviewproducts" element={<AdminAllProductView />} />
+      <Route path="pendingproducts" element={<PendingProductApprovals />} />
       <Route path="addproducts" element={<AddProducts />} />
       <Route path="editproducts/:productId" element={<EditProducts />} />
       <Route path="notification" element={<Notification />} />

@@ -2,6 +2,7 @@ import express from 'express';
 import {
   // User notifications
   getUserNotifications,
+  getNotificationById,
   markAsRead,
   markAllAsRead,
   deleteNotification,
@@ -18,9 +19,15 @@ import {
   getChat,
   replyToUser,
   markUserChatAsRead,
-  getReviewEligibility
+  getReviewEligibility,
+
+  // Admin -> Seller alerts
+  adminSendSellerAlert,
+  getSellerAlerts,
+  markSellerAlertRead,
+  markAllSellerAlertsRead
 } from '../controller/notificationController.js';
-import authMiddleware from '../middleware/authMiddleware.js';
+import authMiddleware, { adminOnly, sellerOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -28,10 +35,18 @@ const router = express.Router();
 router.get('/user', authMiddleware, getUserNotifications);                    // Get user notifications
 router.get('/review-eligibility/:productId', authMiddleware, getReviewEligibility); // Check review eligibility
 router.get('/unread-count', authMiddleware, getUnreadCount);                  // Get unread count
+router.get('/seller', sellerOnly, getSellerAlerts);                          // Seller's alerts, newest first
+router.get('/:id', authMiddleware, getNotificationById);                      // Get single notification (own docs only)
 router.post('/mark-all-read', authMiddleware, markAllAsRead);                 // Mark all as read
 router.delete('/clear-all', authMiddleware, clearAllNotifications);           // Clear all notifications
 router.patch('/:id/read', authMiddleware, markAsRead);                        // Mark specific as read
 router.delete('/:id', authMiddleware, deleteNotification);                    // Delete specific notification
+
+// ========== ADMIN -> SELLER ALERT ROUTES ==========
+router.post('/admin/seller/:userId', adminOnly, adminSendSellerAlert);        // Admin sends an alert to a specific seller
+router.post('/seller/mark-all-read', sellerOnly, markAllSellerAlertsRead);    // Seller marks all own alerts read
+router.patch('/seller/read/:id', sellerOnly, markSellerAlertRead);            // Seller marks one own alert read
+router.get('/seller', sellerOnly, getSellerAlerts);                          // Seller's alerts, newest first
 
 // ========== ADMIN NOTIFICATION ROUTES ==========
 // These are for admin dashboard

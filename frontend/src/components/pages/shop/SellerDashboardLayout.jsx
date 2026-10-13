@@ -8,6 +8,9 @@ import SellerDashboardHome from "./SellerDashboardHome";
 import SellerProducts from "./SellerProducts";
 import SellerAddProduct from "./SellerAddProduct";
 import SellerOrders from "./SellerOrders";
+import SellerOrdersFull from "./SellerOrdersFull";
+import SellerMessages from "./SellerMessages";
+import SellerNotifications from "./SellerNotifications";
 import SellerEarnings from "./SellerEarnings";
 import SellerSettings from "./SellerSettings";
 
@@ -80,7 +83,9 @@ export default function SellerDashboardLayout() {
             <Route path="products" element={<SellerProducts />} />
             <Route path="add-product" element={<SellerAddProduct />} />
             <Route path="edit-product/:productId" element={<SellerAddProduct />} />
-            <Route path="orders" element={<SellerOrders />} />
+            <Route path="orders" element={<SellerOrdersFull />} />
+            <Route path="messages" element={<SellerMessages />} />
+            <Route path="notifications" element={<SellerNotifications />} />
             <Route path="earnings" element={<SellerEarnings />} />
             <Route path="settings" element={<SellerSettings />} />
             <Route path="*" element={<Navigate to="/seller/dashboard" replace />} />

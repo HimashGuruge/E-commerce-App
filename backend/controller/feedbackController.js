@@ -8,6 +8,7 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { recalcParentStock } from "./productVariantController.js";
+import { emitToAdmins } from "../services/socketService.js";
 import { markRemindersSubmitted, hasFullyReturnedItem } from "../services/reviewReminderService.js";
 // After restocking returned items, sync the owning parent products' totals
 const resyncParentsForItems = async (items) => {
@@ -296,10 +297,13 @@ export const createFeedback = asyncHandler(async (req, res) => {
     rating,
     comment,
     images,
-    status: "pending",
-  });
+     status: "pending",
+   });
 
-  res.status(201).json({ success: true, feedback });
+   // Real-time: refresh admin pending-feedback badge without HTTP polling
+   emitToAdmins("admin:stats-changed", { orderId: feedback._id, type: "feedback" });
+
+   res.status(201).json({ success: true, feedback });
 });
 
 export const submitFeedback = asyncHandler(async (req, res) => {

@@ -1,10 +1,13 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Seller from "../models/Seller.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
 import Feedback from "../models/Feedback.js";
+import { emitToAdmins, emitToUser } from "../services/socketService.js";
+import logger from "../utils/logger.js";
 
 // @desc    Apply to become a seller
 // @route   POST /api/sellers/register
@@ -31,6 +34,9 @@ export const registerSeller = asyncHandler(async (req, res) => {
   });
 
   await User.findByIdAndUpdate(req.user._id, { role: "seller" });
+
+  // Real-time: refresh admin pending-seller badge without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
 
   res.status(201).json({ success: true, seller });
 });
@@ -220,29 +226,199 @@ export const getSellerEarnings = asyncHandler(async (req, res) => {
 // @desc    Get seller messages
 // @route   GET /api/sellers/messages
 export const getSellerMessages = asyncHandler(async (req, res) => {
-  const messages = await Message.find({ seller: req.user._id })
-    .populate("sender", "name profileImage")
+  // Conversation = messages the seller sent, plus buyer messages tied to the
+  // seller's orders. Order-related messages are linked via `orderRef`; the
+  // `items.product` match handles legacy rows stored as a plain id.
+  const myProducts = await Product.find({ seller: req.user._id }).select("_id");
+  const productIds = myProducts.map((p) => p._id);
+  const myOrders = await Order.find({ "items.product": { $in: productIds } }).select("_id");
+  const myOrderIds = myOrders.map((o) => o._id);
+
+  const messages = await Message.find({
+    $or: [
+      { sender: req.user._id },
+      { $and: [{ orderRef: { $in: myOrderIds } }, { senderType: "user" }] },
+    ],
+  })
+    .populate("sender", "name profileImage role")
     .sort({ createdAt: -1 })
-    .limit(50);
-  res.json({ success: true, messages });
+    .limit(100);
+
+  const sellerId = req.user._id.toString();
+  const conversation = (m) => {
+    const mine = m.sender?._id?.toString() === sellerId;
+    const partnerId = mine ? String(m.recipient || "") : m.sender?._id?.toString() || "";
+    return {
+      key: partnerId || "no-buyer",
+      partnerName: (mine ? undefined : m.sender?.name) || "Customer",
+      partnerImage: mine ? null : m.sender?.profileImage || null,
+      mine,
+      message: m.message,
+      orderRef: m.orderRef ? m.orderRef.toString() : null,
+      text: m.message, // legacy alias
+      id: m._id.toString(),
+      read: m.sellerRead === true, // seller-read status (incoming messages only)
+      createdAt: m.createdAt,
+    };
+  };
+  res.json({ success: true, messages: messages.map(conversation) });
+});
+
+// @desc    Seller unread-message count (for the sidebar badge)
+// @route   GET /api/sellers/messages/unread
+export const getSellerUnreadCount = asyncHandler(async (req, res) => {
+  const scope = await sellerMessageScope(req.user._id);
+  const unreadCount = await Message.countDocuments({
+    sellerRead: false,
+    sender: { $ne: req.user._id },
+    $and: [
+      { orderRef: { $in: scope.orderIds } },
+      { senderType: "user" },
+    ],
+  });
+  res.json({ success: true, unreadCount });
+});
+
+// @desc    Mark messages as read by the seller (called when a conversation opens)
+// @route   PATCH /api/sellers/messages/read
+export const markSellerMessagesRead = asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body?.messageIds) ? req.body.messageIds : [];
+  if (!ids.length) return res.json({ success: true, updatedCount: 0 });
+
+  const parsed = ids.map(String).filter((id) => mongoose.isValidObjectId(id)).slice(0, 500);
+  if (!parsed.length) return res.json({ success: true, updatedCount: 0 });
+
+  const scope = await sellerMessageScope(req.user._id);
+  const result = await Message.updateMany(
+    {
+      _id: { $in: parsed },
+      sender: { $ne: req.user._id },
+      sellerRead: false,
+      $and: [
+        { orderRef: { $in: scope.orderIds } },
+        { senderType: "user" },
+      ],
+    },
+    { $set: { sellerRead: true } }
+  );
+  res.json({ success: true, updatedCount: result.modifiedCount });
+});
+
+// Shared query scope: the seller's own orders. Messages from buyers tied to
+// these orders (via orderRef) are what show up in the seller's Messages page.
+const sellerMessageScope = async (sellerId) => {
+  const myProducts = await Product.find({ seller: sellerId }).select("_id").lean();
+  const productIds = myProducts.map((p) => p._id);
+  const myOrders = await Order.find({ "items.product": { $in: productIds } }).select("_id").lean();
+  return { orderIds: myOrders.map((o) => o._id) };
+};
+
+// @desc    Seller updates status of orders containing their products
+// @route   PUT /api/sellers/orders/:orderId/status
+export const sellerUpdateOrderStatus = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.orderId);
+  if (!order) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  // Sellers can only update orders that include at least one of their products
+  const myProducts = await Product.find({ seller: req.user._id }).select("_id");
+  const productIds = myProducts.map((p) => p._id.toString());
+  const ownsOrder = (order.items || []).some((item) =>
+    item.product && productIds.includes(item.product.toString())
+  );
+  if (!ownsOrder) {
+    res.status(403);
+    throw new Error("This order does not include your products");
+  }
+
+  const oldStatus = order.orderStatus;
+  const allowed = { pending: ["processing"], processing: ["shipped"], shipped: ["delivered"] };
+  if (!allowed[oldStatus] || !allowed[oldStatus].includes(req.body.status)) {
+    res.status(400);
+    throw new Error(`You cannot move this order from "${oldStatus}" to "${req.body.status}"`);
+  }
+
+  order.orderStatus = req.body.status;
+  if (req.body.trackingNumber) order.trackingNumber = String(req.body.trackingNumber).trim();
+  if (req.body.courier) order.courier = String(req.body.courier).trim();
+  await order.save();
+
+  // Real-time: refresh admin pending-orders badge without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: order._id });
+
+  // Notify buyer in their support chat
+  try {
+    const statusEmoji = { processing: "🔄", shipped: "🚚", delivered: "✅" };
+    const emoji = statusEmoji[req.body.status] || "📦";
+    const trackingInfo = order.trackingNumber
+      ? `\nTracking: ${order.trackingNumber} (${order.courier || "N/A"})`
+      : "";
+    const statusMsg = await Message.create({
+      sender: req.user._id,
+      recipient: order.user?._id || order.user,
+      orderRef: order._id,
+      message: `${emoji} Order #${order._id.toString().slice(-8)} status updated: ${oldStatus} → ${order.orderStatus}${trackingInfo}`,
+      senderType: "bot",
+      isAdmin: false,
+      adminRead: true,
+      userRead: false,
+    });
+    // Real-time: push the status note to the buyer's open chat instantly
+    emitToUser(order.user?._id || order.user, "chat:new-message", statusMsg);
+  } catch (err) {
+    logger.error("Failed to notify buyer of seller order status update:", err);
+  }
+
+  // Real-time: push the status change to the buyer immediately
+  emitToUser(order.user?._id || order.user, "order:update", {
+    orderId: order._id,
+    orderStatus: order.orderStatus,
+  });
+
+  res.json({ success: true, order });
 });
 
 // @desc    Send message as seller
 // @route   POST /api/sellers/messages
 export const sendSellerMessage = asyncHandler(async (req, res) => {
   const { receiverId, text, orderId } = req.body;
-  if (!text) {
+  if (!receiverId || !text || !String(text).trim()) {
     res.status(400);
-    throw new Error("Message text is required");
+    throw new Error("Receiver and message text are required");
+  }
+
+  const receiver = await User.findById(receiverId);
+  if (!receiver) {
+    res.status(404);
+    throw new Error("Receiver not found");
+  }
+
+  // Optional order link: must be one of this seller's orders for this buyer
+  let orderRef;
+  if (orderId) {
+    const order = await Order.findById(orderId);
+    if (!order || String(order.user) !== receiver._id.toString()) {
+      res.status(400);
+      throw new Error("Order does not match the receiver");
+    }
+    orderRef = order._id;
   }
 
   const message = await Message.create({
     sender: req.user._id,
-    receiver: receiverId,
-    text,
-    order: orderId || undefined,
-    seller: req.user._id,
+    recipient: receiver._id,
+    message: String(text).trim(),
+    orderRef,
+    senderType: "user",
+    isAdmin: false,
+    adminRead: false,
+    userRead: false,
   });
+
+  // Real-time: push to the buyer's open chat
+  emitToUser(receiver._id, "chat:new-message", message);
 
   res.status(201).json({ success: true, message });
 });

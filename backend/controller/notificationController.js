@@ -6,6 +6,7 @@ import User from "../models/User.js";
 import Order from "../models/Order.js";
 import Notification from "../models/Notification.js";
 import Feedback from "../models/Feedback.js";
+import Seller from "../models/Seller.js";
 
 export const getUserNotifications = asyncHandler(async (req, res) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
@@ -14,6 +15,22 @@ export const getUserNotifications = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(limit);
   res.json({ success: true, notifications });
+});
+
+export const getNotificationById = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid notification id");
+  }
+  const notification = await Notification.findOne({
+    _id: req.params.id,
+    user: req.user._id,
+  }).populate("product", "name images");
+  if (!notification) {
+    res.status(404);
+    throw new Error("Notification not found");
+  }
+  res.json({ success: true, notification });
 });
 
 export const getUnreadCount = asyncHandler(async (req, res) => {
@@ -183,7 +200,8 @@ export const replyToUser = asyncHandler(async (req, res) => {
   const msg = await Message.create({
     sender: req.user._id,
     recipient: req.params.userId,
-    message: message || "",
+    // Allow image-only replies (same fallback as user messages)
+    message: message || (imageUrl ? "Sent an image" : ""),
     imageUrl: imageUrl || null,
     senderType: "admin",
     isAdmin: true,
@@ -201,4 +219,84 @@ export const markUserChatAsRead = asyncHandler(async (req, res) => {
     { $set: { adminRead: true } }
   );
   res.json({ success: true });
+});
+
+// ---- Admin -> Seller alerts ----
+
+// @desc    Send an alert to a specific seller (admin only)
+// @route   POST /api/notifications/admin/seller/:userId
+export const adminSendSellerAlert = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { title, message } = req.body || {};
+
+  if (!mongoose.isValidObjectId(userId)) {
+    res.status(400);
+    throw new Error("Invalid seller id");
+  }
+  if (!title || !String(title).trim()) {
+    res.status(400);
+    throw new Error("Title is required");
+  }
+  if (!message || !String(message).trim()) {
+    res.status(400);
+    throw new Error("Message is required");
+  }
+
+  const seller = await Seller.findOne({ user: userId });
+  if (!seller) {
+    res.status(404);
+    throw new Error("Recipient is not a registered seller");
+  }
+
+  const notification = await Notification.create({
+    user: userId,
+    type: "SELLER_ALERT",
+    title: String(title).trim(),
+    message: String(message).trim(),
+    read: false,
+  });
+
+  // Real-time: push to the seller's open dashboard (no-op if offline)
+  emitToUser(userId, "seller:alert", notification);
+
+  res.status(201).json({ success: true, notification });
+});
+
+// @desc    Get the seller's alerts, newest first (with unread count)
+// @route   GET /api/notifications/seller
+export const getSellerAlerts = asyncHandler(async (req, res) => {
+  const filter = { user: req.user._id, type: "SELLER_ALERT" };
+  const [alerts, unreadCount] = await Promise.all([
+    Notification.find(filter).sort({ createdAt: -1 }).limit(100),
+    Notification.countDocuments({ ...filter, read: false }),
+  ]);
+  res.json({ success: true, unreadCount, alerts });
+});
+
+// @desc    Mark one seller alert as read (own alerts only)
+// @route   PATCH /api/notifications/seller/read/:id
+export const markSellerAlertRead = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid alert id");
+  }
+  const result = await Notification.updateOne(
+    { _id: req.params.id, user: req.user._id, type: "SELLER_ALERT" },
+    { $set: { read: true } }
+  );
+  if (result.matchedCount === 0) {
+    res.status(404);
+    throw new Error("Alert not found");
+  }
+  res.json({ success: true });
+});
+
+// @desc    Mark all of the seller's alerts as read
+// @route   POST /api/notifications/seller/mark-all-read
+export const markAllSellerAlertsRead = asyncHandler(async (req, res) => {
+  const result = await Notification.updateMany(
+    { user: req.user._id, type: "SELLER_ALERT", read: false },
+    { $set: { read: true } }
+  );
+  res.json({ success: true, updatedCount: result.modifiedCount });
 });

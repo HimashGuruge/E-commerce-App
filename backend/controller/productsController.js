@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
+import Seller from "../models/Seller.js";
 import Category from "../models/Category.js";
 import Feedback from "../models/Feedback.js";
 import Order from "../models/Order.js";
@@ -472,5 +473,47 @@ export const adminApproveProduct = asyncHandler(async (req, res) => {
   product.status = "active";
   await product.save();
   res.json({ success: true, product: formatProduct(product) });
+});
+
+// @desc    Admin: list all unapproved seller products (pending-approval queue)
+// @route   GET /api/products/admin/pending-approvals
+export const adminGetPendingApprovals = asyncHandler(async (req, res) => {
+  const products = await Product.find({ approvedByAdmin: false, seller: { $ne: null } })
+    .populate("seller", "name email")
+    .select("name price stock category brand sku images status createdAt seller")
+    .sort({ createdAt: -1 });
+
+  // Shop info per seller (Seller doc is keyed by user id)
+  const sellerUserIds = [...new Set(products.map((p) => p.seller?._id ? String(p.seller._id) : null).filter(Boolean))];
+  const sellerDocs = await Seller.find({ user: { $in: sellerUserIds } }).select("user shopName status");
+  const sellerMap = new Map(sellerDocs.map((s) => [String(s.user), s]));
+
+  const pending = products.map((p) => {
+    const sid = p.seller?._id ? String(p.seller._id) : null;
+    const sellerDoc = sid ? sellerMap.get(sid) : null;
+    return {
+      productId: p._id.toString(),
+      name: p.name,
+      price: p.price,
+      stock: p.stock,
+      category: p.category,
+      brand: p.brand,
+      sku: p.sku,
+      status: p.status,
+      images: p.images,
+      createdAt: p.createdAt,
+      sellerId: sid,
+      sellerName: p.seller?.name || "",
+      sellerEmail: p.seller?.email || "",
+      shopName: sellerDoc?.shopName || "",
+      sellerStatus: sellerDoc?.status || "",
+    };
+  });
+
+  res.json({
+    success: true,
+    count: pending.length,
+    products: pending,
+  });
 });
 

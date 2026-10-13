@@ -13,6 +13,7 @@ import {
   updateProduct,
   onUpload,
   adminApproveProduct,
+  adminGetPendingApprovals,
 } from "../controller/productsController.js";
 import {
   createParentProduct,
@@ -48,6 +49,7 @@ router.get("/:id/breadcrumb", getProductBreadcrumb);
 router.get("/:id", productFindById); // Dynamic route
 
 // Admin/Seller routes
+router.get("/admin/pending-approvals", adminOnly, adminGetPendingApprovals);
 router.post("/", sellerOrAdmin, addproduct);
 router.patch("/:id", sellerOrAdmin, updateProduct);
 router.delete("/:id", sellerOrAdmin, deleteProduct);
