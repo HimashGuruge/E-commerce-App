@@ -2,6 +2,7 @@ import express from 'express';
 import {
   // User notifications
   getUserNotifications,
+  replyToSellerAlert,
   getNotificationById,
   markAsRead,
   markAllAsRead,
@@ -44,6 +45,7 @@ router.delete('/:id', authMiddleware, deleteNotification);                    //
 
 // ========== ADMIN -> SELLER ALERT ROUTES ==========
 router.post('/admin/seller/:userId', adminOnly, adminSendSellerAlert);        // Admin sends an alert to a specific seller
+router.post('/seller/reply/:id', sellerOnly, replyToSellerAlert);             // Seller replies to one own alert (shows in admin Notification center)
 router.post('/seller/mark-all-read', sellerOnly, markAllSellerAlertsRead);    // Seller marks all own alerts read
 router.patch('/seller/read/:id', sellerOnly, markSellerAlertRead);            // Seller marks one own alert read
 router.get('/seller', sellerOnly, getSellerAlerts);                          // Seller's alerts, newest first
