@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
-import { emitToUser } from "../services/socketService.js";
+import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import Order from "../models/Order.js";
@@ -207,9 +207,14 @@ export const replyToUser = asyncHandler(async (req, res) => {
     isAdmin: true,
     userRead: false,
     adminRead: true,
+    // If the recipient is a seller, count it as an unread message in
+    // their Messages page badge
+    sellerRead: false,
   });
   // Real-time: push the reply straight to the user's open chat + badge
   emitToUser(req.params.userId, "chat:new-message", msg);
+  // If the recipient is a seller, also refresh their Messages page live
+  emitToUser(req.params.userId, "seller:new-message", msg);
   res.status(201).json({ success: true, message: msg });
 });
 
@@ -267,7 +272,7 @@ export const adminSendSellerAlert = asyncHandler(async (req, res) => {
 export const getSellerAlerts = asyncHandler(async (req, res) => {
   const filter = { user: req.user._id, type: "SELLER_ALERT" };
   const [alerts, unreadCount] = await Promise.all([
-    Notification.find(filter).sort({ createdAt: -1 }).limit(100),
+    Notification.find(filter).sort({ createdAt: -1 }).limit(500),
     Notification.countDocuments({ ...filter, read: false }),
   ]);
   res.json({ success: true, unreadCount, alerts });
@@ -300,3 +305,83 @@ export const markAllSellerAlertsRead = asyncHandler(async (req, res) => {
   );
   res.json({ success: true, updatedCount: result.modifiedCount });
 });
+
+// @desc    Seller replies to one of the admin's alerts (appears in the admin
+//          Notification center as a conversation with the seller, same as @admin
+//          escalations so the admin can reply back through the existing chat)
+// @route   POST /api/notifications/seller/reply/:id
+export const replyToSellerAlert = asyncHandler(async (req, res) => {
+  const { text } = req.body || {};
+  if (!text || !String(text).trim()) {
+    res.status(400);
+    throw new Error("Message is required");
+  }
+
+  // Locate the alert and mark it read (own alerts only)
+  const alert = await Notification.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      user: req.user._id,
+      type: "SELLER_ALERT",
+    },
+    { $set: { read: true } },
+    { new: true }
+  );
+  if (!alert) {
+    res.status(404);
+    throw new Error("Alert not found");
+  }
+
+  const body = `About alert "${alert.title}": ${String(text).trim()}`;
+  const admins = await User.find({ role: "admin" }, "_id");
+  if (!admins.length) {
+    res.status(201).json({ success: true, alert });
+    return;
+  }
+
+  for (const admin of admins) {
+    await Message.create({
+      sender: req.user._id,
+      recipient: admin._id,
+      message: `@admin ${body}`,
+      senderType: "user",
+      isAdmin: false,
+      adminRead: false,
+      userRead: true,
+    });
+  }
+
+  // Real-time: refresh admins' Notification center + sidebar badge instantly
+  emitToAdmins("chat:unseen-user", {
+    userId: req.user._id,
+    userName: req.user.name || "A seller",
+  });
+
+  res.status(201).json({ success: true, alert });
+});
+
+// @desc    Notify all admins of a seller activity event (appears in the
+//          admin Notification center + unread badge, same as @admin escalations)
+export const notifyAdminsOfSellerEvent = async (sellerUser, text) => {
+  try {
+    if (!sellerUser) return;
+    const admins = await User.find({ role: "admin" }, "_id");
+    for (const admin of admins) {
+      await Message.create({
+        sender: sellerUser._id,
+        message: `@admin ${text}`,
+        senderType: "user",
+        isAdmin: false,
+        adminRead: false,
+        userRead: true,
+      });
+    }
+    // Real-time: refresh admins' Notification center + sidebar badge instantly
+    emitToAdmins("chat:unseen-user", {
+      userId: sellerUser._id,
+      userName: sellerUser.name || "A seller",
+    });
+  } catch (err) {
+    console.error("Failed to notify admins of seller event:", err);
+  }
+};

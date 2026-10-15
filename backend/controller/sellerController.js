@@ -7,6 +7,8 @@ import User from "../models/User.js";
 import Message from "../models/Message.js";
 import Feedback from "../models/Feedback.js";
 import { emitToAdmins, emitToUser } from "../services/socketService.js";
+import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
+import { notifyAdminsOfSellerEvent } from "./notificationController.js";
 import logger from "../utils/logger.js";
 
 // @desc    Apply to become a seller
@@ -37,6 +39,9 @@ export const registerSeller = asyncHandler(async (req, res) => {
 
   // Real-time: refresh admin pending-seller badge without HTTP polling
   emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
+
+  // Notify admins in their Notification center (pending-seller badge + feed)
+  notifyAdminsOfSellerEvent(req.user, `New seller application: "${shopName}" (owner: ${ownerName}, ${ownerPhone})`);
 
   res.status(201).json({ success: true, seller });
 });
@@ -93,6 +98,46 @@ export const getSellerDashboard = asyncHandler(async (req, res) => {
 
   const myOrders = await Order.find({ "items.product": { $in: productIds } }).sort({ createdAt: -1 }).limit(20);
   const totalOrders = await Order.countDocuments({ "items.product": { $in: productIds } });
+  // All of the seller's order ids (not just the 20 shown) — same scope rules
+  // as getSellerMessages / the seller Messages page.
+  const allSellerOrders = await Order.find({ "items.product": { $in: productIds } }).select("_id").lean();
+  const orderIds = allSellerOrders.map((o) => o._id);
+
+  // Real rating: average of approved Feedback records on this seller's products.
+  // Same aggregation pattern as feedbackController.updateProductRating.
+  // -> null (UI shows "N/A") when there are no approved reviews yet.
+  const ratingStats = await Feedback.aggregate([
+    { $match: { product: { $in: productIds }, status: "approved" } },
+    { $group: { _id: null, avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+  ]);
+  const rating = ratingStats.length ? Math.round(ratingStats[0].avg * 10) / 10 : null;
+  const numRatings = ratingStats.length ? ratingStats[0].count : 0;
+
+  // Chat response rate: % of distinct buyers who messaged the seller on the
+  // seller's orders (orderRef scope, same rules as getSellerMessages) that
+  // received at least one reply from the seller.
+  // -> null (UI shows "N/A") when the seller has received no buyer messages.
+  const buyerBuyers = new Set();
+  const repliedBuyers = new Set();
+  if (orderIds.length) {
+    const incoming = await Message.find({
+      $and: [{ orderRef: { $in: orderIds } }, { senderType: "user" }, { sender: { $ne: req.user._id } }],
+    }).select("sender");
+    incoming.forEach((m) => m.sender && buyerBuyers.add(m.sender.toString()));
+    const replies = await Message.find({
+      sender: req.user._id,
+      recipient: { $in: [...buyerBuyers] },
+    }).select("recipient");
+    replies.forEach((m) => m.recipient && repliedBuyers.add(m.recipient.toString()));
+  }
+  const chatResponseRate = buyerBuyers.size
+    ? Math.round((repliedBuyers.size / buyerBuyers.size) * 100)
+    : null;
+
+  // Ship on time: N/A. The Order schema has no shippedAt / expected-deadline
+  // fields, so a reliable "shipped within deadline" percentage cannot be
+  // computed from current data (per requirement: show N/A, don't fabricate).
+  const shipOnTime = null;
   const pendingOrders = myOrders.filter((o) => o.orderStatus === "pending" || o.orderStatus === "processing").length;
 
   let totalRevenue = 0;
@@ -117,9 +162,10 @@ export const getSellerDashboard = asyncHandler(async (req, res) => {
       totalRevenue,
       availableBalance: seller.availableBalance,
       totalEarnings: seller.totalEarnings,
-      rating: seller.rating,
-      shipOnTime: seller.shipOnTime,
-      chatResponseRate: seller.chatResponseRate,
+      rating,
+      numRatings,
+      shipOnTime,
+      chatResponseRate,
     },
     recentOrders: myOrders.slice(0, 5),
   });
@@ -238,6 +284,10 @@ export const getSellerMessages = asyncHandler(async (req, res) => {
     $or: [
       { sender: req.user._id },
       { $and: [{ orderRef: { $in: myOrderIds } }, { senderType: "user" }] },
+      // Direct buyer<->seller chats from the product page ("Chat Now")
+      { $and: [{ recipient: req.user._id }, { threadKey: { $ne: null } }, { senderType: "user" }] },
+      // Replies from admins (e.g. replies to seller alerts / seller inquiries)
+      { $and: [{ recipient: req.user._id }, { senderType: "admin" }] },
     ],
   })
     .populate("sender", "name profileImage role")
@@ -268,7 +318,7 @@ export const getSellerMessages = asyncHandler(async (req, res) => {
 // @route   GET /api/sellers/messages/unread
 export const getSellerUnreadCount = asyncHandler(async (req, res) => {
   const scope = await sellerMessageScope(req.user._id);
-  const unreadCount = await Message.countDocuments({
+  const orderLinked = await Message.countDocuments({
     sellerRead: false,
     sender: { $ne: req.user._id },
     $and: [
@@ -276,7 +326,22 @@ export const getSellerUnreadCount = asyncHandler(async (req, res) => {
       { senderType: "user" },
     ],
   });
-  res.json({ success: true, unreadCount });
+  // Direct buyer<->seller chats (threadKey rows) are separate from order-linked scope
+  const directChats = await Message.countDocuments({
+    sellerRead: false,
+    sender: { $ne: req.user._id },
+    recipient: req.user._id,
+    threadKey: { $ne: null },
+    senderType: "user",
+  });
+  // Admin replies (e.g. to seller alert replies / inquiries)
+  const adminInbox = await Message.countDocuments({
+    sellerRead: false,
+    sender: { $ne: req.user._id },
+    recipient: req.user._id,
+    senderType: "admin",
+  });
+  res.json({ success: true, unreadCount: orderLinked + directChats + adminInbox });
 });
 
 // @desc    Mark messages as read by the seller (called when a conversation opens)
@@ -294,9 +359,17 @@ export const markSellerMessagesRead = asyncHandler(async (req, res) => {
       _id: { $in: parsed },
       sender: { $ne: req.user._id },
       sellerRead: false,
-      $and: [
-        { orderRef: { $in: scope.orderIds } },
-        { senderType: "user" },
+      $or: [
+        {
+          $and: [
+            { orderRef: { $in: scope.orderIds } },
+            { senderType: "user" },
+          ],
+        },
+        // Direct buyer<->seller chats addressed to this seller
+        { recipient: req.user._id, threadKey: { $ne: null }, senderType: "user" },
+        // Admin replies addressed to this seller
+        { recipient: req.user._id, senderType: "admin" },
       ],
     },
     { $set: { sellerRead: true } }
@@ -347,6 +420,13 @@ export const sellerUpdateOrderStatus = asyncHandler(async (req, res) => {
 
   // Real-time: refresh admin pending-orders badge without HTTP polling
   emitToAdmins("admin:stats-changed", { orderId: order._id });
+
+  // Real-time: refresh product pages' Seller Information block
+  const orderBrandProducts = await Product.find({ _id: { $in: order.items.map((i) => i.product).filter(Boolean) } }).select("brand").lean();
+  notifyBrandStatsChanged([...new Set(orderBrandProducts.map((p) => p.brand).filter(Boolean))]);
+
+  // Notify admins in their Notification center about the seller's order update
+  notifyAdminsOfSellerEvent(req.user, `Order #${order._id.toString().slice(-8)} status updated by seller: ${oldStatus} → ${order.orderStatus}`);
 
   // Notify buyer in their support chat
   try {
@@ -406,19 +486,42 @@ export const sendSellerMessage = asyncHandler(async (req, res) => {
     orderRef = order._id;
   }
 
+  // Direct product-page chats carry the pair's threadKey (buyer|seller) so the
+  // reply stays in the same conversation; order-linked messages keep threadKey null.
+  let threadKey;
+  if (!orderRef && receiver.role !== "admin") {
+    threadKey = `${receiver._id}|${req.user._id}`;
+  }
+
   const message = await Message.create({
     sender: req.user._id,
     recipient: receiver._id,
     message: String(text).trim(),
     orderRef,
+    threadKey,
     senderType: "user",
     isAdmin: false,
     adminRead: false,
-    userRead: false,
+    // DM replies aren't part of the AI support badge; buyer reads them in the thread panel.
+    userRead: threadKey ? true : false,
+    sellerRead: true,
   });
 
-  // Real-time: push to the buyer's open chat
-  emitToUser(receiver._id, "chat:new-message", message);
+  // Real-time: push to the buyer's open chat (order-linked replies keep the
+  // existing event; direct-thread replies push the thread event so they don't
+  // land in the AI support chat widget).
+  if (threadKey) {
+    emitToUser(receiver._id, "seller-chat:new-message", message);
+  } else {
+    emitToUser(receiver._id, "chat:new-message", message);
+  }
+
+  // Real-time: order-linked replies affect the brand's chat response stats
+  if (orderRef) {
+    const linkedOrder = await Order.findById(orderRef).select("items").lean();
+    const linkedProducts = await Product.find({ _id: { $in: (linkedOrder?.items || []).map((i) => i.product).filter(Boolean) } }).select("brand").lean();
+    notifyBrandStatsChanged([...new Set((linkedProducts || []).map((p) => p.brand).filter(Boolean))]);
+  }
 
   res.status(201).json({ success: true, message });
 });
@@ -472,6 +575,10 @@ export const adminRejectSeller = asyncHandler(async (req, res) => {
   seller.status = "rejected";
   seller.rejectionReason = req.body.reason || "";
   await seller.save();
+
+  // A rejected seller must not keep the "seller" role — otherwise they can
+  // still access seller-only routes (sellerOnly checks the user role).
+  await User.findByIdAndUpdate(seller.user, { role: "customer" });
 
   res.json({ success: true, seller });
 });
