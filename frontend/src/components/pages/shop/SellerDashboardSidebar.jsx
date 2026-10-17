@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { RxDashboard, RxExit } from "react-icons/rx";
 import {
-  MdOutlineGridView, MdAddBox, MdShoppingCart, MdMessage, MdCampaign, MdSettings, MdStore,
+  MdOutlineGridView, MdAddBox, MdShoppingCart, MdMessage, MdCampaign, MdSettings, MdStore, MdHome,
 } from "react-icons/md";
 import { FiBarChart2, FiExternalLink, FiBell } from "react-icons/fi";
 import { TbPackages } from "react-icons/tb";
@@ -15,6 +15,8 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
   const [pendingOrders, setPendingOrders] = useState(0);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const shopName = seller?.shopName || "My Shop";
+  const initial = (shopName.trim().charAt(0) || "S").toUpperCase();
 
   useEffect(() => {
     const fetchSeller = async () => {
@@ -62,6 +64,8 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
     const unsubAlert = onSocketEvent(["seller:alert"], fetchAlerts);
     // New customer message → refresh badge live (independent of the Messages page)
     const unsubMsg = onSocketEvent(["seller:new-message"], fetchUnreadMessages);
+    // New buyer order → refresh the pending-orders badge live
+    const unsubNewOrder = onSocketEvent(["seller:new-order"], refresh);
     // Polling fallback keeps the badge fresh if the socket is unavailable
     const poll = setInterval(fetchUnreadMessages, 30000);
     window.addEventListener("seller-orders-changed", refresh);
@@ -74,15 +78,21 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
       window.removeEventListener("seller-messages-changed", onMessagesChanged);
       unsubAlert();
       unsubMsg();
+      unsubNewOrder();
     };
   }, []);
 
   const navItemClass = ({ isActive }) =>
-    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 min-h-[48px] ${
+    `flex items-center gap-3 px-3 py-3 rounded-[9px] transition-all duration-200 text-sm ${
       isActive
-        ? "bg-brand-50 text-brand-700 font-medium shadow-sm"
-        : "hover:bg-brand-50 text-gray-700 hover:translate-x-1"
+        ? "bg-shopprimarylight text-shopprimary font-semibold"
+        : "text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary"
     }`;
+
+  const badgePill = (count) =>
+    count > 0 && (
+      <span className="ml-auto bg-[#fee2e2] text-[#b91c1c] rounded-[6px] px-[7px] py-[3px] text-[11px] font-bold">{count}</span>
+    );
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -98,45 +108,38 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
         onClick={() => closeMobile?.()}
       />
       <div
-        className={`fixed top-0 left-0 h-screen bg-white border-r border-slate-200 shadow-2xl z-40 flex flex-col overflow-y-auto transition-transform duration-300 ease-out ${
+        className={`fixed top-0 left-0 h-screen bg-white border-r border-shopborder shadow-2xl z-40 flex flex-col overflow-y-auto transition-transform duration-300 ease-out px-4 ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:sticky lg:w-64 w-72`}
+        } lg:translate-x-0 lg:sticky lg:w-[245px] w-72`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-200">
+        <div className="flex items-center justify-between pt-6 pb-7 px-2.5">
           <Link to="/seller/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 bg-gradient-to-r from-brand-600 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
-              <MdStore className="text-white text-lg" />
+            <div className="w-9 h-9 bg-shopprimary rounded-[11px] flex items-center justify-center overflow-hidden">
+              {seller?.shopLogo ? (
+                <img
+                  src={seller.shopLogo}
+                  alt={shopName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.parentElement.textContent = initial;
+                  }}
+                />
+              ) : (
+                <MdStore className="text-white text-lg" />
+              )}
             </div>
             <div>
-              <span className="text-lg font-bold text-gray-800">Seller Center</span>
-              <span className="block text-[9px] text-gray-500 -mt-0.5">Seller Dashboard</span>
+              <span className="text-xl font-extrabold text-shoptext leading-none">Seller Center</span>
+              <span className="block text-[10px] text-shopmuted mt-1">Seller Dashboard</span>
             </div>
           </Link>
-          <button onClick={() => closeMobile?.()} className="lg:hidden p-1 hover:bg-gray-100 rounded-lg">
+          <button onClick={() => closeMobile?.()} className="lg:hidden p-1 hover:bg-[#eef0f5] rounded-lg">
             <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        </div>
-
-        {/* Seller info */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold">
-              {seller?.shopName?.charAt(0).toUpperCase() || "S"}
-            </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-800 truncate text-sm">{seller?.shopName || "My Shop"}</p>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold inline-block ${
-                seller?.status === "approved" ? "bg-green-100 text-green-700" :
-                seller?.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                "bg-red-100 text-red-700"
-              }`}>
-                {seller?.status || "Pending"}
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* View Store */}
@@ -145,75 +148,115 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
             href={`/store/${encodeURIComponent(seller.shopName)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 mx-3 my-3 px-4 py-3 rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 transition-all font-medium text-sm"
+            className="flex items-center gap-3 my-3 px-3 py-3 rounded-xl border border-shopborder bg-white text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary transition-all font-medium text-sm"
           >
             <MdStore size={18} />
-            <span className="flex-1">View My Store</span>
-            <FiExternalLink className="w-3.5 h-3.5 text-brand-400" />
+            <span className="flex-1 truncate">View My Store</span>
+            <FiExternalLink className="w-3.5 h-3.5 text-shopmuted" />
           </a>
         )}
 
+        {/* View Website (homepage) */}
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 my-1.5 px-3 py-3 rounded-xl border border-shopborder bg-white text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary transition-all font-medium text-sm"
+        >
+          <MdHome size={18} />
+          <span className="flex-1">View Website</span>
+          <FiExternalLink className="w-3.5 h-3.5 text-shopmuted" />
+        </a>
+
         {/* Navigation */}
-        <nav className="flex-1 py-4 px-3 space-y-1">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Dashboard</div>
+        <nav className="flex-1 pt-5 space-y-1">
+          <div className="text-[10px] font-bold text-[#a1a8b7] uppercase tracking-wider mb-2.5 px-3">Dashboard</div>
 
           <NavLink to="/seller/dashboard" end className={navItemClass} onClick={() => closeMobile?.()}>
-            <RxDashboard size={18} className="text-brand-600" />
-            <span className="text-sm font-medium">Overview</span>
+            <RxDashboard size={18} />
+            <span>Overview</span>
           </NavLink>
 
           <NavLink to="/seller/dashboard/products" className={navItemClass} onClick={() => closeMobile?.()}>
-            <MdOutlineGridView size={18} className="text-brand-600" />
-            <span className="text-sm font-medium">Products</span>
+            <MdOutlineGridView size={18} />
+            <span>Products</span>
           </NavLink>
 
           <NavLink to="/seller/dashboard/add-product" className={navItemClass} onClick={() => closeMobile?.()}>
-            <MdAddBox size={18} className="text-brand-600" />
-            <span className="text-sm font-medium">Add Product</span>
+            <MdAddBox size={18} />
+            <span>Add Product</span>
           </NavLink>
 
           <NavLink to="/seller/dashboard/orders" className={navItemClass} onClick={() => closeMobile?.()}>
-            <MdShoppingCart size={18} className="text-brand-600" />
-            <span className="flex-1 text-sm font-medium">Orders</span>
-            {pendingOrders > 0 && (
-              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingOrders}</span>
-            )}
+            <MdShoppingCart size={18} />
+            <span>Orders</span>
+            {badgePill(pendingOrders)}
           </NavLink>
 
           <NavLink to="/seller/dashboard/earnings" className={navItemClass} onClick={() => closeMobile?.()}>
-            <FiBarChart2 size={18} className="text-brand-600" />
-            <span className="text-sm font-medium">Earnings</span>
+            <FiBarChart2 size={18} />
+            <span>Earnings</span>
           </NavLink>
 
           <NavLink to="/seller/dashboard/notifications" className={navItemClass} onClick={() => closeMobile?.()}>
-            <FiBell size={18} className="text-brand-600" />
-            <span className="flex-1 text-sm font-medium">Notifications</span>
-            {unreadAlerts > 0 && (
-              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadAlerts}</span>
-            )}
+            <FiBell size={18} />
+            <span>Notifications</span>
+            {badgePill(unreadAlerts)}
           </NavLink>
 
           <NavLink to="/seller/dashboard/messages" className={navItemClass} onClick={() => closeMobile?.()}>
-            <MdMessage size={18} className="text-brand-600" />
-            <span className="flex-1 text-sm font-medium">Messages</span>
-            {unreadMessages > 0 && (
-              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadMessages}</span>
-            )}
+            <MdMessage size={18} />
+            <span>Messages</span>
+            {badgePill(unreadMessages)}
           </NavLink>
 
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-2 px-2">Settings</div>
+          <div className="text-[10px] font-bold text-[#a1a8b7] uppercase tracking-wider mt-5 mb-2.5 px-3">Settings</div>
 
           <NavLink to="/seller/dashboard/settings" className={navItemClass} onClick={() => closeMobile?.()}>
-            <MdSettings size={18} className="text-brand-600" />
-            <span className="text-sm font-medium">Shop Settings</span>
+            <MdSettings size={18} />
+            <span>Shop Settings</span>
           </NavLink>
         </nav>
 
+        {/* Store card */}
+        <div className="m-0 mt-auto p-4 border border-shopborder rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-shopprimarylight flex items-center justify-center text-shopprimary font-bold overflow-hidden">
+              {seller?.shopLogo ? (
+                <img
+                  src={seller.shopLogo}
+                  alt={shopName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.parentElement.textContent = initial;
+                  }}
+                />
+              ) : (
+                initial
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-shoptext truncate text-xs">{shopName}</p>
+              <p className="text-[11px] text-shopmuted leading-relaxed">
+                {seller?.status === "approved" ? "Seller account active." : seller?.status === "pending" ? "Seller account pending approval." : "Seller account inactive."}
+              </p>
+              <span className={`inline-block text-[11px] px-2 py-1 rounded-[5px] mt-2.5 font-semibold ${
+                seller?.status === "approved" ? "bg-[#e8f8f0] text-shopgreen" :
+                seller?.status === "pending" ? "bg-[#fff3df] text-[#ad6b00]" :
+                "bg-[#fdeaea] text-shopred"
+              }`}>
+                ● {seller?.status || "Pending"}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Logout */}
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 mt-4 border-t border-shopborder">
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-[#fdeaea] text-shopred hover:bg-[#fbd8d8] transition-all"
           >
             <RxExit size={18} /> Logout
           </button>

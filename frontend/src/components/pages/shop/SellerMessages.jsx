@@ -14,6 +14,7 @@ export default function SellerMessages() {
   const [sending, setSending] = useState(false);
   // IDs we already asked the server to mark as read (avoids re-calling the API)
   const markedReadIds = useRef(new Set());
+  const threadRef = useRef(null);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -26,13 +27,12 @@ export default function SellerMessages() {
     }
   }, []);
 
-  // Ids of incoming (not mine) messages that are currently visible and unread:
-  // the active conversation, or everything in the "all" view.
+  // Ids of incoming (not mine) messages in the *opened* conversation that are
+  // unread. The "All" overview view deliberately does not mark anything read.
   const visibleUnreadIds = useCallback((msgs, key) => {
-    const pool = key === null ? msgs : [];
-    const conv = key === null ? null : msgs.filter((m) => m.key === key);
-    const visible = conv && conv.length ? conv : pool;
-    return visible.filter((m) => !m.mine && !m.read).map((m) => m.id);
+    if (key === null) return [];
+    const conv = msgs.filter((m) => m.key === key);
+    return conv.filter((m) => !m.mine && !m.read).map((m) => m.id);
   }, []);
 
   const dispatchBadge = useCallback(async () => {
@@ -92,6 +92,15 @@ export default function SellerMessages() {
       list.messages.push(m);
       map.set(m.key, list);
     }
+    // Prefer the most recent *partner* message for the name/photo, so the
+    // list doesn't collapse to "Customer" when your own reply is the newest.
+    for (const list of map.values()) {
+      const partnerMsg = list.messages.find((m) => !m.mine);
+      if (partnerMsg) {
+        list.partnerName = partnerMsg.partnerName;
+        list.partnerImage = partnerMsg.partnerImage;
+      }
+    }
     const convs = [...map.values()];
     convs.sort((a, b) => {
       const ta = new Date(a.messages[0]?.createdAt || 0);
@@ -106,6 +115,13 @@ export default function SellerMessages() {
   const activeOrderRef = activeConv ? activeConv.messages.find((m) => m.orderRef)?.orderRef : null;
 
   const thread = activeConv ? [...activeConv.messages].reverse() : [...messages].reverse();
+
+  // Keep the thread pinned to the latest message on conversation switch and
+  // when new messages arrive (standard chat behavior).
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [activeKey, thread.length, loading]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -133,22 +149,22 @@ export default function SellerMessages() {
   return (
     <div className="p-4 md:p-6 flex flex-col lg:flex-row gap-4 h-full min-h-0">
       {/* Conversation list */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col w-full lg:w-72 flex-shrink-0 max-h-[420px] lg:max-h-none">
-        <div className="p-4 border-b border-slate-100">
-          <h2 className="text-xl font-bold text-slate-900">Messages</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Chat with your customers</p>
+      <div className="bg-white rounded-[13px] border border-shopborder flex flex-col w-full lg:w-72 flex-shrink-0 max-h-[420px] lg:max-h-none">
+        <div className="p-4 border-b border-shopborder">
+          <h2 className="text-[26px] font-extrabold text-shoptext tracking-[-0.6px]">Messages</h2>
+          <p className="text-sm text-shopmuted mt-1.5">Chat with your customers</p>
         </div>
         <div className="flex-1 overflow-auto p-2 space-y-1">
           <button
             onClick={() => handleOpenConversation(null)}
             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-              activeKey === null ? "bg-brand-50" : "hover:bg-slate-50"
+              activeKey === null ? "bg-shopprimarylight" : "hover:bg-[#f5f6fc]"
             }`}
           >
-            <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
-              <FiMessageCircle className="w-4 h-4 text-brand-600" />
+            <div className="w-9 h-9 rounded-full bg-shopprimarylight flex items-center justify-center flex-shrink-0">
+              <FiMessageCircle className="w-4 h-4 text-shopprimary" />
             </div>
-            <span className="flex-1 text-sm font-medium text-slate-700">All conversations</span>
+            <span className="flex-1 text-sm font-medium text-[#3d4557]">All conversations</span>
           </button>
           {conversations.map((c) => {
             const last = c.messages[0];
@@ -158,22 +174,22 @@ export default function SellerMessages() {
                 key={c.key}
                 onClick={() => handleOpenConversation(c.key === "no-buyer" ? null : c.key)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-                  activeKey === (c.key === "no-buyer" ? null : c.key) ? "bg-brand-50" : "hover:bg-slate-50"
+                  activeKey === (c.key === "no-buyer" ? null : c.key) ? "bg-shopprimarylight" : "hover:bg-[#f5f6fc]"
                 }`}
               >
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${c.partnerImage ? "" : "bg-brand-100"}`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${c.partnerImage ? "" : "bg-shopprimarylight"}`}>
                   {c.partnerImage ? (
                     <img src={c.partnerImage} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <FiUser className="w-4 h-4 text-brand-600" />
+                    <FiUser className="w-4 h-4 text-shopprimary" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{c.partnerName}</p>
-                  <p className="text-xs text-slate-500 truncate">{last.message}</p>
+                  <p className="text-sm font-semibold text-shoptext truncate">{c.partnerName}</p>
+                  <p className="text-xs text-shopmuted truncate">{last.message}</p>
                 </div>
                 {unread > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="bg-shopred text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {unread}
                   </span>
                 )}
@@ -184,40 +200,40 @@ export default function SellerMessages() {
       </div>
 
       {/* Thread */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-[420px]">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-2">
-          <h3 className="text-base font-bold text-slate-900">
+      <div className="bg-white rounded-[13px] border border-shopborder flex flex-col flex-1 min-h-[420px]">
+        <div className="p-4 border-b border-shopborder flex items-center gap-2">
+          <h3 className="text-base font-bold text-shoptext">
             {activeConv ? "Chat with " + activeConv.partnerName : "All messages"}
           </h3>
           {activeOrderRef && (
-            <span className="text-[11px] bg-slate-100 text-slate-500 rounded-full px-2 py-0.5">
+            <span className="text-[11px] bg-shopprimarylight text-shopprimary rounded-full px-2 py-0.5">
               Order #{activeOrderRef.slice(-8)}
             </span>
           )}
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div ref={threadRef} className="flex-1 overflow-auto p-4 space-y-3">
           {loading ? (
             <div className="flex items-center justify-center h-40">
-              <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-shopprimary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : thread.length === 0 ? (
-            <div className="text-center h-full flex flex-col items-center justify-center text-slate-400">
-              <FiMessageCircle className="w-12 h-12 mb-3 text-slate-300" />
+            <div className="text-center h-full flex flex-col items-center justify-center text-[#a1a8b7]">
+              <FiMessageCircle className="w-12 h-12 mb-3 text-[#c9cfda]" />
               <p className="text-sm">No messages yet</p>
               <p className="text-xs mt-1">Messages from customers about your orders will appear here</p>
             </div>
           ) : (
             thread.map((m) => (
               <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.mine ? "bg-brand-600 text-white rounded-br-md" : "bg-slate-100 text-slate-800 rounded-bl-md"}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.mine ? "bg-shopprimary text-white rounded-br-md" : "bg-[#f1f3f8] text-shoptext rounded-bl-md"}`}>
                   {m.orderRef && (
-                    <p className={`text-[11px] mb-1 ${m.mine ? "text-brand-100" : "text-slate-500"}`}>
+                    <p className={`text-[11px] mb-1 ${m.mine ? "text-[#c7d2fe]" : "text-shopmuted"}`}>
                       About order #{m.orderRef.slice(-8)}
                     </p>
                   )}
                   <p className="text-sm whitespace-pre-wrap">{m.message}</p>
-                  <p className={`text-[10px] mt-1 flex items-center gap-1 ${m.mine ? "text-brand-200" : "text-slate-400"}`}>
+                  <p className={`text-[10px] mt-1 flex items-center gap-1 ${m.mine ? "text-[#c7d2fe]" : "text-[#a1a8b7]"}`}>
                     <FiClock className="w-3 h-3" /> {fmtTime(m.createdAt)}
                   </p>
                 </div>
@@ -227,19 +243,19 @@ export default function SellerMessages() {
         </div>
 
         {/* Composer */}
-        <form onSubmit={handleSend} className="p-4 border-t border-slate-100 flex items-center gap-3">
+        <form onSubmit={handleSend} className="p-4 border-t border-shopborder flex items-center gap-3">
           <input
             type="text"
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             disabled={!activePartnerId}
             placeholder={activePartnerId ? `Message ${activeConv.partnerName}…` : "Select a conversation to reply"}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-slate-50 disabled:text-slate-400"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-shopborder text-sm focus:outline-none focus:ring-2 focus:ring-shopprimary/30 disabled:bg-[#f7f8fc] disabled:text-[#a1a8b7]"
           />
           <button
             type="submit"
             disabled={!activePartnerId || sending || !reply.trim()}
-            className="px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-40 flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-shopprimary text-white text-sm font-medium hover:bg-[#4338ca] disabled:opacity-40 flex items-center gap-2"
           >
             <FiSend className="w-4 h-4" /> Send
           </button>
