@@ -298,7 +298,7 @@ export default function HomeContainer() {
 
     try {
       const results = await Promise.allSettled([
-        api.get(`/api/products?includeAll=true`),
+        api.get(`/api/products`),
         api.get(`/api/ads?category=home`),
         api.get(`/api/categories`),
         api.get(`/api/features`),

@@ -8,6 +8,9 @@ const userSchema = new mongoose.Schema(
     password: { type: String },
     role: { type: String, enum: ["customer", "seller", "admin"], default: "customer" },
     status: { type: String, enum: ["active", "inactive", "suspended"], default: "active" },
+    // Trusted designation of the single Main Admin. No API endpoint writes
+    // this field; it is only set by seed / manual DB operations.
+    isMainAdmin: { type: Boolean, default: false },
     profileImage: { type: String },
     phone: { type: String },
     googleId: { type: String },

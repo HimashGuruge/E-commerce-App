@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Phone, MapPin, Edit, Camera, Loader2, LogOut, PlusCircle, Trash2, X } from "lucide-react";
+import { User, Mail, Phone, MapPin, Edit, Camera, Loader2, LogOut, PlusCircle, Trash2, X, ShieldCheck } from "lucide-react";
 import Swal from "sweetalert2";
 import api from "@/utils/api";
 import uploadToMedia from "@/components/utils/Mediaupload";
@@ -18,6 +18,11 @@ export default function ProfilePage() {
   const [editForm, setEditForm] = useState({
     name: "", lastname: "", email: "", phone: "", address: "", profileImage: "",
   });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "", newPassword: "", confirmPassword: "",
+  });
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const [addresses, setAddresses] = useState([]);
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -120,6 +125,37 @@ export default function ProfilePage() {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Swal.fire({ icon: "error", title: "Please fill in all password fields" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      Swal.fire({ icon: "error", title: "New password must be at least 6 characters" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Swal.fire({ icon: "error", title: "New password and confirm password do not match" });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      Swal.fire({ icon: "error", title: "New password must be different from the current password" });
+      return;
+    }
+    try {
+      setSavingPassword(true);
+      await api.put(`/api/users/me/password`, passwordForm);
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      Swal.fire({ icon: "success", title: "Password Changed!", timer: 1500, showConfirmButton: false });
+    } catch (_err) {
+      Swal.fire({ icon: "error", title: "Change Failed", text: _err.response?.data?.error });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   const handleDeleteAddress = async (id) => {
     const result = await Swal.fire({ title: "Delete Address?", icon: "warning", showCancelButton: true, confirmButtonColor: "#ef4444", cancelButtonColor: "#64748b", confirmButtonText: "Yes, delete!" });
     if (result.isConfirmed) {
@@ -172,6 +208,7 @@ export default function ProfilePage() {
               <div className="mt-6 space-y-2">
                 <button onClick={() => setActiveTab("profile")} className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium ${activeTab === "profile" ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50"}`}>Profile</button>
                 <button onClick={() => setActiveTab("addresses")} className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium ${activeTab === "addresses" ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50"}`}>Addresses</button>
+                <button onClick={() => setActiveTab("security")} className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium ${activeTab === "security" ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50"}`}>Security</button>
                 <button onClick={handleLogout} className="w-full text-left px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"><LogOut size={16} /> Logout</button>
               </div>
             </div>
@@ -260,6 +297,39 @@ export default function ProfilePage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "security" && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <ShieldCheck size={20} className="text-brand-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+                </div>
+
+                {isGoogleUser ? (
+                  <p className="text-sm text-gray-500">
+                    You sign in with Google, so there is no local password to change for this account.
+                  </p>
+                ) : (
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                      <input type="password" required value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                      <input type="password" required minLength={6} value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                      <input type="password" required value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
+                    </div>
+                    <button type="submit" disabled={savingPassword} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 flex items-center gap-2">
+                      {savingPassword ? <Loader2 size={16} className="animate-spin" /> : null} Update Password
+                    </button>
+                  </form>
                 )}
               </div>
             )}

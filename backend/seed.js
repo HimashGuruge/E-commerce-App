@@ -28,10 +28,19 @@ const seedDatabase = async () => {
           email: adminEmail,
           password: adminPassword,
           role: "admin",
+          // This account is the single trusted Main Admin.
+          isMainAdmin: true,
         });
         console.log(`Created admin user: ${adminEmail} (password from ADMIN_PASSWORD)`);
       } else {
-        console.log("Admin user already exists");
+        // Keep the trusted Main Admin designation if it was ever lost.
+        if (!existingAdmin.isMainAdmin) {
+          existingAdmin.isMainAdmin = true;
+          await existingAdmin.save();
+          console.log("Restored isMainAdmin flag on the seeded admin user");
+        } else {
+          console.log("Admin user already exists");
+        }
       }
     }
 

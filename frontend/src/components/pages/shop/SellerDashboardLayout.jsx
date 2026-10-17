@@ -35,8 +35,8 @@ export default function SellerDashboardLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-shopbg flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-shopprimary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -44,18 +44,18 @@ export default function SellerDashboardLayout() {
   // If not a seller or not approved, show message
   if (!seller) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center bg-white rounded-2xl shadow-sm border border-slate-100 p-8 max-w-md">
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Seller Account Not Found</h2>
-          <p className="text-slate-500 mb-4">You need to register as a seller first.</p>
-          <a href="/become-seller/register" className="inline-flex px-5 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 font-medium">Register as Seller</a>
+      <div className="min-h-screen bg-shopbg flex items-center justify-center">
+        <div className="text-center bg-white rounded-[13px] border border-shopborder p-8 max-w-md">
+          <h2 className="text-xl font-bold text-shoptext mb-2">Seller Account Not Found</h2>
+          <p className="text-shopmuted mb-4">You need to register as a seller first.</p>
+          <a href="/become-seller/register" className="inline-flex px-5 py-2.5 bg-shopprimary text-white rounded-[9px] hover:bg-[#4338ca] font-semibold">Register as Seller</a>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-shopbg">
       <div className="hidden lg:block">
         <SellerDashboardSidebar user={seller} isMobileOpen={false} closeMobile={() => {}} />
       </div>

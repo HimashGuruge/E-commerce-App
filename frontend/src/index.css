@@ -16,6 +16,16 @@
   --color-brand-700: #b33d03;
   --color-brand-800: #8c3103;
   --color-brand-900: #662302;
+
+  /* ShopMate seller-dashboard palette */
+  --color-shopprimary: #4f46e5;
+  --color-shopprimarylight: #eef2ff;
+  --color-shopbg: #f6f7fb;
+  --color-shopborder: #e8ebf2;
+  --color-shopmuted: #788399;
+  --color-shoptext: #172033;
+  --color-shopgreen: #15976a;
+  --color-shopred: #dc5454;
 }
 
 :root {

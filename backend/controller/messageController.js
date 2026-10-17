@@ -1,8 +1,10 @@
+import mongoose from "mongoose";
 import asyncHandler from "express-async-handler";
 import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
+import Seller from "../models/Seller.js";
 import logger from "../utils/logger.js";
 import Order from "../models/Order.js";
 import { simConfig } from "../config/env.js";
@@ -654,6 +656,90 @@ export const markUserMessagesAsRead = asyncHandler(async (req, res) => {
     { $set: { userRead: true } }
   );
   res.json({ success: true });
+});
+
+// Shared lookup: resolve an approved seller User from a user id, or 404.
+// The Seller doc is keyed by user and is the source of truth for shop info.
+const resolveApprovedSeller = async (sellerId) => {
+  const sellerDoc = await Seller.findOne({ user: sellerId }).select("user shopName status").lean();
+  if (!sellerDoc || sellerDoc.status !== "approved") return null;
+  return sellerDoc;
+};
+
+// --- GET /api/messages/seller-conversation/:sellerId (USER-facing) ---
+// Returns the buyer<->seller thread for a product's seller. Opening is
+// idempotent; the thread gets its first rows when a message is actually sent.
+export const getSellerConversation = asyncHandler(async (req, res) => {
+  const buyerId = req.user._id;
+  const sellerId = req.params.sellerId;
+  if (!mongoose.isValidObjectId(sellerId) || sellerId.toString() === buyerId.toString()) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  const sellerDoc = await resolveApprovedSeller(sellerId);
+  if (!sellerDoc) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  const threadKey = `${buyerId}|${sellerId}`;
+  const messages = await Message.find({ threadKey })
+    .populate("sender", "name profileImage")
+    .sort({ createdAt: 1 })
+    .limit(200);
+
+  res.json({
+    success: true,
+    seller: {
+      userId: sellerId,
+      shopName: sellerDoc.shopName,
+      shopLogo: sellerDoc.shopLogo || null,
+    },
+    messages,
+  });
+});
+
+// --- POST /api/messages/seller/:sellerId (USER-facing) ---
+// Creates (or continues) the buyer<->seller conversation for a product's seller.
+export const sendSellerChatMessage = asyncHandler(async (req, res) => {
+  const buyerId = req.user._id;
+  const sellerId = req.params.sellerId;
+  const text = (req.body?.message || "").trim();
+  if (!text) {
+    res.status(400);
+    throw new Error("Message text is required");
+  }
+  if (!mongoose.isValidObjectId(sellerId) || sellerId.toString() === buyerId.toString()) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  const sellerDoc = await resolveApprovedSeller(sellerId);
+  if (!sellerDoc) {
+    res.status(404);
+    throw new Error("Seller not found");
+  }
+
+  const message = await Message.create({
+    sender: buyerId,
+    recipient: sellerId,
+    message: text,
+    language: "en-US",
+    senderType: "user",
+    isAdmin: false,
+    adminRead: false,
+    userRead: true,
+    sellerRead: false,
+    threadKey: `${buyerId}|${sellerId}`,
+  });
+
+  // Real-time: ping the seller's Messages page + badge (existing listeners)
+  emitToUser(sellerId, "seller:new-message", { id: message._id });
+  // Real-time: ping the buyer's open chat panel (deduped against the response)
+  emitToUser(buyerId, "seller-chat:new-message", message);
+
+  res.status(201).json({ success: true, message });
 });
 
 export const testGetOrderStatus = asyncHandler(async (req, res) => {

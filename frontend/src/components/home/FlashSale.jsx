@@ -11,7 +11,7 @@ useEffect(() => {
     const fetchFlashSaleProducts = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/api/products?limit=${limit}&sortBy=sellingPrice-asc&includeAll=true`);
+        const response = await api.get(`/api/products?limit=${limit}&sortBy=sellingPrice-asc`);
 
         let fetchedProducts = [];
 

@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
+import Seller from "../models/Seller.js";
 import logger from "../utils/logger.js";
 
 // Recompute a parent product's total stock from its variants
@@ -236,11 +237,21 @@ export const getProductWithVariants = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Product not found");
   }
-  const product = await Product.findById(req.params.id).populate("variants").populate("seller", "shopName");
+  const product = await Product.findById(req.params.id).populate("variants").populate("seller", "_id");
 
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
+  }
+
+  // Product.seller refs the User (no shopName); the Seller doc (keyed by
+  // user) holds the real shopName / shopLogo used for the store block
+  let sellerShopName = null;
+  let sellerShopLogo = null;
+  if (product.seller) {
+    const sellerDoc = await Seller.findOne({ user: product.seller._id }, "shopName shopLogo");
+    sellerShopName = sellerDoc?.shopName || null;
+    sellerShopLogo = sellerDoc?.shopLogo || null;
   }
 
   res.json({
@@ -251,7 +262,8 @@ export const getProductWithVariants = asyncHandler(async (req, res) => {
       productId: product._id.toString(),
       isParent: product.isVariantParent,
       variantAttributes: product.variantAttributes || [],
-      sellerShopName: product.seller?.shopName || null,
+      sellerShopName,
+      sellerShopLogo,
     },
     variants: product.variants || [],
   });

@@ -324,6 +324,7 @@ export default function AdminAllProductView() {
                       <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Price</th>
                       <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Stock</th>
                       <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Category</th>
+                      <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Approval</th>
                       <th className="p-4 text-right text-xs font-semibold text-slate-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -387,6 +388,17 @@ export default function AdminAllProductView() {
                         <td className="p-4">
                           <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium">
                             {product.category || "Uncategorized"}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                              product.approvedByAdmin
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-amber-50 text-amber-700"
+                            }`}
+                          >
+                            {product.approvedByAdmin ? "Approved" : "Pending"}
                           </span>
                         </td>
                         <td className="p-4">

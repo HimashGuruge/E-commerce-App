@@ -8,14 +8,14 @@ import Swal from "sweetalert2";
 import QuillEditor from "@/components/shared/QuillEditor.jsx";
 
 const Colors = {
-  primary: "#10b981",
-  purple: "#7c3aed",
-  gray: "#6b7280",
-  grayLight: "#9ca3af",
-  border: "#e5e7eb",
-  bgLight: "#f9fafb",
+  primary: "#4f46e5",
+  purple: "#4f46e5",
+  gray: "#788399",
+  grayLight: "#a1a8b7",
+  border: "#e8ebf2",
+  bgLight: "#fafbfe",
   success: "#10b981",
-  danger: "#ef4444",
+  danger: "#dc5454",
 };
 
 const VARIANT_PRESETS = [
@@ -45,7 +45,7 @@ const inputBaseStyle = {
   width: "100%",
   padding: "12px",
   border: `1px solid ${Colors.border}`,
-  borderRadius: "10px",
+  borderRadius: "9px",
   fontSize: "14px",
   outline: "none",
   boxSizing: "border-box",
@@ -834,7 +834,7 @@ const handleEditCategory = async (cat) => {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: "48px", height: "48px", border: "4px solid #e5e7eb", borderTopColor: Colors.primary, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }}></div>
+          <div style={{ width: "48px", height: "48px", border: "4px solid #e8ebf2", borderTopColor: Colors.primary, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }}></div>
           <p style={{ color: Colors.gray }}>Loading product data...</p>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -843,9 +843,9 @@ const handleEditCategory = async (cat) => {
   }
 
   return (
-    <div className="p-6" style={{ fontFamily: "'Segoe UI', sans-serif" }}>
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto" style={{ fontFamily: "'Segoe UI', sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#1f2937" }}>
+        <h1 style={{ fontSize: "26px", fontWeight: "800", color: "#172033", letterSpacing: "-0.6px" }}>
           {isEditMode ? "Edit Product" : "Add New Product"}
         </h1>
         {isEditMode && (
@@ -857,7 +857,7 @@ const handleEditCategory = async (cat) => {
               background: Colors.danger,
               color: "white",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "9px",
               fontSize: "14px",
               fontWeight: "600",
               cursor: uploading ? "not-allowed" : "pointer",
@@ -871,26 +871,26 @@ const handleEditCategory = async (cat) => {
       
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(450px, 1fr))", gap: "24px", ...(uploading ? disabledStyle : {}) }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div style={{ background: "white", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#374151", marginBottom: "16px", borderBottom: `1px solid ${Colors.border}`, paddingBottom: "12px" }}>Basic Information</h2>
+          <div style={{ background: "white", borderRadius: "13px", padding: "24px", border: "1px solid #e8ebf2" }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#172033", marginBottom: "16px", borderBottom: `1px solid ${Colors.border}`, paddingBottom: "12px" }}>Basic Information</h2>
             
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Product Name <span style={{ color: Colors.danger }}>*</span></label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Product Name <span style={{ color: Colors.danger }}>*</span></label>
               <input type="text" name="productName" value={formData.productName} onChange={handleChange} placeholder="Enter product name" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
             </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Alternate Names</label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Alternate Names</label>
               <input type="text" name="altNames" value={formData.altNames} onChange={handleChange} placeholder="Separate with commas" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Price (LKR) <span style={{ color: Colors.danger }}>*</span></label>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Price (LKR) <span style={{ color: Colors.danger }}>*</span></label>
                 <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="0.00" min="0" step="0.01" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Selling Price</label>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Selling Price</label>
                 <input type="number" name="sellingPrice" value={formData.sellingPrice} onChange={handleChange} placeholder="0.00" min="0" step="0.01" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>
@@ -898,7 +898,7 @@ const handleEditCategory = async (cat) => {
             <div style={{ marginBottom: "16px" }}>
               {isParentProduct ? (
                 <>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Total Stock (auto)</label>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Total Stock (auto)</label>
                   <div style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", background: Colors.bgLight, display: "flex", alignItems: "center", justifyContent: "space-between", color: "#111827", fontWeight: 600, boxSizing: "border-box" }}>
                     <span style={{ color: "#6b7280", fontWeight: 500, fontSize: "12px" }}>Sum of variant stocks</span>
                     <span>{totalVariantStock}</span>
@@ -907,20 +907,20 @@ const handleEditCategory = async (cat) => {
                 </>
               ) : (
                 <>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Stock Quantity</label>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Stock Quantity</label>
                   <input type="number" name="stock" value={formData.stock} onChange={handleChange} placeholder="0" min="0" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
                 </>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">Category & Brand</h2>
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-shopborder">
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-shopborder">
+              <h2 className="text-base font-semibold text-shoptext">Category & Brand</h2>
             </div>
 
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-slate-700">Category <span className="text-red-500">*</span></label>
+              <label className="text-sm font-semibold text-[#3d4557]">Category <span className="text-shopred">*</span></label>
               <button
                 type="button"
                 onClick={() => {
@@ -929,7 +929,7 @@ const handleEditCategory = async (cat) => {
                   setFormData(prev => ({ ...prev, category: newToggle ? "" : (dbCategories[0]?.name || "General") }));
                   setCategoryImage(null); setCategoryImagePreview(null);
                 }}
-                className="text-xs px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-full font-medium transition-colors"
+                className="text-xs px-3 py-1.5 bg-shopprimary hover:bg-[#4338ca] text-white rounded-full font-medium transition-colors"
               >
                 {isNewCategory ? "Choose from List" : "Add New"}
               </button>
@@ -944,14 +944,14 @@ const handleEditCategory = async (cat) => {
                     value={formData.category}
                     onChange={handleChange}
                     placeholder="Category name"
-                    className="w-full px-4 py-3 border border-brand-500 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20"
+                    className="w-full px-4 py-3 border border-shopprimary rounded-xl text-sm outline-none focus:ring-2 focus:ring-shopprimary/20"
                   />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 block mb-2">Category Image (optional)</span>
+                  <span className="text-xs font-semibold text-shopmuted block mb-2">Category Image (optional)</span>
                   {uploadingCategoryImage ? (
-                    <div className="relative w-16 h-16 mb-2 flex items-center justify-center bg-slate-100 rounded-xl border border-slate-200">
-                      <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="relative w-16 h-16 mb-2 flex items-center justify-center bg-[#eef0f5] rounded-xl border border-[#dfe3ec]">
+                      <div className="w-5 h-5 border-2 border-shopprimary border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   ) : categoryImagePreview ? (
                     <div className="relative w-16 h-16 mb-2">
@@ -959,14 +959,14 @@ const handleEditCategory = async (cat) => {
                       <button
                         type="button"
                         onClick={() => { setCategoryImage(null); setCategoryImagePreview(null); }}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] leading-none"
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-shopred text-white rounded-full flex items-center justify-center text-[10px] leading-none"
                       >
                         ✕
                       </button>
                     </div>
                   ) : null}
                   {!uploadingCategoryImage && (
-                    <label className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg cursor-pointer text-xs text-slate-500 transition-colors">
+                    <label className="flex items-center gap-2 px-3 py-2 bg-[#f5f6fc] hover:bg-[#f5f6fc] border border-dashed border-[#d5dce9] rounded-lg cursor-pointer text-xs text-shopmuted transition-colors">
                       <span>📁</span> Choose Image
                       <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files[0]; if (file) { setCategoryImage(file); setCategoryImagePreview(URL.createObjectURL(file)); } }} className="hidden" />
                     </label>
@@ -975,7 +975,7 @@ const handleEditCategory = async (cat) => {
                 <button
                   type="button"
                   onClick={handleAddCategory}
-                  className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition-colors"
+                  className="w-full py-2.5 bg-shopprimary hover:bg-[#4338ca] text-white rounded-xl text-sm font-semibold transition-colors"
                 >
                   Add Category
                 </button>
@@ -986,40 +986,40 @@ const handleEditCategory = async (cat) => {
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                  className="w-full px-4 py-3 border border-[#dfe3ec] rounded-xl text-sm outline-none focus:ring-2 focus:ring-shopprimary/20 focus:border-shopprimary bg-white"
                 >
                   {dbCategories.map(cat => (<option key={cat._id} value={cat.name}>{cat.name}</option>))}
                   {dbCategories.length === 0 && <option value="General">General</option>}
                 </select>
                 {dbCategories.length > 0 && (
-                  <div className="mt-3 border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                  <div className="mt-3 border border-[#dfe3ec] rounded-xl overflow-hidden max-h-48 overflow-y-auto">
                     {dbCategories.map((cat, idx) => (
                       <div
                         key={cat._id}
-                        className={`flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors group ${idx < dbCategories.length - 1 ? "border-b border-slate-100" : ""}`}
+                        className={`flex items-center justify-between px-4 py-2.5 hover:bg-[#f5f6fc] transition-colors group ${idx < dbCategories.length - 1 ? "border-b border-shopborder" : ""}`}
                       >
                         <div className="flex items-center gap-3">
                           {cat.image ? (
                             <img src={cat.image} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
                           ) : null}
-                          <div className={`w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold ${cat.image ? "hidden" : ""}`}>
+                          <div className={`w-8 h-8 rounded-lg bg-shopprimarylight text-shopprimary flex items-center justify-center text-xs font-bold ${cat.image ? "hidden" : ""}`}>
                             {cat.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm text-slate-700 font-medium">{cat.name}</span>
+                          <span className="text-sm text-[#3d4557] font-medium">{cat.name}</span>
                         </div>
                         {userRole === "admin" && (
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               type="button"
                               onClick={() => handleEditCategory(cat)}
-                              className="px-2.5 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-[11px] font-medium transition-colors"
+                              className="px-2.5 py-1 bg-shopprimary hover:bg-[#4338ca] text-white rounded-md text-[11px] font-medium transition-colors"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteCategory(cat._id, cat.name)}
-                              className="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-[11px] font-medium transition-colors"
+                              className="px-2.5 py-1 bg-shopred hover:bg-[#c23f3f] text-white rounded-md text-[11px] font-medium transition-colors"
                             >
                               Delete
                             </button>
@@ -1032,56 +1032,56 @@ const handleEditCategory = async (cat) => {
               </div>
             )}
 
-            <div className="pt-3 border-t border-slate-100">
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Brand</label>
+            <div className="pt-3 border-t border-shopborder">
+              <label className="text-sm font-semibold text-[#3d4557] block mb-2">Brand</label>
               <input
                 type="text"
                 name="brand"
                 value={formData.brand}
                 onChange={handleChange}
                 placeholder="Enter brand name"
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                className="w-full px-4 py-3 border border-[#dfe3ec] rounded-xl text-sm outline-none focus:ring-2 focus:ring-shopprimary/20 focus:border-shopprimary bg-white"
               />
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-slate-100">
+          <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-shopborder">
             <div className="mb-4">
-              <h2 className="text-base font-semibold text-slate-700 mb-3">Product Type</h2>
+              <h2 className="text-base font-semibold text-[#3d4557] mb-3">Product Type</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setIsParentProduct(false)}
-                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${!isParentProduct ? "border-violet-600 bg-violet-50" : "border-slate-200 hover:border-slate-300"}`}
+                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${!isParentProduct ? "border-shopprimary bg-shopprimarylight" : "border-[#dfe3ec] hover:border-[#d5dce9]"}`}
                 >
-                  <div className={`text-sm font-semibold ${!isParentProduct ? "text-violet-700" : "text-slate-700"}`}>Simple Product</div>
-                  <div className="text-xs text-slate-500 mt-0.5">One size, one price, one stock</div>
+                  <div className={`text-sm font-semibold ${!isParentProduct ? "text-shopprimary" : "text-[#3d4557]"}`}>Simple Product</div>
+                  <div className="text-xs text-shopmuted mt-0.5">One size, one price, one stock</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsParentProduct(true)}
-                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${isParentProduct ? "border-violet-600 bg-violet-50" : "border-slate-200 hover:border-slate-300"}`}
+                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${isParentProduct ? "border-shopprimary bg-shopprimarylight" : "border-[#dfe3ec] hover:border-[#d5dce9]"}`}
                 >
-                  <div className={`text-sm font-semibold ${isParentProduct ? "text-violet-700" : "text-slate-700"}`}>Product with Variants</div>
-                  <div className="text-xs text-slate-500 mt-0.5">Multiple sizes/colors/prices</div>
+                  <div className={`text-sm font-semibold ${isParentProduct ? "text-shopprimary" : "text-[#3d4557]"}`}>Product with Variants</div>
+                  <div className="text-xs text-shopmuted mt-0.5">Multiple sizes/colors/prices</div>
                 </button>
               </div>
             </div>
 
             {isParentProduct && (
               <div>
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5 rounded-xl bg-slate-50 ring-1 ring-slate-100 px-4 py-3 mb-4 text-xs text-slate-500">
-                  <span className="font-medium text-slate-700">How it works:</span>
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5 rounded-xl bg-[#f5f6fc] ring-1 ring-shopborder px-4 py-3 mb-4 text-xs text-shopmuted">
+                  <span className="font-medium text-[#3d4557]">How it works:</span>
                   <span>1. Pick attributes</span>
                   <span>·</span>
                   <span>2. Add their values</span>
                   <span>·</span>
                   <span>3. Set stock & price per combination</span>
-                  <span className="text-slate-400">— e.g. Color (Red, Blue) + Size (S, M, L) = 6 variants</span>
+                  <span className="text-[#a1a8b7]">— e.g. Color (Red, Blue) + Size (S, M, L) = 6 variants</span>
                 </div>
 
                 <div className="mb-4">
-                  <div className="text-xs font-semibold text-slate-500 mb-2">Start from a preset</div>
+                  <div className="text-xs font-semibold text-shopmuted mb-2">Start from a preset</div>
                   <div className="flex flex-wrap gap-2">
                     {VARIANT_PRESETS.map((preset) => (
                       <button
@@ -1091,7 +1091,7 @@ const handleEditCategory = async (cat) => {
                           setVariantAttributes([...preset.attributes]);
                           setAttributeOptions({ ...preset.options });
                         }}
-                        className="px-3 py-1.5 text-xs font-medium rounded-full bg-white border border-slate-200 text-slate-600 hover:border-violet-400 hover:text-violet-700 transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium rounded-full bg-white border border-[#dfe3ec] text-[#4b5568] hover:border-[#a5b4fc] hover:text-shopprimary transition-colors"
                       >
                         {preset.label}
                       </button>
@@ -1100,39 +1100,39 @@ const handleEditCategory = async (cat) => {
                 </div>
 
                 <div className="mb-4">
-                  <div className="text-sm font-semibold text-slate-700 mb-2">Or add your own options</div>
+                  <div className="text-sm font-semibold text-[#3d4557] mb-2">Or add your own options</div>
                   <div className="flex gap-2 mb-3">
                     <input
                       type="text"
                       value={newAttrName}
                       onChange={(e) => setNewAttrName(e.target.value)}
                       placeholder='Type an option name, e.g. "Color"'
-                      className="flex-1 px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                      className="flex-1 px-3.5 py-2.5 text-sm border border-[#dfe3ec] rounded-lg outline-none focus:ring-2 focus:ring-shopprimary/20 focus:border-shopprimary bg-white"
                       onKeyDown={(e) => e.key === "Enter" && addVariantAttribute()}
                     />
                     <button
                       type="button"
                       onClick={addVariantAttribute}
-                      className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                      className="px-4 py-2.5 bg-shopprimary hover:bg-[#4338ca] text-white rounded-lg text-sm font-semibold transition-colors"
                     >
                       Add
                     </button>
                   </div>
 
                   {variantAttributes.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-5 text-center">
-                      <div className="text-sm text-slate-500">No options yet — pick a preset above or add one here.</div>
+                    <div className="rounded-xl border border-dashed border-[#dfe3ec] bg-[#f5f6fc]/50 px-4 py-5 text-center">
+                      <div className="text-sm text-shopmuted">No options yet — pick a preset above or add one here.</div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-3">
                       {variantAttributes.map((attr) => (
-                        <div key={attr} className="rounded-xl bg-white ring-1 ring-slate-100 p-4">
+                        <div key={attr} className="rounded-xl bg-white ring-1 ring-shopborder p-4">
                           <div className="flex items-center justify-between mb-2.5">
-                            <span className="text-sm font-semibold text-violet-700">{attr}</span>
+                            <span className="text-sm font-semibold text-shopprimary">{attr}</span>
                             <button
                               type="button"
                               onClick={() => removeVariantAttribute(attr)}
-                              className="text-xs font-medium text-slate-400 hover:text-red-600 transition-colors"
+                              className="text-xs font-medium text-[#a1a8b7] hover:text-shopred transition-colors"
                             >
                               Remove
                             </button>
@@ -1142,14 +1142,14 @@ const handleEditCategory = async (cat) => {
                             {(attributeOptions[attr] || []).map((value) => (
                               <span
                                 key={value}
-                                className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 text-xs bg-violet-50 text-violet-800 rounded-full"
+                                className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 text-xs bg-shopprimarylight text-shopprimary rounded-full"
                               >
                                 {value}
                                 <button
                                   type="button"
                                   onClick={() => removeAttributeOption(attr, value)}
                                   aria-label={`Remove ${value}`}
-                                  className="w-4 h-4 grid place-items-center rounded-full text-violet-400 hover:bg-violet-100 hover:text-violet-700 text-[11px] leading-none"
+                                  className="w-4 h-4 grid place-items-center rounded-full text-shopprimary/60 hover:bg-[#e0e7ff] hover:text-shopprimary text-[11px] leading-none"
                                 >
                                   ×
                                 </button>
@@ -1163,13 +1163,13 @@ const handleEditCategory = async (cat) => {
                               value={newAttrValue[attr] || ""}
                               onChange={(e) => setNewAttrValue({ ...newAttrValue, [attr]: e.target.value })}
                               placeholder={`Add a ${attr.toLowerCase()} value`}
-                              className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                              className="flex-1 px-3 py-2 text-xs border border-[#dfe3ec] rounded-lg outline-none focus:ring-2 focus:ring-shopprimary/20 focus:border-shopprimary bg-white"
                               onKeyDown={(e) => e.key === "Enter" && addAttributeOption(attr)}
                             />
                             <button
                               type="button"
                               onClick={() => addAttributeOption(attr)}
-                              className="px-3.5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                              className="px-3.5 py-2 bg-shopprimary hover:bg-[#4338ca] text-white rounded-lg text-xs font-semibold transition-colors"
                             >
                               Add
                             </button>
@@ -1183,41 +1183,41 @@ const handleEditCategory = async (cat) => {
                 {variantAttributes.length > 0 && Object.values(attributeOptions).some(arr => arr.length > 0) && (
                   <div style={{ marginBottom: "16px" }}>
                     {/* Variant Summary */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-2 mb-4 rounded-full bg-violet-50 ring-1 ring-violet-100">
-                      <span className={`h-2 w-2 rounded-full ${generateVariants().length > 0 ? "bg-emerald-500" : "bg-amber-400"}`}></span>
-                      <span className="text-xs font-semibold text-violet-800">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-2 mb-4 rounded-full bg-shopprimarylight ring-1 ring-[#e0e7ff]">
+                      <span className={`h-2 w-2 rounded-full ${generateVariants().length > 0 ? "bg-shopgreen" : "bg-[#d99a2b]"}`}></span>
+                      <span className="text-xs font-semibold text-shopprimary">
                         {generateVariants().length} variants · grouped by {variantAttributes[0]}
                       </span>
-                      <span className="text-xs text-slate-400">total stock updates automatically</span>
+                      <span className="text-xs text-[#a1a8b7]">total stock updates automatically</span>
                     </div>
 
                     {/* Grouped Variant UI */}
-                    <div className="text-sm font-semibold text-slate-700 mb-3">
+                    <div className="text-sm font-semibold text-[#3d4557] mb-3">
                       Set price & stock for each combination
                     </div>
 
                     {Object.entries(getGroupedVariants()).map(([groupName, variants]) => {
                       const isExpanded = expandedGroups[groupName] !== false;
                       return (
-                        <div key={groupName} className="mb-3 rounded-xl bg-white ring-1 ring-slate-100 overflow-hidden">
+                        <div key={groupName} className="mb-3 rounded-xl bg-white ring-1 ring-shopborder overflow-hidden">
                           {/* Group Header */}
                           <div
                             onClick={() => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
-                            className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${isExpanded ? "bg-slate-50" : "bg-white hover:bg-slate-50/60"}`}
+                            className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${isExpanded ? "bg-[#f5f6fc]" : "bg-white hover:bg-[#f5f6fc]/60"}`}
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => e.key === "Enter" && setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
                           >
                             <div className="flex items-center gap-2.5">
-                              <span className="text-xs text-slate-400 transition-transform duration-200" style={{ transform: isExpanded ? "rotate(0deg)" : "" }}>{isExpanded ? "▾" : "▸"}</span>
-                              <span className="text-sm font-semibold text-violet-700">{variantAttributes[0]}: {groupName}</span>
-                              <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{variants.length}</span>
+                              <span className="text-xs text-[#a1a8b7] transition-transform duration-200" style={{ transform: isExpanded ? "rotate(0deg)" : "" }}>{isExpanded ? "▾" : "▸"}</span>
+                              <span className="text-sm font-semibold text-shopprimary">{variantAttributes[0]}: {groupName}</span>
+                              <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[#eef0f5] text-shopmuted">{variants.length}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               {(groupImages[groupName] || []).length > 0 ? (
-                                <img src={groupImages[groupName][0].preview} alt="" className="w-8 h-8 object-cover rounded-md ring-1 ring-slate-100" />
+                                <img src={groupImages[groupName][0].preview} alt="" className="w-8 h-8 object-cover rounded-md ring-1 ring-shopborder" />
                               ) : (
-                                <span className="text-[10px] text-slate-300">no image</span>
+                                <span className="text-[10px] text-[#c9cfda]">no image</span>
                               )}
                             </div>
                           </div>
@@ -1226,14 +1226,14 @@ const handleEditCategory = async (cat) => {
                           {isExpanded && (
                             <div className="p-4">
                               {/* Group Image Upload */}
-                              <div className="mb-4 pb-4 border-b border-dashed border-slate-200">
-                                <div className="text-xs font-medium text-slate-500 mb-2">
-                                  Images for {variantAttributes[0]}: {groupName} <span className="text-slate-400">(applies to all in this group)</span>
+                              <div className="mb-4 pb-4 border-b border-dashed border-[#dfe3ec]">
+                                <div className="text-xs font-medium text-shopmuted mb-2">
+                                  Images for {variantAttributes[0]}: {groupName} <span className="text-[#a1a8b7]">(applies to all in this group)</span>
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
                                   {(groupImages[groupName] || []).map((img, i) => (
                                     <div key={i} className="relative">
-                                      <img src={img.preview} alt="" className="w-14 h-14 object-cover rounded-lg ring-1 ring-slate-200" />
+                                      <img src={img.preview} alt="" className="w-14 h-14 object-cover rounded-lg ring-1 ring-[#dfe3ec]" />
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -1241,13 +1241,13 @@ const handleEditCategory = async (cat) => {
                                           setGroupImages(prev => ({ ...prev, [groupName]: updated }));
                                         }}
                                         aria-label={`Remove image ${i + 1}`}
-                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 grid place-items-center bg-red-500 text-white rounded-full text-[10px] hover:bg-red-600"
+                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 grid place-items-center bg-shopred text-white rounded-full text-[10px] hover:bg-[#c23f3f]"
                                       >
                                         ×
                                       </button>
                                     </div>
                                   ))}
-                                  <label className="w-14 h-14 grid place-items-center cursor-pointer border-2 border-dashed border-slate-200 rounded-lg hover:border-violet-300 transition-colors">
+                                  <label className="w-14 h-14 grid place-items-center cursor-pointer border-2 border-dashed border-[#dfe3ec] rounded-lg hover:border-[#a5b4fc] transition-colors">
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                                       const files = Array.from(e.target.files);
                                       if (files.length > 0) {
@@ -1255,7 +1255,7 @@ const handleEditCategory = async (cat) => {
                                         setGroupImages(prev => ({ ...prev, [groupName]: [...(prev[groupName] || []), ...newImgs] }));
                                       }
                                     }} />
-                                    <span className="text-lg leading-none text-slate-300">+</span>
+                                    <span className="text-lg leading-none text-[#c9cfda]">+</span>
                                   </label>
                                 </div>
                               </div>
@@ -1270,8 +1270,8 @@ const handleEditCategory = async (cat) => {
                                   const basePrice = formData.sellingPrice || formData.price || 0;
                                   
                                   return (
-                                    <div key={idx} className="rounded-xl bg-slate-50/70 p-3">
-                                      <div className="text-xs font-semibold text-violet-700 text-center mb-2">
+                                    <div key={idx} className="rounded-xl bg-[#f5f6fc]/70 p-3">
+                                      <div className="text-xs font-semibold text-shopprimary text-center mb-2">
                                         {Object.values(variant).join(" / ")}
                                       </div>
                                       
@@ -1280,7 +1280,7 @@ const handleEditCategory = async (cat) => {
                                         <div className="flex gap-1.5 flex-wrap justify-center relative">
                                           {(variantImg || []).slice(0, 2).map((img, i) => (
                                             <div key={i} className="relative">
-                                              <img src={img.preview || img} alt="" className="w-9 h-9 object-cover rounded-md ring-1 ring-slate-200" />
+                                              <img src={img.preview || img} alt="" className="w-9 h-9 object-cover rounded-md ring-1 ring-[#dfe3ec]" />
                                               <button
                                                 type="button"
                                                 onClick={() => {
@@ -1288,7 +1288,7 @@ const handleEditCategory = async (cat) => {
                                                   setVariantImages(prev => ({ ...prev, [variantKey]: newImgs }));
                                                 }}
                                                 aria-label={`Remove image ${i + 1}`}
-                                                className="absolute -top-1 -right-1 w-4 h-4 grid place-items-center bg-red-500 text-white rounded-full text-[9px] leading-none hover:bg-red-600"
+                                                className="absolute -top-1 -right-1 w-4 h-4 grid place-items-center bg-shopred text-white rounded-full text-[9px] leading-none hover:bg-[#c23f3f]"
                                               >
                                                 ×
                                               </button>
@@ -1302,7 +1302,7 @@ const handleEditCategory = async (cat) => {
                                                 setVariantImages(prev => ({ ...prev, [variantKey]: [...(prev[variantKey] || []), ...newImgs] }));
                                               }
                                             }} />
-                                            <span className="inline-block px-2 py-1 text-[10px] font-medium text-emerald-600 border border-dashed border-emerald-300 rounded-md hover:bg-emerald-50 transition-colors">+ Image</span>
+                                            <span className="inline-block px-2 py-1 text-[10px] font-medium text-shopgreen border border-dashed border-[#6fbf9a] rounded-md hover:bg-[#e7f8ef] transition-colors">+ Image</span>
                                           </label>
                                         </div>
                                       </div>
@@ -1310,25 +1310,25 @@ const handleEditCategory = async (cat) => {
                                       {/* Stock & Price */}
                                       <div className="grid grid-cols-2 gap-1.5">
                                         <div>
-                                          <label className="block text-[10px] text-slate-500 mb-0.5">Stock</label>
+                                          <label className="block text-[10px] text-shopmuted mb-0.5">Stock</label>
                                           <input
                                             type="number"
                                             min="0"
                                             value={variantStock}
                                             onChange={(e) => setVariantStocks(prev => ({ ...prev, [variantKey]: parseInt(e.target.value) || 0 }))}
                                             placeholder="0"
-                                            className={`w-full px-2 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white text-center ${Number(variantStock) === 0 ? "border-amber-300 text-amber-700" : "border-slate-200"}`}
+                                            className={`w-full px-2 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-shopprimary/20 focus:border-shopprimary bg-white text-center ${Number(variantStock) === 0 ? "border-[#e8c98a] text-[#ad6b00]" : "border-[#dfe3ec]"}`}
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-[10px] text-slate-500 mb-0.5">Price</label>
+                                          <label className="block text-[10px] text-shopmuted mb-0.5">Price</label>
                                           <input
                                             type="number"
                                             min="0"
                                             value={variantPrice}
                                             onChange={(e) => setVariantPrices(prev => ({ ...prev, [variantKey]: parseFloat(e.target.value) || basePrice }))}
                                             placeholder={basePrice}
-                                            className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white text-center"
+                                            className="w-full px-2 py-1.5 text-xs border border-[#dfe3ec] rounded-lg outline-none focus:ring-2 focus:ring-shopprimary/20 focus:border-shopprimary bg-white text-center"
                                           />
                                         </div>
                                       </div>
@@ -1372,8 +1372,8 @@ const handleEditCategory = async (cat) => {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div style={{ background: "white", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#374151", marginBottom: "16px" }}>Product Images <span style={{ color: Colors.danger }}>*</span></h2>
+          <div style={{ background: "white", borderRadius: "13px", padding: "24px", border: "1px solid #e8ebf2" }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#172033", marginBottom: "16px" }}>Product Images <span style={{ color: Colors.danger }}>*</span></h2>
             
             {imagePreviews.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
@@ -1394,8 +1394,8 @@ const handleEditCategory = async (cat) => {
             </label>
           </div>
 
-          <div style={{ background: "white", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#374151", marginBottom: "16px" }}>Product Description</h2>
+          <div style={{ background: "white", borderRadius: "13px", padding: "24px", border: "1px solid #e8ebf2" }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#172033", marginBottom: "16px" }}>Product Description</h2>
             <div style={{ marginBottom: "16px" }}>
               <QuillEditor
                 value={formData.description}
@@ -1405,13 +1405,13 @@ const handleEditCategory = async (cat) => {
             </div>
 
             <div style={{ marginTop: "16px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Key Features (Highlights)</label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>Key Features (Highlights)</label>
               <input type="text" name="highlights" value={formData.highlights} onChange={handleChange} placeholder="e.g., Waterproof, Durable, Fast Shipping (separate with commas)" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
               <span style={{ fontSize: "11px", color: Colors.grayLight, marginTop: "4px", display: "block" }}>Separate each feature with a comma</span>
             </div>
 
             <div style={{ marginTop: "16px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>What's in the Box</label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#263043", marginBottom: "6px" }}>What's in the Box</label>
               <input type="text" name="whatsInTheBox" value={formData.whatsInTheBox} onChange={handleChange} placeholder="e.g., 1x Hot Water Bottle, 1x Cover" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>

@@ -46,36 +46,41 @@ const TRACKER_STEPS = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
 
 const capitalize = (value = "") => value.charAt(0).toUpperCase() + value.slice(1);
 
+const NEW_ORDER_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const isNewOrder = (order) =>
+  !!order?.createdAt && Date.now() - new Date(order.createdAt).getTime() < NEW_ORDER_WINDOW_MS;
+
 const STATUS_CONFIG = {
   pending: {
-    color: "bg-amber-50 text-amber-600 border-amber-100",
+    color: "bg-[#fff1d6] text-[#ad6b00] border-[#f5ddae]",
     icon: <FiClock className="animate-spin-slow" />,
-    pulse: "shadow-amber-100 animate-pulse",
+    pulse: "shadow-[#f5ddae] animate-pulse",
   },
   processing: {
-    color: "bg-brand-50 text-brand-600 border-brand-100",
+    color: "bg-[#e7f4ff] text-[#2168b5] border-[#d7e9fb]",
     icon: <FiRefreshCw className="animate-spin" />,
-    pulse: "shadow-emerald-100 animate-pulse",
+    pulse: "shadow-[#d7e9fb] animate-pulse",
   },
   shipped: {
-    color: "bg-purple-50 text-purple-600 border-purple-100",
+    color: "bg-[#e5f1ff] text-[#2168b5] border-[#d7e9fb]",
     icon: <FiTruck className="translate-x-1 duration-700" />,
-    pulse: "shadow-purple-100",
+    pulse: "shadow-[#d7e9fb]",
   },
   delivered: {
-    color: "bg-brand-50 text-brand-600 border-brand-100",
+    color: "bg-[#def7e9] text-[#147c4f] border-[#c9efd9]",
     icon: <FiCheckCircle />,
-    pulse: "shadow-emerald-100",
+    pulse: "shadow-[#c9efd9]",
   },
   cancelled: {
-    color: "bg-rose-50 text-rose-600 border-rose-100",
+    color: "bg-[#fdeaea] text-[#b91c1c] border-[#f6d4d4]",
     icon: <FiXCircle />,
-    pulse: "shadow-rose-100",
+    pulse: "shadow-[#f6d4d4]",
   },
   failed: {
-    color: "bg-red-50 text-red-600 border-red-100",
+    color: "bg-[#fdeaea] text-[#b91c1c] border-[#f6d4d4]",
     icon: <FiXCircle />,
-    pulse: "shadow-red-100",
+    pulse: "shadow-[#f6d4d4]",
   },
 };
 
@@ -179,7 +184,8 @@ export default function SellerOrdersFull() {
 
   const term = searchTerm.toLowerCase();
   const filteredOrders = orders.filter((order) => {
-    if (statusFilter !== "all" && order.orderStatus !== statusFilter) return false;
+    if (statusFilter === "new" && !isNewOrder(order)) return false;
+    if (statusFilter !== "all" && statusFilter !== "new" && order.orderStatus !== statusFilter) return false;
     return (
       String(order.orderId ?? "").toLowerCase().includes(term) ||
       String(order.shippingAddress?.fullName ?? "").toLowerCase().includes(term)
@@ -189,6 +195,7 @@ export default function SellerOrdersFull() {
     acc[order.orderStatus] = (acc[order.orderStatus] || 0) + 1;
     return acc;
   }, {});
+  const newOrderCount = orders.filter((order) => isNewOrder(order)).length;
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -203,7 +210,7 @@ export default function SellerOrdersFull() {
             setTempSearch(searchTerm);
             setShowMobileFilters(true);
           }}
-          className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-brand-600 to-emerald-700 text-white rounded-xl shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all"
+          className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-shopprimary to-[#4338ca] text-white rounded-xl shadow-lg hover:from-[#4338ca] hover:to-[#3730a3] transition-all"
         >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <FiFilter size={18} />
@@ -218,11 +225,11 @@ export default function SellerOrdersFull() {
 
         {searchTerm && (
           <div className="flex flex-wrap gap-2 mt-3">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-100 text-brand-700 rounded-full text-xs">
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-shopprimarylight text-shopprimary rounded-full text-xs">
               Search: {searchTerm}
               <button
                 onClick={() => setSearchTerm("")}
-                className="ml-1 hover:text-brand-900"
+                className="ml-1 hover:text-[#3730a3]"
               >
                 <FiX size={14} />
               </button>
@@ -237,7 +244,7 @@ export default function SellerOrdersFull() {
               placeholder="Search orders..."
               value={tempSearch}
               onChange={(e) => setTempSearch(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-[#dfe3ec] rounded-lg text-sm"
             />
           </div>
         )}
@@ -249,14 +256,19 @@ export default function SellerOrdersFull() {
     const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-3">
+      <div className={`bg-white rounded-xl border shadow-sm overflow-hidden mb-3 ${isNewOrder(order) ? "border-[#f5d98c] ring-2 ring-[#f5d98c]/70" : "border-[#dfe3ec]"}`}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <span className="font-mono font-bold text-brand-600 text-xs">
+              <span className="inline-flex items-center gap-1.5 font-mono font-bold text-shopprimary text-xs">
                 #{order.orderId || order._id.slice(-6)}
+                {isNewOrder(order) && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#d99a2b] text-white text-[8px] font-black uppercase tracking-wide">
+                    New
+                  </span>
+                )}
               </span>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[#a1a8b7] mt-1">
                 {new Date(order.createdAt).toLocaleDateString()}
               </p>
             </div>
@@ -269,12 +281,12 @@ export default function SellerOrdersFull() {
           </div>
 
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500 truncate max-w-[150px]">
+            <p className="text-xs text-shopmuted truncate max-w-[150px]">
               {order.shippingAddress?.fullName || order.user?.name || "Guest"}
             </p>
             <button
               onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
-              className="p-2 bg-slate-100 rounded-lg"
+              className="p-2 bg-[#eef0f5] rounded-lg"
             >
               {expandedOrderId === order._id ? (
                 <FiChevronUp size={16} />
@@ -285,15 +297,15 @@ export default function SellerOrdersFull() {
           </div>
 
           {expandedOrderId === order._id && (
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+            <div className="mt-4 pt-4 border-t border-shopborder space-y-4">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 mb-2">
+                <p className="text-[10px] font-bold text-[#a1a8b7] mb-2">
                   Items ({order.items?.length})
                 </p>
                 <div className="space-y-2">
                   {order.items?.slice(0, 2).map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#eef0f5] overflow-hidden flex-shrink-0">
                         <img
                           src={item.image || item.imageUrl}
                           alt={item.name}
@@ -304,26 +316,26 @@ export default function SellerOrdersFull() {
                         />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-bold text-slate-800 truncate">
+                        <p className="text-xs font-bold text-[#3d4557] truncate">
                           {item.name}
                         </p>
-                        <p className="text-[9px] text-slate-400">Qty: {item.quantity}</p>
+                        <p className="text-[9px] text-[#a1a8b7]">Qty: {item.quantity}</p>
                       </div>
-                      <p className="text-xs font-bold text-brand-600">
+                      <p className="text-xs font-bold text-shopprimary">
                         Rs. {item.price?.toLocaleString()}
                       </p>
                     </div>
                   ))}
                   {order.items?.length > 2 && (
-                    <p className="text-[9px] text-slate-400 text-center">
+                    <p className="text-[9px] text-[#a1a8b7] text-center">
                       +{order.items.length - 2} more items
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-3">
-                <p className="text-[10px] font-bold text-slate-400 mb-2">
+              <div className="border-t border-shopborder pt-3">
+                <p className="text-[10px] font-bold text-[#a1a8b7] mb-2">
                   Update Status
                 </p>
 
@@ -344,7 +356,7 @@ export default function SellerOrdersFull() {
                           tempTracking[order._id] || order.trackingNumber,
                         );
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 outline-none mb-2"
+                      className="w-full bg-[#f7f8fc] border border-[#dfe3ec] rounded-lg px-3 py-2 text-xs font-bold text-[#5b6577] outline-none mb-2"
                     >
                       {STATUS_OPTIONS.map((opt) => (
                         <option
@@ -362,7 +374,7 @@ export default function SellerOrdersFull() {
                       <div className="relative flex items-center">
                         <input
                           placeholder="Tracking ID..."
-                          className="w-full bg-white border-2 border-emerald-500 rounded-lg px-3 py-2 text-xs font-bold outline-none pr-10"
+                          className="w-full bg-white border-2 border-shopprimary rounded-lg px-3 py-2 text-xs font-bold outline-none pr-10"
                           value={tempTracking[order._id] || order.trackingNumber || ""}
                           onChange={(e) =>
                             setTempTracking({
@@ -379,7 +391,7 @@ export default function SellerOrdersFull() {
                                   tempTracking[order._id] || order.trackingNumber,
                                 )
                           }
-                          className="absolute right-1 bg-brand-600 text-white p-1.5 rounded-lg"
+                          className="absolute right-1 bg-shopprimary text-white p-1.5 rounded-lg"
                         >
                           <FiSave size={14} />
                         </button>
@@ -390,14 +402,14 @@ export default function SellerOrdersFull() {
                       <div className="flex items-center justify-between">
                         <button
                           onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
-                          className="flex items-center gap-1 bg-[#f37021] text-white px-3 py-2 rounded-lg text-xs font-bold"
+                          className="flex items-center gap-1 bg-shopprimary text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-[#4338ca]"
                         >
                           <FiTruck size={12} /> Track{" "}
                           <FiExternalLink size={10} />
                         </button>
                         <button
                           onClick={() => setEditingOrderId(order._id)}
-                          className="p-2 bg-slate-100 rounded-lg text-slate-500"
+                          className="p-2 bg-[#eef0f5] rounded-lg text-shopmuted"
                         >
                           <FiEdit2 size={14} />
                         </button>
@@ -415,22 +427,22 @@ export default function SellerOrdersFull() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="w-12 h-12 border-4 border-shopprimary border-t-transparent rounded-full animate-spin mb-4"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-20 lg:pb-6 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f7f8fc] p-4 md:p-6 pb-20 lg:pb-6 font-sans text-shoptext">
       <Toaster position="top-center" />
 
       <div className="max-w-7xl mx-auto mb-6 sm:mb-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-              Orders <span className="text-brand-600">Central</span>
+            <h1 className="text-2xl md:text-3xl font-bold text-shoptext">
+              Orders <span className="text-shopprimary">Central</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            <p className="text-xs sm:text-sm text-shopmuted font-medium mt-1">
               Manage and track your customer orders in real-time.
             </p>
           </div>
@@ -439,10 +451,10 @@ export default function SellerOrdersFull() {
             <button
               onClick={handleBulkMarkDelivered}
               disabled={selectedOrders.length === 0 || bulkUpdating}
-              className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200 active:scale-95 ${
+              className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-[#e8ebf2] active:scale-95 ${
                 selectedOrders.length > 0 && !bulkUpdating
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  ? "bg-shopgreen text-white hover:bg-[#0f7c55]"
+                  : "bg-[#e8ebf2] text-[#a1a8b7] cursor-not-allowed"
               }`}
             >
               <FiCheckCircle size={14} className={bulkUpdating ? "animate-spin" : ""} />
@@ -458,23 +470,23 @@ export default function SellerOrdersFull() {
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#dfe3ec] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-shopprimary"
               />
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a1a8b7]" size={16} />
             </div>
 
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-white border border-[#dfe3ec] rounded-xl p-1">
               <button
                 onClick={() => setViewMode("table")}
                 title="Table view"
-                className={`p-2 rounded-lg transition-colors ${viewMode === "table" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-600"}`}
+                className={`p-2 rounded-lg transition-colors ${viewMode === "table" ? "bg-shopprimary text-white" : "text-[#a1a8b7] hover:text-[#5b6577]"}`}
               >
                 <FiList size={16} />
               </button>
               <button
                 onClick={() => setViewMode("grid")}
                 title="Card view (status management)"
-                className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-600"}`}
+                className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-shopprimary text-white" : "text-[#a1a8b7] hover:text-[#5b6577]"}`}
               >
                 <FiGrid size={16} />
               </button>
@@ -485,6 +497,7 @@ export default function SellerOrdersFull() {
         <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
           {[
             { key: "all", label: "All", count: orders.length },
+            { key: "new", label: "New", count: newOrderCount, isNew: true },
             ...STATUS_OPTIONS.map((s) => ({
               key: s,
               label: capitalize(s),
@@ -499,14 +512,16 @@ export default function SellerOrdersFull() {
               }}
               className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                 statusFilter === tab.key
-                  ? "bg-brand-600 text-white border-brand-600 shadow-md"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-brand-300 hover:text-brand-600"
+                  ? tab.isNew
+                    ? "bg-[#d99a2b] text-white border-[#d99a2b] shadow-md"
+                    : "bg-shopprimary text-white border-shopprimary shadow-md"
+                  : "bg-white text-[#5b6577] border-[#dfe3ec] hover:border-[#c7d2fe] hover:text-shopprimary"
               }`}
             >
               {tab.label}
               <span
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  statusFilter === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                  statusFilter === tab.key ? "bg-white/20 text-white" : "bg-[#eef0f5] text-shopmuted"
                 }`}
               >
                 {tab.count}
@@ -524,10 +539,10 @@ export default function SellerOrdersFull() {
         )}
 
         {viewMode === "table" && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dfe3ec] overflow-hidden">
             <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 sticky top-0">
+                <thead className="bg-[#f7f8fc] sticky top-0">
                   <tr>
                     <th className="px-4 py-3 w-10">
                       <input
@@ -542,18 +557,18 @@ export default function SellerOrdersFull() {
                             setSelectAll(true);
                           }
                         }}
-                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        className="w-4 h-4 rounded border-[#d5dce9] text-shopprimary focus:ring-shopprimary cursor-pointer"
                       />
                     </th>
-                    <th className="px-4 py-3 font-bold text-slate-600">#</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Customer</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Date</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Status</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Amount</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Actions</th>
+                    <th className="px-4 py-3 font-bold text-[#5b6577]">#</th>
+                    <th className="px-4 py-3 font-bold text-[#5b6577]">Customer</th>
+                    <th className="px-4 py-3 font-bold text-[#5b6577]">Date</th>
+                    <th className="px-4 py-3 font-bold text-[#5b6577]">Status</th>
+                    <th className="px-4 py-3 font-bold text-[#5b6577]">Amount</th>
+                    <th className="px-4 py-3 font-bold text-[#5b6577]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-shopborder">
                   {currentOrders.map((order) => (
                     <tr
                       key={order._id}
@@ -565,26 +580,37 @@ export default function SellerOrdersFull() {
                         );
                         setSelectAll(false);
                       }}
-                      className={`hover:bg-slate-50 cursor-pointer transition-colors ${
-                        selectedOrders.includes(order._id) ? "bg-emerald-50" : ""
+                      className={`transition-colors cursor-pointer ${
+                        isNewOrder(order)
+                          ? "bg-[#fff6e3] hover:bg-[#fdeec9] border-l-4 border-l-[#d99a2b]"
+                          : selectedOrders.includes(order._id)
+                            ? "bg-[#eef2ff] hover:bg-[#e0e7ff]"
+                            : "hover:bg-[#f5f6fc]"
                       }`}
                     >
-                      <td className="px-4 py-3">
+                      <td className={`px-4 py-3 ${isNewOrder(order) ? "border-l-4 border-l-[#d99a2b]" : ""}`}>
                         <input
                           type="checkbox"
                           checked={selectedOrders.includes(order._id)}
                           onChange={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 pointer-events-auto cursor-pointer"
+                          className="w-4 h-4 rounded border-[#d5dce9] text-shopprimary focus:ring-shopprimary pointer-events-auto cursor-pointer"
                         />
                       </td>
-                      <td className="px-4 py-3 font-mono text-brand-600 font-bold">
-                        #{order.orderId || order._id.slice(-6)}
+                      <td className="px-4 py-3 font-mono text-shopprimary font-bold">
+                        <span className="inline-flex items-center gap-1.5">
+                          #{order.orderId || order._id.slice(-6)}
+                          {isNewOrder(order) && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#d99a2b] text-white text-[8px] font-black uppercase tracking-wide">
+                              New
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         {order.shippingAddress?.fullName || order.user?.name || "Guest"}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">
+                      <td className="px-4 py-3 text-shopmuted">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </td>
                       <td
@@ -606,7 +632,7 @@ export default function SellerOrdersFull() {
                               }
                               handleStatusUpdate(order._id, val, trackingValue);
                             }}
-                            className={`min-w-[110px] px-2 py-1 rounded-lg text-[9px] font-black uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
+                            className={`min-w-[110px] px-2 py-1 rounded-lg text-[9px] font-black uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-shopprimary ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
                           >
                             {STATUS_OPTIONS.map((opt) => (
                               <option key={opt} value={opt}>
@@ -632,11 +658,11 @@ export default function SellerOrdersFull() {
                                 handleStatusUpdate(order._id, "shipped", val);
                               }
                             }}
-                            className="w-36 px-2 py-1 border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            className="w-36 px-2 py-1 border border-[#dfe3ec] rounded-lg text-[10px] focus:outline-none focus:ring-2 focus:ring-shopprimary"
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-bold text-slate-700">
+                      <td className="px-4 py-3 font-bold text-[#3d4557]">
                         Rs. {(order.totalPrice ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}></td>
@@ -647,15 +673,15 @@ export default function SellerOrdersFull() {
             </div>
 
             {filteredOrders.length > itemsPerPage && (
-              <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="p-4 border-t border-[#dfe3ec] flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+                  className="px-3 sm:px-4 py-2 bg-white border border-[#dfe3ec] rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f6fc] transition"
                   disabled={currentPage === 1}
                 >
                   Previous
                 </button>
-                <span className="px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-xl text-xs sm:text-sm font-bold">
+                <span className="px-3 sm:px-4 py-2 bg-shopprimary text-white rounded-xl text-xs sm:text-sm font-bold">
                   {currentPage} / {totalPages}
                 </span>
                 <button
@@ -663,7 +689,7 @@ export default function SellerOrdersFull() {
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+                  className="px-3 sm:px-4 py-2 bg-white border border-[#dfe3ec] rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f6fc] transition"
                 >
                   Next
                 </button>
@@ -674,8 +700,8 @@ export default function SellerOrdersFull() {
 
         {filteredOrders.length === 0 && (
           <div className="text-center py-12">
-            <FiPackage className="mx-auto text-slate-300 mb-3" size={48} />
-            <p className="text-sm text-slate-500 font-medium">No orders found</p>
+            <FiPackage className="mx-auto text-[#c9cfda] mb-3" size={48} />
+            <p className="text-sm text-shopmuted font-medium">No orders found</p>
           </div>
         )}
       </div>

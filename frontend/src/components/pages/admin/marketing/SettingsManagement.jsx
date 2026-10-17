@@ -546,11 +546,14 @@ export default function SettingsManagement() {
           <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Preview</p>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm" style={{ backgroundColor: form.primaryColor }}>
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm overflow-hidden ${form.logo ? "bg-white border border-slate-200" : "text-white"}`}
+                style={form.logo ? undefined : { backgroundColor: form.primaryColor }}
+              >
                 {form.logo ? (
-                  <img src={form.logo} alt="Logo" className="w-full h-full object-contain p-0.5" />
+                  <img src={form.logo} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
-                  form.iconLetter || "M"
+                  (form.iconLetter && form.iconLetter !== "M") ? form.iconLetter : ((form.brandName || "M").trim().charAt(0) || "M").toUpperCase()
                 )}
               </div>
               <div>

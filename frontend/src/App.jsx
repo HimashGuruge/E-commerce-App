@@ -93,7 +93,8 @@ function AppLayout() {
   const location = useLocation();
   const isDashboard =
     location.pathname.startsWith("/admin/dashboard") ||
-    location.pathname.startsWith("/seller/dashboard");
+    location.pathname.startsWith("/seller/dashboard") ||
+    location.pathname.startsWith("/email");
 
   return (
     <ErrorBoundary>

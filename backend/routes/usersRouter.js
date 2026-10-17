@@ -1,6 +1,7 @@
 import express from "express";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authMiddleware, { adminOnly } from "../middleware/authMiddleware.js";
 import {
+  changePassword,
   createNewUser,
   forgotPassword,
   getAllUsers,
@@ -31,17 +32,18 @@ userRouter.get("/google", handleGoogleAuth);
 // Protected routes
 userRouter.get("/me", authMiddleware, getCurrentUserHandler);
 userRouter.put("/me", authMiddleware, updateUserInfo);
+userRouter.put("/me/password", authMiddleware, changePassword);
 
-// Admin routes (require authMiddleware)
-userRouter.get("/stats/summary", authMiddleware, getUserStats);
-userRouter.post("/bulk-action", authMiddleware, bulkUserActions);
-userRouter.get("/", authMiddleware, getAllUsers);
+// Admin routes (require the acting user to actually be an admin)
+userRouter.get("/stats/summary", adminOnly, getUserStats);
+userRouter.post("/bulk-action", adminOnly, bulkUserActions);
+userRouter.get("/", adminOnly, getAllUsers);
 
 // Dynamic routes (must come after specific routes)
-userRouter.patch("/:userId/role", authMiddleware, updateUserRole);
-userRouter.patch("/:userId/status", authMiddleware, updateUserStatus);
-userRouter.put("/:userId", authMiddleware, updateUserInfo);
-userRouter.delete("/:userId", authMiddleware, deleteUser);
-userRouter.get("/:userId", authMiddleware, getUserByIdHandler);
+userRouter.patch("/:userId/role", adminOnly, updateUserRole);
+userRouter.patch("/:userId/status", adminOnly, updateUserStatus);
+userRouter.put("/:userId", adminOnly, updateUserInfo);
+userRouter.delete("/:userId", adminOnly, deleteUser);
+userRouter.get("/:userId", adminOnly, getUserByIdHandler);
 
 export default userRouter;

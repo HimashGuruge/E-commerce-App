@@ -79,7 +79,7 @@ export default function ForgotPassword() {
                   Email Sent Successfully
                 </div>
                 <p className="text-center text-xs text-gray-400">
-                  Check your inbox (and spam folder). Link expires in 1 hour.
+                  Check your inbox (and spam folder). Link expires in 10 minutes.
                 </p>
               </div>
             )}

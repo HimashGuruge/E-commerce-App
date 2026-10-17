@@ -7,7 +7,7 @@ import { RxDashboard, RxGear } from "react-icons/rx";
 import {
   MdOutlineGridView,
   MdAddBox,
-  MdNotifications,
+  MdChat,
   MdShoppingCart,
   MdCampaign,
   MdAnnouncement,
@@ -31,6 +31,7 @@ export default function Sidebar({
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
   const [pendingSellersCount, setPendingSellersCount] = useState(0);
   const [pendingReturnsCount, setPendingReturnsCount] = useState(0);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(initialUser);
   const [imageError, setImageError] = useState(false);
   const [settings, setSettings] = useState(null);
@@ -182,6 +183,12 @@ export default function Sidebar({
       const rCount = returnsRes.data?.total || 0;
       setPendingReturnsCount(rCount);
       localStorage.setItem("pendingReturnsCount", rCount);
+
+      // Fetch Pending Product Approvals
+      const approvalsRes = await api.get("/api/products/admin/pending-approvals");
+      const paCount = approvalsRes.data?.count || 0;
+      setPendingApprovalsCount(paCount);
+      localStorage.setItem("pendingApprovalsCount", paCount);
     } catch (err) {
       console.error("Sidebar Badge Fetch Error:", err);
       // Fallback to cached values
@@ -190,11 +197,13 @@ export default function Sidebar({
       const cachedFeedback = localStorage.getItem("pendingFeedbackCount");
       const cachedSellers = localStorage.getItem("pendingSellersCount");
       const cachedReturns = localStorage.getItem("pendingReturnsCount");
+      const cachedApprovals = localStorage.getItem("pendingApprovalsCount");
       if (cachedOrders !== null) setPendingOrdersCount(parseInt(cachedOrders) || 0);
       if (cachedUnread !== null) setUnreadNotifications(parseInt(cachedUnread) || 0);
       if (cachedFeedback !== null) setPendingFeedbackCount(parseInt(cachedFeedback) || 0);
       if (cachedSellers !== null) setPendingSellersCount(parseInt(cachedSellers) || 0);
       if (cachedReturns !== null) setPendingReturnsCount(parseInt(cachedReturns) || 0);
+      if (cachedApprovals !== null) setPendingApprovalsCount(parseInt(cachedApprovals) || 0);
     }
   }, []);
 
@@ -286,9 +295,10 @@ export default function Sidebar({
   }, [fetchUserData, fetchBadgeData]);
 
   // Real-time: refresh the badge counts when the backend signals a change
-  // (new order / order status change / new pending feedback / new seller)
+  // (new order / order status change / new pending feedback / new seller /
+  // new admin notification from a seller activity event)
   useEffect(() => {
-    return onSocketEvent("admin:stats-changed", () => fetchBadgeData());
+    return onSocketEvent(["admin:stats-changed", "chat:unseen-user"], () => fetchBadgeData());
   }, [fetchBadgeData]);
 
   // Get from localStorage for faster load
@@ -430,11 +440,11 @@ export default function Sidebar({
                 className="flex items-center group flex-shrink-0"
                 onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
               >
-                <div className="w-9 h-9 bg-brand-500 rounded-[12px] flex items-center justify-center text-white font-bold text-xl shadow-md shadow-brand-300 group-hover:rotate-6 transition-transform overflow-hidden">
+                <div className={`w-9 h-9 rounded-[12px] flex items-center justify-center font-bold text-xl shadow-md overflow-hidden ${settings?.logo ? "bg-white border border-slate-200" : "bg-brand-500 shadow-brand-300 group-hover:rotate-6 transition-transform text-white"}`}>
                   {settings?.logo ? (
-                    <img src={settings.logo} alt={settings.brandName || "Logo"} className="w-full h-full object-contain p-0.5" />
+                    <img src={settings.logo} alt={settings.brandName || "Logo"} className="w-full h-full object-cover" />
                   ) : (
-                    settings?.iconLetter || "M"
+                    (settings?.iconLetter && settings.iconLetter !== "M") ? settings.iconLetter : ((settings?.brandName || "M").trim().charAt(0) || "M").toUpperCase()
                   )}
                 </div>
                 <span className="text-xl font-black tracking-[-0.5px] text-slate-700">
@@ -477,16 +487,29 @@ export default function Sidebar({
             <span className="text-sm font-medium">Add Product</span>
           </NavLink>
 
-          {/* Pending Product Approvals */}
+          {/* Pending Product Approvals with Badge */}
           <NavLink
             to="/admin/dashboard/pendingproducts"
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <FiClock size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
+            <div className="relative">
+              <FiClock size={20} className="text-brand-600" />
+              {pendingApprovalsCount > 0 && (
+                <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
+                </span>
+              )}
+            </div>
+            <span className="flex-1 text-sm font-medium">
               Pending Approvals
             </span>
+            {pendingApprovalsCount > 0 && (
+              <span className="bg-red-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
+                {pendingApprovalsCount}
+              </span>
+            )}
           </NavLink>
 
           {/* Notifications with Badge */}
@@ -496,7 +519,7 @@ export default function Sidebar({
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
             <div className="relative">
-              <MdNotifications
+              <MdChat
                 size={20}
                 className="text-brand-600"
               />
@@ -508,7 +531,7 @@ export default function Sidebar({
               )}
             </div>
             <span className="flex-1 text-sm font-medium">
-              Notifications
+              Customer Support
             </span>
             {unreadNotifications > 0 && (
               <span className="bg-red-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full">

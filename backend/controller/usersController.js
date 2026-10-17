@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Seller from "../models/Seller.js";
 import crypto from "crypto";
 import { googleOAuthConfig, appConfig } from "../config/env.js";
 import { sendEmail, sendLoginAlert } from "../utils/mailer.js";
@@ -130,7 +131,9 @@ const token = generateToken(user);
 });
 
 export const createNewUser = asyncHandler(async (req, res) => {
-  const { name, lastname, email, phone, address, password, profileImage, role } = req.body;
+  // Public signup: only these fields are accepted. Any submitted `role`,
+  // `isMainAdmin` or other privileged fields are intentionally ignored.
+  const { name, lastname, email, phone, address, password, profileImage } = req.body;
 
   if (!name?.trim()) {
     res.status(400);
@@ -164,7 +167,8 @@ export const createNewUser = asyncHandler(async (req, res) => {
     address: address?.trim() || "",
     password,
     profileImage: profileImage || "",
-    role: role || "customer",
+    // Public registration always creates a customer account.
+    role: "customer",
   });
   res.status(201).json({
     success: true,
@@ -193,10 +197,27 @@ export const getUserByIdHandler = asyncHandler(async (req, res) => {
 });
 
 export const updateUserInfo = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  // PUT /me updates the caller; PUT /:userId updates that user (admin only)
+  const targetId = req.params.userId ? req.params.userId : req.user._id;
+  const user = await User.findById(targetId);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+  if (user._id.toString() !== req.user._id.toString()) {
+    if (req.user.role !== "admin") {
+      res.status(403);
+      throw new Error("Not authorized as admin");
+    }
+    // Admins cannot update another admin through this endpoint
+    if (user.role === "admin") {
+      if (user.isMainAdmin) {
+        res.status(403);
+        throw new Error("Main Admin account is protected");
+      }
+      res.status(403);
+      throw new Error("Cannot modify another admin account");
+    }
   }
 
   user.name = req.body.name || user.name;
@@ -222,15 +243,76 @@ export const updateUserInfo = asyncHandler(async (req, res) => {
   });
 });
 
+// Keep the Seller document in sync when an admin changes a user's role.
+// A seller demoted to customer/admin gets a suspended Seller doc so
+// seller-only routes stop working, and a user set to seller gets (or
+// restores) a Seller doc that goes through the normal approval flow.
+async function syncSellerDocForRoleChange(prevRole, user, nextRole) {
+  if (nextRole === "seller") {
+    const existing = await Seller.findOne({ user: user._id });
+    if (!existing) {
+      await Seller.create({
+        user: user._id,
+        shopName: `${user.name}'s Store`,
+        ownerName: user.name,
+        // ownerPhone is required on the Seller model; the seller can fill in
+        // real contact details later from Seller Settings.
+        ownerPhone: user.phone || "Not provided",
+        status: "pending",
+      });
+      return true;
+    }
+    // A seller that was approved before (and later demoted) is re-enabled;
+    // docs that never went through the approval flow stay pending.
+    if (existing.status !== "approved" && existing.approvedAt) {
+      existing.status = "approved";
+      await existing.save();
+      return true;
+    }
+    return false;
+  }
+
+  if (prevRole === "seller" && nextRole !== "seller") {
+    const existing = await Seller.findOne({ user: user._id });
+    if (existing && existing.status !== "suspended") {
+      existing.status = "suspended";
+      await existing.save();
+      return true;
+    }
+  }
+  return false;
+}
+
 export const updateUserRole = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.userId);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
   }
-  user.role = req.body.role;
+  const nextRole = req.body.role;
+  if (!["customer", "seller", "admin"].includes(nextRole)) {
+    res.status(400);
+    throw new Error("Invalid role");
+  }
+  // The acting admin can never change their own role.
+  if (user._id.toString() === req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Cannot change your own role");
+  }
+  // The Main Admin account is protected from any role change.
+  if (user.isMainAdmin) {
+    res.status(403);
+    throw new Error("Main Admin account is protected");
+  }
+  const prevRole = user.role;
+  user.role = nextRole;
   await user.save();
-  res.json({ success: true, user });
+  const sellerSynced = await syncSellerDocForRoleChange(prevRole, user, nextRole);
+  res.json({
+    success: true,
+    user,
+    message: `Role updated to ${nextRole}${sellerSynced ? " (seller record synced)" : ""}`,
+  });
 });
 
 export const updateUserStatus = asyncHandler(async (req, res) => {
@@ -239,7 +321,20 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("User not found");
   }
-  user.status = req.body.status;
+  const nextStatus = req.body.status;
+  if (!["active", "inactive", "suspended"].includes(nextStatus)) {
+    res.status(400);
+    throw new Error("Invalid status");
+  }
+  if (user.isMainAdmin) {
+    res.status(403);
+    throw new Error("Main Admin account is protected");
+  }
+  if (user.role === "admin") {
+    res.status(403);
+    throw new Error("Cannot change status of admin accounts");
+  }
+  user.status = nextStatus;
   await user.save();
   res.json({ success: true, user });
 });
@@ -249,6 +344,12 @@ export const deleteUser = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+  // The acting admin, other admin accounts, and the Main Admin can
+  // never be deleted.
+  if (user.isMainAdmin || user.role === "admin" || user._id.toString() === req.user._id.toString()) {
+    res.status(403);
+    throw new Error(user.isMainAdmin ? "Main Admin account is protected" : "Cannot delete this user");
   }
   await user.deleteOne();
   res.json({ success: true, message: "User deleted" });
@@ -266,38 +367,162 @@ export const getUserStats = asyncHandler(async (req, res) => {
 
 export const bulkUserActions = asyncHandler(async (req, res) => {
   const { userIds, action, value } = req.body;
-  const updateField = action === "status" ? "status" : "role";
-  await User.updateMany({ _id: { $in: userIds } }, { [updateField]: value });
-  res.json({ success: true, message: "Bulk action completed" });
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    res.status(400);
+    throw new Error("No users selected");
+  }
+  // Never touch the acting admin, other admin accounts, or the Main
+  // Admin in bulk operations
+  const baseFilter = {
+    _id: { $in: userIds, $ne: req.user._id },
+    role: { $ne: "admin" },
+    isMainAdmin: { $ne: true },
+  };
+
+  if (action === "delete") {
+    const result = await User.deleteMany(baseFilter);
+    return res.json({ success: true, message: `Deleted ${result.deletedCount} user(s)` });
+  }
+
+  if (action !== "status" && action !== "role") {
+    res.status(400);
+    throw new Error("Invalid action or value");
+  }
+  const validValues =
+    action === "status" ? ["active", "inactive", "suspended"] : ["customer", "seller", "admin"];
+  if (!validValues.includes(value)) {
+    res.status(400);
+    throw new Error("Invalid action or value");
+  }
+
+  const result = await User.updateMany(baseFilter, { [action]: value });
+  res.json({ success: true, message: `Updated ${result.modifiedCount} user(s)` });
 });
 
-export const forgotPassword = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
+// The caller is always identified from the verified JWT (req.user), never
+// from the request body, so a user can only change their own password.
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    res.status(400);
+    throw new Error("Current password, new password, and confirm password are required");
+  }
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error("New password must be at least 6 characters");
+  }
+  if (newPassword !== confirmPassword) {
+    res.status(400);
+    throw new Error("New password and confirm password do not match");
+  }
+
+  // authMiddleware loads the user with .select("-password"), so re-fetch it
+  // in full to verify the current password and to write the new hash.
+  const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
   }
 
-  const resetToken = crypto.randomBytes(20).toString("hex");
-  user.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-  user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+  // Google-only accounts have no local password to verify or replace.
+  if (!user.password) {
+    res.status(400);
+    throw new Error(
+      "This account uses Google sign-in and has no password to change"
+    );
+  }
+
+  const isMatch = await user.matchPassword(currentPassword);
+  if (!isMatch) {
+    res.status(400);
+    throw new Error("Current password is incorrect");
+  }
+  if (currentPassword === newPassword) {
+    res.status(400);
+    throw new Error("New password must be different from the current password");
+  }
+
+  user.password = newPassword; // pre-save hook hashes once (bcrypt, 10 rounds)
   await user.save();
 
-  const resetUrl = `${appConfig.frontendUrl}/reset-password/${resetToken}`;
-
-  await sendEmail({
-    to: user.email,
-    subject: "Password Reset",
-    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password</p>`,
-  });
-
-  res.json({ success: true, message: "Reset email sent" });
+  res.json({ success: true, message: "Password changed successfully" });
 });
 
+// Generic, enumeration-safe response for every outcome (unknown email,
+// Google-only account, SMTP failure alike) so a caller cannot learn whether
+// an address is registered. The token is always saved when it applies, so
+// a later retry within the window still works even if this attempt's email
+// delivery failed.
+const FORGOT_PASSWORD_MESSAGE =
+  "If this email address is registered, a password reset link has been sent to it.";
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== "string" || !email.trim()) {
+    res.status(400);
+    throw new Error("Email is required");
+  }
+
+  const user = await User.findOne({ email: email.trim() });
+
+  // Unknown email or a Google-only account (no local password to reset):
+  // do nothing, but answer identically to the success path.
+  if (user) {
+    let resetToken = null;
+    if (user.password) {
+      resetToken = crypto.randomBytes(20).toString("hex");
+      user.resetPasswordToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+      const resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+      user.resetPasswordExpire = resetPasswordExpire;
+      await user.save();
+
+      const resetUrl = `${appConfig.frontendUrl}/reset-password/${resetToken}?expires=${resetPasswordExpire}`;
+
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Password Reset",
+          html: `<p>Hi ${user.name || user.email.split("@")[0]},</p>
+            <p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 10 minutes.</p>
+            <p>If you did not request this, you can safely ignore this email.</p>`,
+        });
+      } catch (err) {
+        // Never expose SMTP details or tokens; the saved token still allows
+        // a retry once email delivery is configured.
+        logger.error("Password reset email failed:", err.message);
+      }
+    }
+  }
+
+  res.json({ success: true, message: FORGOT_PASSWORD_MESSAGE });
+});
+
+const isStrongPassword = (password) => {
+  if (!password || password.length < 8) return false;
+  const checks = [
+    /[A-Z]/.test(password),
+    /[a-z]/.test(password),
+    /[0-9]/.test(password),
+    /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  ];
+  return checks.filter(Boolean).length >= 3;
+};
+
 export const resetPassword = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  if (!isStrongPassword(password)) {
+    res.status(400);
+    throw new Error(
+      "Password must be at least 8 characters and include at least 3 of: uppercase, lowercase, number, special character"
+    );
+  }
+
+  // Reused, unknown, or expired tokens all fail the lookup and get the
+  // same error (the token is cleared on first successful use).
   const resetPasswordToken = crypto
     .createHash("sha256")
     .update(req.params.token)
@@ -313,7 +538,14 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw new Error("Invalid or expired token");
   }
 
-  user.password = req.body.password;
+  // Defensive: forgot-password never issues tokens to Google-only accounts,
+  // but fail clearly if one somehow exists.
+  if (!user.password) {
+    res.status(400);
+    throw new Error("This account uses Google sign-in and has no local password");
+  }
+
+  user.password = password; // pre-save hook hashes once (bcrypt, 10 rounds)
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
   await user.save();
