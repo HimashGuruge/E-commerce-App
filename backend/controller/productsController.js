@@ -5,9 +5,13 @@ import Seller from "../models/Seller.js";
 import Category from "../models/Category.js";
 import Feedback from "../models/Feedback.js";
 import Order from "../models/Order.js";
+import Notification from "../models/Notification.js";
+import Message from "../models/Message.js";
 import logger from "../utils/logger.js";
+import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import { productUpload } from "../middleware/uploadMiddleware.js";
 import { recalcParentStock } from "./productVariantController.js";
+import { notifyAdminsOfSellerEvent } from "./notificationController.js";
 
 export const onUpload = asyncHandler(async (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -283,6 +287,12 @@ export const addproduct = asyncHandler(async (req, res) => {
     productData.approvedByAdmin = false;
   }
   const product = await Product.create(productData);
+
+  // Notify admins in their Notification center (pending-approvals queue + badge)
+  if (req.user.role === "seller") {
+    notifyAdminsOfSellerEvent(req.user, `New product "${product.name}" submitted, awaiting approval`);
+  }
+
   res.status(201).json({ success: true, product: formatProduct(product) });
 });
 
@@ -333,11 +343,42 @@ export const deleteProduct = asyncHandler(async (req, res) => {
       res.status(403);
       throw new Error("You can only delete your own products");
     }
+    const wasRejected = req.user.role === "admin" && !product.approvedByAdmin;
+    const rejectNotify =
+      wasRejected &&
+      product.seller && {
+        name: product.name,
+        sellerId: product.seller,
+      };
     await Product.findByIdAndDelete(req.params.id);
     if (product.isVariantParent && product.variants?.length > 0) {
       const Variant = mongoose.model("Variant");
       await Variant.deleteMany({ _id: { $in: product.variants } });
     }
+
+    // Admin rejecting a pending (unapproved) product = the Pending Approvals
+    // page "Reject" action. Notify the seller through the existing
+    // seller-alert system (badge + live "seller:alert" event). A seller
+    // deleting their own product is not a rejection — no notification.
+    if (rejectNotify) {
+      try {
+        const notification = await Notification.create({
+          user: rejectNotify.sellerId,
+          type: "SELLER_ALERT",
+          title: "Product Rejected",
+          message: `Your product "${rejectNotify.name}" was rejected and removed from the marketplace.`,
+        });
+        emitToUser(String(rejectNotify.sellerId), "seller:alert", notification);
+      } catch (err) {
+        logger.error("Failed to notify seller of product rejection:", err);
+      }
+    }
+
+    if (wasRejected) {
+      // Real-time: refresh the admin sidebar Pending Approvals badge
+      emitToAdmins("admin:stats-changed", { orderId: product._id, type: "product" });
+    }
+
     res.json({ success: true, message: "Product deleted" });
   } catch (error) {
     logger.error("Delete product error:", error);
@@ -404,13 +445,16 @@ export const getSellerStats = asyncHandler(async (req, res) => {
     throw new Error("Brand query parameter is required");
   }
 
-  const brandProducts = await Product.find({ brand }).select("_id");
+  const brandProducts = await Product.find({ brand }).select("_id seller");
   const productIds = brandProducts.map((p) => p._id);
+  const brandSellerIds = [
+    ...new Set(brandProducts.map((p) => p.seller && String(p.seller)).filter(Boolean)),
+  ];
 
   if (productIds.length === 0) {
     return res.json({
       success: true,
-      stats: { rating: 0, shipOnTime: 0, totalOrders: 0 },
+      stats: { rating: 0, shipOnTime: 0, totalOrders: 0, chatResponseRate: null },
     });
   }
 
@@ -443,7 +487,28 @@ export const getSellerStats = asyncHandler(async (req, res) => {
       ? Math.round((deliveredOrders / nonCancelledOrders) * 100)
       : 0;
 
-  res.json({ success: true, stats: { rating, shipOnTime, totalOrders } });
+  // 3. Chat response rate — % of distinct buyers who messaged the brand's
+  // seller(s) in an order conversation (orderRef scope, same rules as the
+  // seller dashboard) that received at least one reply from a seller.
+  // -> null (UI keeps its "not enough data" fallback) when no buyer messages.
+  let chatResponseRate = null;
+  if (brandSellerIds.length) {
+    const incoming = await Message.find({ orderRef: { $in: allBrandOrders.map((o) => o._id) } }).select("sender");
+    const distinctBuyers = new Set(incoming.filter((m) => m.sender).map((m) => m.sender.toString()));
+    if (distinctBuyers.size) {
+      const repliedBuyers = new Set();
+      for (const sellerId of brandSellerIds) {
+        const replies = await Message.find({
+          sender: new mongoose.Types.ObjectId(sellerId),
+          recipient: { $in: [...distinctBuyers] },
+        }).select("recipient");
+        replies.forEach((m) => m.recipient && repliedBuyers.add(m.recipient.toString()));
+      }
+      chatResponseRate = Math.round((repliedBuyers.size / distinctBuyers.size) * 100);
+    }
+  }
+
+  res.json({ success: true, stats: { rating, shipOnTime, totalOrders, chatResponseRate } });
 });
 
 export const getProductRecommendations = asyncHandler(async (req, res) => {
@@ -469,9 +534,33 @@ export const adminApproveProduct = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Product not found");
   }
+  const wasApproved = product.approvedByAdmin;
   product.approvedByAdmin = true;
   product.status = "active";
   await product.save();
+
+  if (!wasApproved) {
+    // Real-time: refresh the admin sidebar Pending Approvals badge
+    emitToAdmins("admin:stats-changed", { orderId: product._id, type: "product" });
+  }
+
+  // Notify the seller of the approval through the existing seller-alert system
+  // (badge + live "seller:alert" event; no duplicate if already approved)
+  if (!wasApproved && product.seller) {
+    try {
+      const notification = await Notification.create({
+        user: product.seller,
+        type: "SELLER_ALERT",
+        title: "Product Approved",
+        message: `Your product "${product.name}" has been approved and is now live on the marketplace.`,
+        product: product._id,
+      });
+      emitToUser(String(product.seller), "seller:alert", notification);
+    } catch (err) {
+      logger.error("Failed to notify seller of product approval:", err);
+    }
+  }
+
   res.json({ success: true, product: formatProduct(product) });
 });
 

@@ -8,6 +8,8 @@ import {
   markUserMessagesAsRead,
   getAdminUnreadCount,
   testGetOrderStatus,
+  getSellerConversation,
+  sendSellerChatMessage,
 } from "../controller/messageController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -23,6 +25,10 @@ router.get("/admin-unread-count", authMiddleware, getAdminUnreadCount);
 router.get("/unread-chat-count", authMiddleware, getUserUnreadCount);
 router.post("/mark-admin-read", authMiddleware, markAdminNotificationsAsRead);
 router.put("/mark-user-read", authMiddleware, markUserMessagesAsRead);
+
+// ✅ Buyer<->seller chat ("Chat Now" on the product page)
+router.get("/seller-conversation/:sellerId", authMiddleware, getSellerConversation);
+router.post("/seller/:sellerId", authMiddleware, sendSellerChatMessage);
 
 router.get("/test-order-status", authMiddleware, testGetOrderStatus);
 

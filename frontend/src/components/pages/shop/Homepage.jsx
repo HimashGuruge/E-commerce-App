@@ -15,6 +15,8 @@ import ShipingPage from "@/components/pages/info/Shipping.jsx";
 import PaymentPage from "@/components/pages/admin/orders/Payment.jsx";
 import Login from "@/components/pages/auth/Login.jsx";
 import Signup from "@/components/pages/auth/SingUp.jsx";
+import ForgotPassword from "@/components/pages/auth/ForgotPasswordpage.jsx";
+import ResetPassword from "@/components/pages/auth/ResetPasswordPage.jsx";
 import ContactPage from "@/components/pages/info/ContactPage.jsx";
 import HelpPage from "@/components/pages/info/HelpPage.jsx";
 import OrderPage from "@/components/pages/account/Orderpage.jsx";
@@ -37,6 +39,8 @@ import SellerDashboardLayout from "./SellerDashboardLayout.jsx";
 
 // Import icons for the seller CTA
 import { FiShoppingBag, FiUsers, FiTruck, FiBarChart2 } from "react-icons/fi";
+
+import EmailPage from "@/components/pages/email/EmailPage.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -95,6 +99,8 @@ export default function Homepage() {
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/orders" element={<OrderPage />} />
@@ -109,6 +115,7 @@ export default function Homepage() {
           <Route path="/become-seller" element={<SellerLanding />} />
           <Route path="/become-seller/register" element={<SellerRegister />} />
           <Route path="/seller/dashboard/*" element={<SellerDashboardLayout />} />
+          <Route path="/email" element={<EmailPage />} />
           <Route
             path="/productoverview/:productId"
             element={<ProductOverview />}

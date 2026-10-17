@@ -129,6 +129,7 @@ export const getAdminNotifications = asyncHandler(async (req, res) => {
         _id: "$sender",
         userId: { $first: "$sender" },
         userName: { $first: { $ifNull: ["$userData.name", "Unknown User"] } },
+        userRole: { $first: { $ifNull: ["$userData.role", "customer"] } },
         userEmail: { $first: { $ifNull: ["$userData.email", ""] } },
         userImage: { $first: { $ifNull: ["$userData.profileImage", null] } },
         message: { $last: "$message" },
@@ -182,9 +183,10 @@ export const getChat = asyncHandler(async (req, res) => {
     const obj = msg.toObject ? msg.toObject() : { ...msg };
     if (!obj.isAdmin && obj.sender) {
       try {
-        const user = await User.findById(obj.sender).select("name profileImage").lean();
+        const user = await User.findById(obj.sender).select("name profileImage role").lean();
         if (user) {
           obj.userName = user.name;
+          obj.userRole = user.role;
           obj.userImage = user.profileImage;
         }
       } catch (_) {}

@@ -51,98 +51,98 @@ export default function SellerProducts() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
-        <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-shopprimary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">My Products</h2>
-          <p className="text-sm text-slate-500 mt-1">{products.length} product{products.length !== 1 ? "s" : ""}</p>
+          <h2 className="text-[26px] font-extrabold text-shoptext tracking-[-0.6px]">My Products</h2>
+          <p className="text-sm text-shopmuted mt-1.5">{products.length} product{products.length !== 1 ? "s" : ""}</p>
         </div>
         <Link
           to="/seller/dashboard/add-product"
-          className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all font-medium text-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-shopprimary text-white rounded-[9px] hover:bg-[#4338ca] transition-all font-semibold text-sm"
         >
           <FiPlus className="w-4 h-4" /> Add Product
         </Link>
       </div>
 
       <div className="relative max-w-md">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-shopmuted" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search products..."
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none text-sm"
+          className="w-full pl-10 pr-4 py-3 bg-[#fafbfe] border border-shopborder rounded-[8px] focus:border-shopprimary outline-none text-sm"
         />
       </div>
 
       {filtered.length > 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-[13px] border border-shopborder overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                  <th className="text-left px-4 py-3 font-medium">Product</th>
-                  <th className="text-left px-4 py-3 font-medium">Price</th>
-                  <th className="text-left px-4 py-3 font-medium">Stock</th>
-                  <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium">Approval</th>
-                  <th className="text-right px-4 py-3 font-medium">Actions</th>
+                <tr className="bg-[#fafbfe] text-[#8b94a5] text-[10px] uppercase tracking-[0.6px] font-bold">
+                  <th className="text-left px-5 py-3.5 font-bold">Product</th>
+                  <th className="text-left px-5 py-3.5 font-bold">Price</th>
+                  <th className="text-left px-5 py-3.5 font-bold">Stock</th>
+                  <th className="text-left px-5 py-3.5 font-bold">Status</th>
+                  <th className="text-left px-5 py-3.5 font-bold">Approval</th>
+                  <th className="text-right px-5 py-3.5 font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f0f2f6]">
                 {filtered.map((p) => (
-                  <tr key={p._id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={p._id} className="hover:bg-[#fafbff] transition-colors">
+                    <td className="px-5 py-4 text-xs">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+                        <div className="w-11 h-11 rounded-[9px] bg-[#f1f4fa] overflow-hidden flex-shrink-0">
                           {p.images?.[0] ? (
                             <img src={p.images[0]} className="w-full h-full object-cover" alt="" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400"><FiPackage /></div>
+                            <div className="w-full h-full flex items-center justify-center text-[#c4cad6]"><FiPackage /></div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 truncate max-w-[200px]">{p.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{p.sku || p._id?.slice(-6)}</p>
+                          <p className="font-semibold text-shoptext truncate max-w-[200px]">{p.name}</p>
+                          <p className="text-[11px] text-shopmuted truncate">{p.sku || p._id?.slice(-6)}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-medium">Rs. {(p.price || 0).toLocaleString()}</td>
-                    <td className="px-4 py-3">
-                      <span className={`font-medium ${p.stock > 0 ? "text-green-600" : "text-red-500"}`}>
+                    <td className="px-5 py-4 text-xs font-semibold">Rs. {(p.price || 0).toLocaleString()}</td>
+                    <td className="px-5 py-4 text-xs">
+                      <span className={`font-semibold ${p.stock > 0 ? "text-shopgreen" : "text-shopred"}`}>
                         {p.stock > 0 ? p.stock : "Out of stock"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        p.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
+                    <td className="px-5 py-4">
+                      <span className={`text-[10px] px-2.5 py-1.5 rounded-[6px] font-semibold ${
+                        p.status === "active" ? "bg-[#def7e9] text-[#147c4f]" : "bg-[#eef0f5] text-shopmuted"
                       }`}>{p.status}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-4">
                       {p.approvedByAdmin ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-600"><MdCheckCircle /> Approved</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-shopgreen"><MdCheckCircle /> Approved</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-600"><MdOutlinePendingActions /> Pending</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-[#ad6b00]"><MdOutlinePendingActions /> Pending</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => navigate(`/seller/dashboard/edit-product/${p._id}`)}
-                          className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                          className="p-2 text-shopmuted hover:text-shopprimary hover:bg-shopprimarylight rounded-[8px] transition-all"
                         >
                           <FiEdit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(p._id, p.name)}
-                          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          className="p-2 text-shopmuted hover:text-shopred hover:bg-[#fdeaea] rounded-[8px] transition-all"
                         >
                           <FiTrash2 className="w-4 h-4" />
                         </button>
@@ -155,11 +155,11 @@ export default function SellerProducts() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
-          <FiPackage className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-          <p className="text-slate-500 font-medium">{search ? "No products match your search" : "No products yet"}</p>
+        <div className="bg-white rounded-[13px] border border-shopborder p-12 text-center">
+          <FiPackage className="w-12 h-12 mx-auto text-[#c4cad6] mb-3" />
+          <p className="text-shopmuted font-medium">{search ? "No products match your search" : "No products yet"}</p>
           {!search && (
-            <Link to="/seller/dashboard/add-product" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all text-sm font-medium">
+            <Link to="/seller/dashboard/add-product" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-shopprimary text-white rounded-[9px] hover:bg-[#4338ca] transition-all text-sm font-semibold">
               <FiPlus className="w-4 h-4" /> Add Your First Product
             </Link>
           )}

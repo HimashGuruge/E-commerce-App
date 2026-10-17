@@ -19,8 +19,9 @@ import {
   FiMapPin,
   FiCalendar,
 } from "react-icons/fi";
+import { FaCrown } from "react-icons/fa";
 import { TbUserShield, TbUserOff } from "react-icons/tb";
-import { AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const USERS_PER_PAGE = 10;
 
@@ -65,7 +66,9 @@ export default function ControlUsersprivilege() {
       const response = await api.get(`/api/users`);
 
       let usersData = response.data.success ? response.data.users : Array.isArray(response.data) ? response.data : [];
-      const filtered = usersData.filter((user) => user && user.email !== decoded.email);
+      // The logged-in admin never appears in the management list and
+      // backend guard rails refuse to modify it either.
+      const filtered = usersData.filter((user) => user && user._id.toString() !== decoded.id);
       setUsers(filtered);
       setSelectedUsers([]);
     } catch (error) {
@@ -83,20 +86,22 @@ export default function ControlUsersprivilege() {
     } catch (_error) {}
   };
 
-  const handleRoleChange = async (userId, currentRole) => {
-    const newRole = currentRole === "user" ? "admin" : "user";
+  const handleRoleChange = (userId, currentRole) => async (event) => {
+    const select = event.target;
+    const newRole = select.value;
+    if (!newRole || newRole === currentRole) return;
+
     const result = await Swal.fire({
-      title: `${newRole === "admin" ? "Make Admin" : "Remove Admin"}`,
-      text: `Change user's role to ${newRole}?`,
-      icon: "question",
+      title: `Change role to ${newRole}?`,
+      text: `User role will be changed from ${currentRole} to ${newRole}.`,
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: newRole === "admin" ? "#10b981" : "#f59e0b",
+      confirmButtonColor: "#10b981",
       confirmButtonText: "Yes, proceed",
     });
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem("token");
         await api.patch(
           `/api/users/${userId}/role`,
           { role: newRole }
@@ -104,27 +109,29 @@ export default function ControlUsersprivilege() {
         await fetchUsers();
         Swal.fire("Success", `User is now ${newRole}`, "success");
       } catch (e) {
+        select.value = currentRole;
         Swal.fire("Error", e.response?.data?.message || e.message, "error");
       }
+    } else {
+      select.value = currentRole;
     }
   };
 
   const handleStatusChange = async (userId, currentStatus) => {
     const newStatus = currentStatus === "active" ? "suspended" : "active";
-    const action = newStatus === "active" ? "activate" : "suspend";
+    const label = newStatus === "active" ? "Activate" : "Suspend";
 
     const result = await Swal.fire({
-      title: `${action === "activate" ? "Activate" : "Suspend"} User`,
-      text: `${action === "activate" ? "Activate" : "Suspend"} this user?`,
+      title: `${label} User`,
+      text: `${label} this user?`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: action === "activate" ? "#10b981" : "#ef4444",
-      confirmButtonText: `Yes, ${action}`,
+      confirmButtonColor: newStatus === "active" ? "#10b981" : "#ef4444",
+      confirmButtonText: `Yes, ${label}`,
     });
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem("token");
         await api.patch(
           `/api/users/${userId}/status`,
           { status: newStatus }
@@ -149,7 +156,6 @@ export default function ControlUsersprivilege() {
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem("token");
         await api.delete(`/api/users/${userId}`);
         await fetchUsers();
         Swal.fire("Deleted!", "User removed", "success");
@@ -157,6 +163,12 @@ export default function ControlUsersprivilege() {
         Swal.fire("Error", e.response?.data?.message || e.message, "error");
       }
     }
+  };
+
+  const matchesRole = (user) => {
+    if (roleFilter === "all") return true;
+    if (roleFilter === "sellers") return user.role !== "admin"; // customers + sellers
+    return user.role === roleFilter; // "customer" | "seller" | "admin"
   };
 
   const filteredUsers = users.filter((user) => {
@@ -167,13 +179,19 @@ export default function ControlUsersprivilege() {
       const emailMatch = user.email?.toLowerCase().includes(searchLower) || false;
       if (!(nameMatch || emailMatch)) return false;
     }
-    if (roleFilter !== "all" && user.role !== roleFilter) return false;
+    if (!matchesRole(user)) return false;
     if (statusFilter !== "all" && user.status !== statusFilter) return false;
     return true;
   });
 
-  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
-  const currentUsers = filteredUsers.slice((currentPage - 1) * USERS_PER_PAGE, currentPage * USERS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const currentUsers = filteredUsers.slice((safePage - 1) * USERS_PER_PAGE, safePage * USERS_PER_PAGE);
+
+  // Reset to page 1 whenever a filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, statusFilter]);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) setSelectedUsers(currentUsers);
@@ -203,14 +221,13 @@ export default function ControlUsersprivilege() {
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem("token");
-        await api.post(
-          `/api/users/bulk-action`,
-          { userIds: selectedUsers.map((u) => u._id), action }
-        );
+        const payload = action === "delete"
+          ? { userIds: selectedUsers.map((u) => u._id), action: "delete" }
+          : { userIds: selectedUsers.map((u) => u._id), action: "status", value: action === "activate" ? "active" : "suspended" };
+        const res = await api.post(`/api/users/bulk-action`, payload);
         await fetchUsers();
         setSelectedUsers([]);
-        Swal.fire("Success", `Bulk ${actionLabels[action].text} completed`, "success");
+        Swal.fire("Success", res.data?.message || `Bulk ${actionLabels[action].text} completed`, "success");
       } catch (e) {
         Swal.fire("Error", e.response?.data?.message || e.message, "error");
       }
@@ -225,7 +242,6 @@ export default function ControlUsersprivilege() {
   const saveUserEdit = async () => {
     if (!selectedUser) return;
     try {
-      const token = localStorage.getItem("token");
       await api.put(
         `/api/users/${selectedUser._id}`,
         selectedUser
@@ -276,12 +292,11 @@ export default function ControlUsersprivilege() {
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { label: "Total Users", value: stats.total, icon: FiUser, color: "from-slate-500 to-slate-600" },
-              { label: "Active", value: stats.active, icon: FiCheckCircle, color: "from-brand-500 to-brand-600" },
-              { label: "Admins", value: stats.admins || 0, icon: FiShield, color: "from-violet-500 to-violet-600" },
-              { label: "New (7d)", value: stats.recentJoins || 0, icon: FiUser, color: "from-amber-500 to-amber-600" },
+              { label: "Total Users", value: stats.totalUsers, icon: FiUser, color: "from-slate-500 to-slate-600" },
+              { label: "Active", value: stats.activeUsers, icon: FiCheckCircle, color: "from-brand-500 to-brand-600" },
+              { label: "Admins", value: stats.adminUsers, icon: FiShield, color: "from-violet-500 to-violet-600" },
             ].map((stat, idx) => (
               <div key={idx} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
@@ -314,7 +329,8 @@ export default function ControlUsersprivilege() {
             <div className="flex gap-2 flex-wrap">
               {[
                 { value: "all", label: "All" },
-                { value: "user", label: "Users" },
+                { value: "customer", label: "Customers" },
+                { value: "sellers", label: "Sellers" },
                 { value: "admin", label: "Admins" },
               ].map((filter) => (
                 <button
@@ -420,7 +436,9 @@ export default function ControlUsersprivilege() {
                             type="checkbox"
                             checked={selectedUsers.some((u) => u._id === user._id)}
                             onChange={(e) => handleSelectUser(user, e.target.checked)}
-                            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                            disabled={!!user.isMainAdmin}
+                            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={user.isMainAdmin ? "Main Admin cannot be selected for bulk actions" : undefined}
                           />
                         </td>
                         <td className="p-4">
@@ -443,7 +461,26 @@ export default function ControlUsersprivilege() {
                               {user.name?.charAt(0).toUpperCase() || "U"}
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-900">{user.name} {user.lastname}</p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-slate-900">{user.name} {user.lastname}</p>
+                                {user.isMainAdmin ? (
+                                  <span
+                                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-gradient-to-r from-amber-300 to-amber-500 text-amber-950 shadow-sm"
+                                    title="Main Admin — protected account"
+                                  >
+                                    <FaCrown className="w-3 h-3 inline mr-1" />
+                                    Main Admin
+                                  </span>
+                                ) : user.role === "admin" ? (
+                                  <span
+                                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-100 text-blue-700"
+                                    title="Sub Admin — standard admin permissions"
+                                  >
+                                    <FiShield className="w-3 h-3 inline mr-1" />
+                                    Sub Admin
+                                  </span>
+                                ) : null}
+                              </div>
                               <p className="text-xs text-slate-500 flex items-center gap-1">
                                 <FiMail className="w-3 h-3" /> {user.email}
                               </p>
@@ -461,30 +498,41 @@ export default function ControlUsersprivilege() {
                           )}
                         </td>
                         <td className="p-4">
-                          <button
-                            onClick={() => handleRoleChange(user._id, user.role)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                              user.role === "admin"
-                                ? "bg-violet-100 text-violet-700 hover:bg-violet-200"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                            }`}
-                          >
-                            {user.role === "admin" ? <FiShield className="w-3.5 h-3.5" /> : <FiUser className="w-3.5 h-3.5" />}
-                            {user.role}
-                          </button>
+                          {user.isMainAdmin ? (
+                            <span
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed bg-amber-100 text-amber-800"
+                              title="Main Admin role is protected"
+                            >
+                              <FaCrown className="w-3.5 h-3.5" />
+                              {user.role}
+                            </span>
+                          ) : (
+                            <select
+                              value={user.role}
+                              onChange={handleRoleChange(user._id, user.role)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-slate-100 text-slate-700 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
+                              title="Change user role"
+                            >
+                              <option value="customer">customer</option>
+                              <option value="seller">seller</option>
+                              <option value="admin">admin</option>
+                            </select>
+                          )}
                         </td>
                         <td className="p-4">
-                          <button
-                            onClick={() => handleStatusChange(user._id, user.status)}
+                          <span
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
                               user.status === "active"
                                 ? "bg-brand-100 text-brand-700 hover:bg-brand-200"
                                 : "bg-red-100 text-red-700 hover:bg-red-200"
-                            }`}
+                            } ${user.role === "admin" || user.isMainAdmin ? "cursor-not-allowed" : "cursor-pointer"}`}
+                            title={user.isMainAdmin ? "Main Admin status is protected" : user.role === "admin" ? "Admin status is protected" : undefined}
+                            role="button"
+                            onClick={user.role === "admin" || user.isMainAdmin ? undefined : () => handleStatusChange(user._id, user.status)}
                           >
                             {user.status === "active" ? <FiCheckCircle className="w-3.5 h-3.5" /> : <FiXCircle className="w-3.5 h-3.5" />}
                             {user.status}
-                          </button>
+                          </span>
                         </td>
                         <td className="p-4 text-sm text-slate-500">
                           <div className="flex items-center gap-1.5">
@@ -494,17 +542,20 @@ export default function ControlUsersprivilege() {
                         </td>
                         <td className="p-4">
                           <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => openEditModal(user)}
-                              className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg"
-                              title="Edit"
-                            >
-                              <FiEdit2 className="w-4 h-4" />
-                            </button>
+                            {user.role !== "admin" && (
+                              <button
+                                onClick={() => openEditModal(user)}
+                                className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg"
+                                title="Edit"
+                              >
+                                <FiEdit2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteUser(user._id, user.name)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              title="Delete"
+                              title={user.isMainAdmin ? "Main Admin cannot be deleted" : "Delete"}
+                              disabled={!!user.isMainAdmin}
                             >
                               <FiTrash2 className="w-4 h-4" />
                             </button>
@@ -520,8 +571,8 @@ export default function ControlUsersprivilege() {
               {totalPages > 1 && (
                 <div className="border-t border-slate-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <p className="text-sm text-slate-500">
-                    Showing <span className="font-semibold">{(currentPage - 1) * USERS_PER_PAGE + 1}</span> to{" "}
-                    <span className="font-semibold">{Math.min(currentPage * USERS_PER_PAGE, filteredUsers.length)}</span> of{" "}
+                    Showing <span className="font-semibold">{(safePage - 1) * USERS_PER_PAGE + 1}</span> to{" "}
+                    <span className="font-semibold">{Math.min(safePage * USERS_PER_PAGE, filteredUsers.length)}</span> of{" "}
                     <span className="font-semibold">{filteredUsers.length}</span> users
                   </p>
                   <div className="flex items-center gap-2">

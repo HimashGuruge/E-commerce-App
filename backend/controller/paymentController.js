@@ -9,7 +9,17 @@ import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { recalcParentStock } from "./productVariantController.js";
 import { emitToAdmins } from "../services/socketService.js";
-import { notifyOrderSellers } from "../services/sellerMessagingService.js";
+import { notifyOrderSellers, notifyOrderSellersOfNewOrder, notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
+
+// Distinct product brands covered by an order's items (for seller-stats pings)
+const orderBrands = async (order) => {
+  const ids = (order.items || [])
+    .map((i) => (i.product ? String(i.product) : null))
+    .filter(Boolean);
+  if (!ids.length) return [];
+  const products = await Product.find({ _id: { $in: ids } }).select("brand").lean();
+  return [...new Set(products.map((p) => p.brand).filter(Boolean))];
+};
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -207,6 +217,10 @@ export const createStripeSession = asyncHandler(async (req, res) => {
 
     // Real-time: refresh admin pending-orders badge without HTTP polling
     emitToAdmins("admin:stats-changed", { orderId: order._id });
+    // Real-time: ping the seller so the dashboard pending-orders badge updates live
+    await notifyOrderSellersOfNewOrder(order._id);
+    // Real-time: new orders bump brand totalOrders (seller stats)
+    notifyBrandStatsChanged(await orderBrands(order));
 
     // Clear the transient hold; real stock drops only on payment/cod via finalizeStockForOrder
     for (const reservation of reservations) {
@@ -326,6 +340,10 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
 
     // Real-time: refresh admin pending-orders badge without HTTP polling
     emitToAdmins("admin:stats-changed", { orderId: order._id });
+    // Real-time: ping the seller so the dashboard pending-orders badge updates live
+    await notifyOrderSellersOfNewOrder(order._id);
+    // Real-time: new orders bump brand totalOrders (seller stats)
+    notifyBrandStatsChanged(await orderBrands(order));
 
     await notifyAdminsOfOrder(order);
 

@@ -175,6 +175,8 @@ export default function Notification() {
               n.userId === notification.userId ? { ...n, isRead: true } : n
             )
           );
+          // Refresh the sidebar's unread badge in real time
+          window.dispatchEvent(new Event("notificationsUpdated"));
         })
         .catch(() => {
           /* non-critical */
@@ -230,6 +232,8 @@ export default function Notification() {
       setConversations((prev) => prev.map((n) => ({ ...n, isRead: true })));
       showToast("All messages marked as read");
       fetchConversations();
+      // Refresh the sidebar's unread badge in real time
+      window.dispatchEvent(new Event("notificationsUpdated"));
     } catch {
       showToast("Failed to mark all as read");
     }
@@ -302,7 +306,11 @@ export default function Notification() {
             isUser ? "text-slate-400" : "text-brand-200"
           }`}
         >
-          {!isUser && <span className="font-semibold">{label}</span>}
+          {isUser ? (
+            <RoleBadge role={msg.userRole || activeConv?.userRole} />
+          ) : (
+            <span className="font-semibold">{label}</span>
+          )}
           <Clock /> {time ? formatTime(time) : ""}
         </span>
       </div>
@@ -316,7 +324,7 @@ export default function Notification() {
         <div className="p-4 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-900">
-              Customer Inquiries
+              Customer Support
             </h2>
             <button
               onClick={markAllAsRead}
@@ -464,6 +472,7 @@ export default function Notification() {
                       >
                         {c.userName || "Unknown User"}
                       </p>
+                      <RoleBadge role={c.userRole} />
                       <span className="text-[10px] text-slate-400 flex-shrink-0">
                         {formatRelativeTime(c.sentAt || c.createdAt)}
                       </span>
@@ -505,9 +514,12 @@ export default function Notification() {
                 <h3 className="text-base font-bold text-slate-900 truncate">
                   {activeConv.userName || "User"}
                 </h3>
-                <span className="text-[11px] text-slate-400">
-                  Last message {formatRelativeTime(activeConv.sentAt || activeConv.createdAt)}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <RoleBadge role={activeConv.userRole} />
+                  <span className="text-[11px] text-slate-400">
+                    Last message {formatRelativeTime(activeConv.sentAt || activeConv.createdAt)}
+                  </span>
+                </div>
               </div>
             </>
           ) : (
@@ -625,6 +637,19 @@ export default function Notification() {
         </div>
       )}
     </div>
+  );
+}
+
+function RoleBadge({ role }) {
+  const isSeller = role === "seller";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold flex-shrink-0 ${
+        isSeller ? "bg-amber-100 text-amber-700" : "bg-brand-50 text-brand-700"
+      }`}
+    >
+      {isSeller ? "Seller" : "Customer"}
+    </span>
   );
 }
 

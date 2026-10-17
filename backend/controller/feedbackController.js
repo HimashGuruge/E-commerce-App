@@ -9,6 +9,7 @@ import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { recalcParentStock } from "./productVariantController.js";
 import { emitToAdmins } from "../services/socketService.js";
+import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
 import { markRemindersSubmitted, hasFullyReturnedItem } from "../services/reviewReminderService.js";
 // After restocking returned items, sync the owning parent products' totals
 const resyncParentsForItems = async (items) => {
@@ -303,6 +304,10 @@ export const createFeedback = asyncHandler(async (req, res) => {
    // Real-time: refresh admin pending-feedback badge without HTTP polling
    emitToAdmins("admin:stats-changed", { orderId: feedback._id, type: "feedback" });
 
+   // Real-time: refresh the product page's Seller Information block
+   const fbProduct = await Product.findById(feedback.product).select("brand").lean();
+   notifyBrandStatsChanged([fbProduct?.brand]);
+
    res.status(201).json({ success: true, feedback });
 });
 
@@ -397,6 +402,10 @@ export const editFeedback = asyncHandler(async (req, res) => {
 
   await updateProductRating(feedback.product);
 
+  // Real-time: refresh the product page's Seller Information block
+  const editedProduct = await Product.findById(feedback.product).select("brand").lean();
+  notifyBrandStatsChanged([editedProduct?.brand]);
+
   res.json({ success: true, feedback, message: "Your review has been submitted for re-approval" });
 });
 
@@ -461,6 +470,10 @@ export const deleteFeedback = asyncHandler(async (req, res) => {
 
   await updateProductRating(feedback.product);
 
+  // Real-time: refresh the product page's Seller Information block
+  const deletedProduct = await Product.findById(feedback.product).select("brand").lean();
+  notifyBrandStatsChanged([deletedProduct?.brand]);
+
   res.json({ success: true, message: "Feedback deleted" });
 });
 
@@ -472,6 +485,10 @@ export const adminDeleteFeedback = asyncHandler(async (req, res) => {
   }
 
   await updateProductRating(feedback.product);
+
+  // Real-time: refresh the product page's Seller Information block
+  const adminDeletedProduct = await Product.findById(feedback.product).select("brand").lean();
+  notifyBrandStatsChanged([adminDeletedProduct?.brand]);
 
   res.json({ success: true, message: "Feedback deleted" });
 });
@@ -488,6 +505,10 @@ export const adminApproveFeedback = asyncHandler(async (req, res) => {
   }
 
   await updateProductRating(feedback.product);
+
+  // Real-time: refresh the product page's Seller Information block
+  const approvedProduct = await Product.findById(feedback.product).select("brand").lean();
+  notifyBrandStatsChanged([approvedProduct?.brand]);
 
   res.json({ success: true, feedback });
 });

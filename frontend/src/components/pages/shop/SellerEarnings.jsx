@@ -28,7 +28,7 @@ export default function SellerEarnings() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
-        <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-shopprimary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -38,8 +38,8 @@ export default function SellerEarnings() {
     datasets: [{
       label: "Revenue",
       data: (data?.dailyBreakdown || []).map((d) => d.amount),
-      borderColor: "#10b981",
-      backgroundColor: "rgba(16, 185, 129, 0.1)",
+      borderColor: "#4f46e5",
+      backgroundColor: "rgba(129, 140, 248, 0.14)",
       fill: true,
       tension: 0.4,
     }],
@@ -48,19 +48,19 @@ export default function SellerEarnings() {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { backgroundColor: "#1e293b", padding: 12, cornerRadius: 8 } },
-    scales: { x: { grid: { display: false } }, y: { grid: { color: "#f1f5f9" }, beginAtZero: true } },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: "#172033", padding: 12, cornerRadius: 8 } },
+    scales: { x: { grid: { display: false } }, y: { grid: { color: "#eef0f5" }, beginAtZero: true } },
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Earnings</h2>
-          <p className="text-sm text-slate-500 mt-1">Track your revenue and payouts</p>
+          <h2 className="text-[26px] font-extrabold text-shoptext tracking-[-0.6px]">Earnings</h2>
+          <p className="text-sm text-shopmuted mt-1.5">Track your revenue and payouts</p>
         </div>
         <select value={period} onChange={(e) => setPeriod(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-brand-500 outline-none"
+          className="px-3.5 py-2 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white"
         >
           <option value="week">This Week</option>
           <option value="month">This Month</option>
@@ -69,43 +69,43 @@ export default function SellerEarnings() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-[13px] p-5 border border-shopborder">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Total Revenue</span>
-            <FiDollarSign className="w-4 h-4 text-green-600" />
+            <span className="text-xs text-shopmuted uppercase tracking-wide">Total Revenue</span>
+            <FiDollarSign className="w-4 h-4 text-shopgreen" />
           </div>
-          <p className="text-2xl font-bold text-slate-900">Rs. {(data?.totalRevenue || 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-shoptext">Rs. {(data?.totalRevenue || 0).toLocaleString()}</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-[13px] p-5 border border-shopborder">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Commission</span>
-            <FiPercent className="w-4 h-4 text-amber-600" />
+            <span className="text-xs text-shopmuted uppercase tracking-wide">Commission</span>
+            <FiPercent className="w-4 h-4 text-[#ad6b00]" />
           </div>
-          <p className="text-2xl font-bold text-slate-900">{data?.commissionRate || 0}%</p>
+          <p className="text-2xl font-bold text-shoptext">{data?.commissionRate || 0}%</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-[13px] p-5 border border-shopborder">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Commission Deducted</span>
-            <FiTrendingUp className="w-4 h-4 text-red-500" />
+            <span className="text-xs text-shopmuted uppercase tracking-wide">Commission Deducted</span>
+            <FiTrendingUp className="w-4 h-4 text-shopred" />
           </div>
-          <p className="text-2xl font-bold text-slate-900">Rs. {(data?.commissionDeduction || 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-shoptext">Rs. {(data?.commissionDeduction || 0).toLocaleString()}</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-[13px] p-5 border border-shopborder">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500 uppercase tracking-wide">Net Earnings</span>
-            <FiBarChart2 className="w-4 h-4 text-brand-600" />
+            <span className="text-xs text-shopmuted uppercase tracking-wide">Net Earnings</span>
+            <FiBarChart2 className="w-4 h-4 text-shopprimary" />
           </div>
-          <p className="text-2xl font-bold text-green-600">Rs. {(data?.netEarnings || 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-shopgreen">Rs. {(data?.netEarnings || 0).toLocaleString()}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-bold text-slate-900 mb-4">Revenue Trend</h3>
+      <div className="bg-white rounded-[13px] p-6 border border-shopborder">
+        <h3 className="font-bold text-shoptext mb-4">Revenue Trend</h3>
         <div className="h-64">
           {(data?.dailyBreakdown || []).length > 0 ? (
             <Line data={chartData} options={chartOptions} />
           ) : (
-            <div className="h-full flex items-center justify-center text-slate-400">
+            <div className="h-full flex items-center justify-center text-shopmuted">
               <p className="text-sm">No revenue data for this period</p>
             </div>
           )}

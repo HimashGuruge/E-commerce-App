@@ -7,6 +7,17 @@ import Message from "../models/Message.js";
 import logger from "../utils/logger.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
+import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
+
+// Distinct product brands covered by an order's items (for seller-stats pings)
+const orderBrands = async (order) => {
+  const ids = (order.items || [])
+    .map((i) => (i.product ? String(i.product) : null))
+    .filter(Boolean);
+  if (!ids.length) return [];
+  const products = await Product.find({ _id: { $in: ids } }).select("brand").lean();
+  return [...new Set(products.map((p) => p.brand).filter(Boolean))];
+};
 
 // Legacy orders may lack item.name/image (never saved at creation).
 // Fall back to the live Product/Variant so images and names always render.
@@ -103,6 +114,8 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     orderId: order._id,
     orderStatus: order.orderStatus,
   });
+  // Real-time: refresh product pages' Seller Information block
+  notifyBrandStatsChanged(await orderBrands(order));
   res.json({ success: true, order });
 });
 
@@ -171,6 +184,9 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
 
   // Real-time: refresh admin pending-orders badge without HTTP polling
   emitToAdmins("admin:stats-changed", { orderId: order._id });
+
+  // Real-time: refresh product pages' Seller Information block
+  notifyBrandStatsChanged(await orderBrands(order));
 
   // Notify user of status change
   try {

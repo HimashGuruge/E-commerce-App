@@ -22,6 +22,9 @@ const messageSchema = new mongoose.Schema(
     // history doesn't flood the unread badge. Incoming buyer messages are
     // created with sellerRead: false (see payment/message controllers).
     sellerRead: { type: Boolean, default: true },
+    // Direct buyer<->seller chat thread label ("<buyerUserId>|<sellerUserId>").
+    // Order-linked and AI-bot messages keep null so existing scopes are unaffected.
+    threadKey: { type: String, default: null, sparse: true, index: true },
   },
   { timestamps: true }
 );

@@ -429,11 +429,11 @@ export default function Navbar() {
             onClick={scrollToTop}
             aria-label="Go to homepage"
           >
-            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-brand-500 rounded-[12px] flex items-center justify-center text-white font-bold text-lg lg:text-xl shadow-md shadow-brand-300 group-hover:rotate-6 transition-transform overflow-hidden">
+            <div className={`w-8 h-8 lg:w-9 lg:h-9 rounded-[12px] flex items-center justify-center font-bold text-lg lg:text-xl shadow-md overflow-hidden ${settings?.logo ? "bg-white border border-slate-200" : "bg-brand-500 shadow-brand-300 group-hover:rotate-6 transition-transform text-white"}`}>
               {settings?.logo ? (
-                <img src={settings.logo} alt={settings.brandName || "Logo"} className="w-full h-full object-contain p-0.5" />
+                <img src={settings.logo} alt={settings.brandName || "Logo"} className="w-full h-full object-cover" />
               ) : (
-                settings?.iconLetter || "M"
+                (settings?.iconLetter && settings.iconLetter !== "M") ? settings.iconLetter : ((settings?.brandName || "M").trim().charAt(0) || "M").toUpperCase()
               )}
             </div>
             <span className="text-lg lg:text-xl font-black tracking-[-0.5px] navbar-text-base hidden lg:block">

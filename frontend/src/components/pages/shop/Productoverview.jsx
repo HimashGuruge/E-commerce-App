@@ -5,6 +5,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { addToCart } from "@/components/utils/Cart.jsx";
 import { getWishlistLocal, addToWishlistLocal, removeFromWishlistLocal, isInWishlistLocal } from "@/components/utils/Wishlist.jsx";
 import ProductRecommendations from "@/components/home/ProductRecommendations.jsx";
+import SellerChatPanel from "./SellerChatPanel.jsx";
 import QuillEditor from "@/components/shared/QuillEditor.jsx";
 import uploadToMedia from "@/components/utils/Mediaupload.jsx";
 import { QRCodeCanvas } from "qrcode.react";
@@ -40,12 +41,14 @@ import {
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 
 export default function ProductOverview() {
   const { productId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
+  const [sellerChatOpen, setSellerChatOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -606,19 +609,40 @@ export default function ProductOverview() {
     fetchProduct();
   }, [productId]);
 
-  // Fetch seller stats from real data
+  // Fetch seller stats from real data (also refetched on live updates)
+  const fetchSellerStats = React.useCallback(async (brand) => {
+    try {
+      const res = await api.get(`/api/products/seller-stats?brand=${encodeURIComponent(brand)}`);
+      if (res.data?.success && res.data?.stats) {
+        setSellerStats(res.data.stats);
+      }
+    } catch (err) { /* silent */ }
+  }, []);
+
   useEffect(() => {
     if (!product?.brand) return;
-    const fetchSellerStats = async () => {
-      try {
-        const res = await api.get(`/api/products/seller-stats?brand=${encodeURIComponent(product.brand)}`);
-        if (res.data?.success && res.data?.stats) {
-          setSellerStats(res.data.stats);
-        }
-      } catch (err) { /* silent */ }
-    };
-    fetchSellerStats();
-  }, [product?.brand]);
+    fetchSellerStats(product.brand);
+
+    // Live updates: the backend pushes "seller-stats:changed" whenever a
+    // review, order status change, or chat exchange alters the brand's stats
+    const unsubscribe = onSocketEvent(["seller-stats:changed"], ({ brands }) => {
+      if (brands && brands.includes(product.brand)) {
+        fetchSellerStats(product.brand);
+      }
+    });
+    return unsubscribe;
+  }, [product?.brand, fetchSellerStats]);
+
+  // "Chat Now": open the live buyer<->seller thread (login required)
+  const openSellerChat = () => {
+    const { userId } = getCurrentUser();
+    if (!userId) {
+      Swal.fire({ icon: "info", title: "Login Required", text: "Please login to chat with this seller", timer: 3200, timerProgressBar: true, showConfirmButton: false });
+      return;
+    }
+    if (!product?.seller?._id) return;
+    setSellerChatOpen(true);
+  };
 
   // Fetch shipping settings & return policy
   useEffect(() => {
@@ -1476,14 +1500,22 @@ export default function ProductOverview() {
               <div className="border border-gray-200 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center">
-                      <FiUser className="text-gray-500 w-3.5 h-3.5" />
-                    </div>
+                    {data.sellerShopLogo ? (
+                      <img src={data.sellerShopLogo} alt={data.sellerShopName || "Seller"} className="w-7 h-7 bg-gray-100 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center">
+                        <FiUser className="text-gray-500 w-3.5 h-3.5" />
+                      </div>
+                    )}
                     <span className="text-xs text-gray-700">
-                      Sold by <span className="text-brand-600 font-medium">{data.brand || 'Store'}</span>
+                      Sold by <span className="text-brand-600 font-medium">{data.sellerShopName || data.brand || 'Store'}</span>
                     </span>
                   </div>
-                  <button className="text-[11px] text-brand-600 font-medium hover:text-brand-700 transition-colors">
+                  <button
+                    onClick={openSellerChat}
+                    className="text-[11px] text-brand-600 font-medium hover:text-brand-700 transition-colors flex items-center gap-1"
+                  >
+                    <FiMessageSquare className="w-3 h-3" />
                     Chat Now
                   </button>
                 </div>
@@ -1497,10 +1529,10 @@ export default function ProductOverview() {
                     <p className="text-[10px] text-gray-500 leading-tight">Ship on Time</p>
                   </div>
                   <div className="text-center p-1.5 bg-gray-50 rounded">
-                    {sellerStats?.totalOrders > 0 ? (
-                      <p className="text-base font-bold text-gray-900">{sellerStats.chatResponseRate ?? "—"}%</p>
+                    {typeof sellerStats?.chatResponseRate === "number" ? (
+                      <p className="text-base font-bold text-gray-900">{sellerStats.chatResponseRate}%</p>
                     ) : (
-                      <p className="text-[10px] font-medium text-gray-500 leading-tight">not enough data</p>
+                      <p className="text-base font-bold text-gray-400">—</p>
                     )}
                     <p className="text-[10px] text-gray-500 leading-tight">Chat Response Rate</p>
                   </div>
@@ -2412,6 +2444,18 @@ export default function ProductOverview() {
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Live buyer<->seller chat drawer ("Chat Now") */}
+      {sellerChatOpen && product?.seller?._id && (
+        <SellerChatPanel
+          key={String(product.seller._id)}
+          sellerUserId={product.seller._id}
+          shopName={data.sellerShopName || data.brand || "Store"}
+          shopLogo={data.sellerShopLogo || null}
+          productName={data.productName || data.slug}
+          onClose={() => setSellerChatOpen(false)}
+        />
       )}
     </div>
   );
