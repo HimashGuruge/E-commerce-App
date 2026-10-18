@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
@@ -8,6 +9,7 @@ import logger from "../utils/logger.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
 import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
+import { resolveCoupon } from "../utils/couponService.js";
 
 // Distinct product brands covered by an order's items (for seller-stats pings)
 const orderBrands = async (order) => {
@@ -141,24 +143,107 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 });
 
 export const getQuote = asyncHandler(async (req, res) => {
-  const { items } = req.body;
-  let subtotal = 0;
-  for (const item of items) {
-    const product = await Product.findById(item.productId);
-    if (!product) {
-      res.status(404);
-      throw new Error(`Product ${item.productId} not found`);
-    }
-    subtotal += product.price * item.quantity;
+  // Accept both buyer-cart shape ({ orderedItems: [{ productId, qty }] }) and
+  // admin-checkout shape ({ items: [{ productId | variantId, quantity }] }).
+  const rawItems = Array.isArray(req.body?.orderedItems)
+    ? req.body.orderedItems
+    : Array.isArray(req.body?.items)
+      ? req.body.items
+      : null;
+  if (!rawItems || rawItems.length === 0) {
+    res.status(400);
+    throw new Error("Cart is empty");
   }
 
-  // Fetch dynamic shipping rates from SiteConfig
+  const couponCode = String(req.body?.couponCode || "").trim().toUpperCase();
+
+  let subtotal = 0; // sum of selling (charged) prices
+  let labeledTotal = 0; // sum of list (strikethrough) prices
+  const orderedItems = [];
+
+  for (const item of rawItems) {
+    const quantity = Number(item.quantity ?? item.qty) || 0;
+    if (quantity < 1) {
+      res.status(400);
+      throw new Error("Each item needs a positive quantity");
+    }
+
+    let product, price, listPrice, name, image, stockAvailable, variant = null;
+    if (item.variantId && mongoose.isValidObjectId(item.variantId)) {
+      variant = await Variant.findById(item.variantId);
+      if (variant) {
+        product = await Product.findById(variant.parentProduct);
+      }
+      if (!variant || !product) {
+        res.status(404);
+        throw new Error(`Variant ${item.variantId} not found`);
+      }
+      price = variant.price ?? product.price;
+      listPrice = product.originalPrice ?? product.price;
+      name = product.name;
+      image = variant.images?.[0] || product.images?.[0] || "";
+      stockAvailable = Math.max(0, (variant.stock || 0) - (variant.reservedStock || 0));
+    } else {
+      product = await Product.findById(item.productId);
+      if (!product) {
+        res.status(404);
+        throw new Error(`Product ${item.productId} not found`);
+      }
+      price = product.price;
+      listPrice = product.originalPrice ?? product.price;
+      name = product.name;
+      image = product.images?.[0] || "";
+      stockAvailable = Math.max(0, (product.stock || 0) - (product.reservedStock || 0));
+    }
+
+    subtotal += price * quantity;
+    labeledTotal += listPrice * quantity;
+    orderedItems.push({
+      productId: product._id,
+      variantId: variant?._id || null,
+      qty: quantity,
+      quantity,
+      productName: name,
+      price: listPrice,
+      sellingPrice: price,
+      discount: Math.round((listPrice - price) * 100) / 100,
+      stock: stockAvailable,
+      images: variant?.images?.length ? variant.images : product.images || [""],
+    });
+  }
+
+  // Dynamic shipping rates from SiteConfig (same source as checkout).
+  // The free-shipping threshold is checked against the post-discount subtotal.
   const siteConfig = await SiteConfig.findOne();
-  const shippingCost = siteConfig?.shipping?.standardCost || (subtotal > 100 ? 0 : 10);
+  const shippingConfig = siteConfig?.shipping || { standardCost: 330, freeThreshold: 10000 };
+
+  // Optional coupon — validated server-side; an invalid code still returns
+  // a valid quote plus couponError so the cart UI can explain the failure.
+  const couponResult = await resolveCoupon(couponCode, subtotal, shippingConfig.standardCost);
+  const couponDiscount = couponResult.ok ? couponResult.discount : 0;
+  const freeShippingCoupon = couponResult.ok && couponResult.coupon?.discountType === "freeshipping";
+
+  const payableSubtotal = Math.max(0, subtotal - couponDiscount);
+  const shipping =
+    freeShippingCoupon || payableSubtotal >= shippingConfig.freeThreshold ? 0 : shippingConfig.standardCost;
 
   res.json({
     success: true,
-    quote: { subtotal, shipping: shippingCost, total: subtotal + shippingCost },
+    orderedItems,
+    total: payableSubtotal,
+    labeledTotal,
+    discount: Math.round((labeledTotal - subtotal) * 100) / 100,
+    shipping,
+    coupon: couponResult.ok
+      ? {
+          code: couponResult.coupon.code,
+          discountType: couponResult.coupon.discountType,
+          discountValue: couponResult.coupon.discountValue,
+          discountAmount: couponDiscount + (couponResult.shippingDiscount || 0),
+        }
+      : null,
+    couponError: couponResult.ok ? null : couponResult.message || null,
+    message: "",
   });
 });
 
@@ -243,34 +328,47 @@ export const syncDomexStatus = asyncHandler(async (req, res) => {
 });
 
 export const verifyStockBeforeCheckout = asyncHandler(async (req, res) => {
-  const { items } = req.body;
+  // Accept both buyer-cart shape ({ orderedItems: [{ productId, qty }] }) and
+  // admin-checkout shape ({ items: [{ productId | variantId, quantity }] }).
+  const rawItems = Array.isArray(req.body?.orderedItems)
+    ? req.body.orderedItems
+    : Array.isArray(req.body?.items)
+      ? req.body.items
+      : null;
+  if (!rawItems || rawItems.length === 0) {
+    res.status(400);
+    throw new Error("No items to verify");
+  }
+
   const stockIssues = [];
-  
-  for (const item of items) {
+
+  for (const item of rawItems) {
+    const quantity = Number(item.quantity ?? item.qty) || 0;
     let availableStock;
-    
+
     if (item.variantId) {
       const variant = await Variant.findById(item.variantId);
       if (!variant) {
-        stockIssues.push({ variantId: item.variantId, error: "Variant not found" });
+        stockIssues.push({ ...item, quantity, error: "Variant not found" });
         continue;
       }
-      availableStock = variant.stock - (variant.reservedStock || 0);
+      availableStock = (variant.stock || 0) - (variant.reservedStock || 0);
     } else {
       const product = await Product.findById(item.productId);
       if (!product) {
-        stockIssues.push({ productId: item.productId, error: "Product not found" });
+        stockIssues.push({ ...item, quantity, error: "Product not found" });
         continue;
       }
-      availableStock = product.stock - (product.reservedStock || 0);
+      availableStock = (product.stock || 0) - (product.reservedStock || 0);
     }
-    
-    if (availableStock < item.quantity) {
+
+    if (quantity > availableStock) {
       stockIssues.push({
         ...item,
+        quantity,
         available: availableStock,
-        requested: item.quantity,
-        shortBy: item.quantity - availableStock,
+        requested: quantity,
+        shortBy: quantity - availableStock,
       });
     }
   }

@@ -39,6 +39,17 @@ const orderSchema = new mongoose.Schema(
     cancellationReason: { type: String },
     seenByAdmin: { type: Boolean, default: false },
     stockFinalized: { type: Boolean, default: false },
+    // Snapshot of the coupon applied at checkout (orders keep their own copy)
+    coupon: {
+      _id: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon" },
+      code: { type: String },
+      discountType: { type: String },
+      discountValue: { type: Number },
+      discountAmount: { type: Number },
+    },
+    discountTotal: { type: Number, default: 0 },
+    // Guards the usedCount increment against webhook + client-verify races
+    couponCounted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

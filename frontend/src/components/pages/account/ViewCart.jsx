@@ -21,6 +21,8 @@ const initialQuoteState = {
   labeledTotal: 0,
   discount: 0,
   shipping: 0,
+  coupon: null,
+  couponError: null,
   message: "Calculating prices...",
 };
 
@@ -40,12 +42,16 @@ function normalizeCartItem(item) {
 export default function ViewCart() {
   const [quoteData, setQuoteData] = useState(initialQuoteState);
   const [loading, setLoading] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplying, setCouponApplying] = useState(false);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const quoteFetchRef = useRef(null);
 
-  const fetchQuote = useCallback(async (currentToken) => {
+  const appliedCoupon = useRef("");
+
+  const fetchQuote = useCallback(async (currentToken, code) => {
     const cart = loadCart();
     if (!cart.length) {
       setQuoteData({ ...initialQuoteState, message: "Your cart is empty." });
@@ -59,7 +65,12 @@ export default function ViewCart() {
         qty: item.qty,
       }));
 
-      const { data } = await api.post("/api/orders/quote", { orderedItems: normalizedItems });
+      const query = { orderedItems: normalizedItems };
+      const activeCode =
+        code !== undefined ? code : appliedCoupon.current;
+      if (activeCode) query.couponCode = activeCode;
+
+      const { data } = await api.post("/api/orders/quote", query);
 
       if (data && data.orderedItems) {
         setQuoteData({
@@ -68,6 +79,8 @@ export default function ViewCart() {
           labeledTotal: data.labeledTotal || 0,
           discount: data.discount || 0,
           shipping: data.shipping || 0,
+          coupon: data.coupon || null,
+          couponError: data.couponError || null,
           message: data.message || "",
         });
       } else {
@@ -77,6 +90,8 @@ export default function ViewCart() {
           labeledTotal: 0,
           discount: 0,
           shipping: 0,
+          coupon: null,
+          couponError: null,
           message: "Price calculation pending...",
         });
       }
@@ -87,12 +102,62 @@ export default function ViewCart() {
         labeledTotal: 0,
         discount: 0,
         shipping: 0,
+        coupon: null,
+        couponError: null,
         message: error.response?.data?.message || "Failed to fetch prices. Using local cart data.",
       });
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleApplyCoupon = async () => {
+    const code = (couponInput || "").trim().toUpperCase();
+    if (!code || !token) return;
+    appliedCoupon.current = code;
+    setCouponApplying(true);
+    try {
+      const cart = loadCart();
+      const normalizedItems = cart.map((item) => ({
+        productId: item.productId,
+        qty: item.qty,
+      }));
+      const { data } = await api.post("/api/orders/quote", {
+        orderedItems: normalizedItems,
+        couponCode: code,
+      });
+      if (data && data.orderedItems) {
+        setQuoteData({
+          orderedItems: data.orderedItems,
+          total: data.total || 0,
+          labeledTotal: data.labeledTotal || 0,
+          discount: data.discount || 0,
+          shipping: data.shipping || 0,
+          coupon: data.coupon || null,
+          couponError: data.couponError || null,
+          message: data.message || "",
+        });
+      } else if (data?.couponError) {
+        appliedCoupon.current = "";
+        setQuoteData((prev) => ({ ...prev, coupon: null, couponError: data.couponError }));
+      }
+    } catch (error) {
+      appliedCoupon.current = "";
+      setQuoteData((prev) => ({
+        ...prev,
+        coupon: null,
+        couponError: error.response?.data?.message || "Could not apply coupon",
+      }));
+    } finally {
+      setCouponApplying(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    appliedCoupon.current = "";
+    setQuoteData((prev) => ({ ...prev, coupon: null, couponError: null }));
+    fetchQuote(token);
+  };
 
   const validateCartStock = useCallback(async () => {
     const cart = loadCart();
@@ -273,6 +338,7 @@ export default function ViewCart() {
                 ${quoteData.labeledTotal > quoteData.total ? `<div class="flex justify-between mb-1 text-gray-400"><span>Original Total:</span> <span class="line-through">Rs. ${quoteData.labeledTotal.toLocaleString()}</span></div>` : ""}
                 <div class="flex justify-between mb-2 text-gray-600 font-medium"><span>Items Subtotal:</span> <span>Rs. ${quoteData.total.toLocaleString()}</span></div>
                 ${quoteData.discount > 0 ? `<div class="flex justify-between text-brand-600 font-medium mb-2"><span>Savings:</span> <span>-Rs. ${quoteData.discount.toLocaleString()}</span></div>` : ""}
+                ${quoteData.coupon ? `<div class="flex justify-between text-brand-600 font-medium mb-2"><span>Coupon (${quoteData.coupon.code}):</span> <span>-Rs. ${(quoteData.coupon.discountAmount || 0).toLocaleString()}</span></div>` : ""}
                 <div class="flex justify-between text-brand-600 font-medium"><span>Delivery Charge:</span> <span>${quoteData.shipping === 0 ? "FREE" : `Rs. ${quoteData.shipping.toLocaleString()}`}</span></div>
                 <hr class="my-3 border-gray-200" />
                 <div class="flex justify-between text-lg font-black text-slate-900"><span>Grand Total:</span> <span>Rs. ${finalTotal.toLocaleString()}</span></div>
@@ -318,7 +384,7 @@ export default function ViewCart() {
     }
   };
 
-  const { orderedItems, total, labeledTotal, discount, shipping, message } = quoteData;
+  const { orderedItems, total, labeledTotal, discount, shipping, message, coupon, couponError } = quoteData;
   const finalTotalDisplay = total > 0 ? total + (shipping || 0) : 0;
 
   return (
@@ -522,6 +588,62 @@ export default function ViewCart() {
                   <div className="flex justify-between font-medium text-brand-500 bg-brand-50/50 p-3 rounded-xl border border-brand-100/50">
                     <span className="font-bold">Total Savings</span>
                     <span className="font-black">- Rs. {discount.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {orderedItems.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+                      Coupon
+                    </p>
+                    {coupon ? (
+                      <div className="flex items-center justify-between bg-brand-50/60 p-3 rounded-xl border border-brand-100/60">
+                        <span className="text-sm font-bold text-brand-600 flex items-center gap-2">
+                          <Tag size={15} /> {coupon.code}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-black text-brand-600 font-mono">
+                            -Rs. {(coupon.discountAmount || 0).toLocaleString()}
+                          </span>
+                          <button
+                            onClick={handleRemoveCoupon}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                            title="Remove coupon"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={couponInput}
+                            onChange={(e) =>
+                              setCouponInput(e.target.value.toUpperCase())
+                            }
+                            onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                            placeholder="Enter code (e.g. SAVE10)"
+                            maxLength={30}
+                            disabled={couponApplying}
+                            className="flex-1 min-w-0 px-3 py-2.5 border border-slate-200 rounded-xl text-sm uppercase font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-slate-50"
+                          />
+                          <button
+                            onClick={handleApplyCoupon}
+                            disabled={couponApplying || !couponInput.trim()}
+                            className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-colors"
+                          >
+                            {couponApplying ? "Applying..." : "Apply"}
+                          </button>
+                        </div>
+                        {couponError && (
+                          <p className="text-xs font-bold text-red-500 mt-2">
+                            {couponError}
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
 

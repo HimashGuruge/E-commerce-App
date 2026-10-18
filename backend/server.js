@@ -30,6 +30,7 @@ import sellersRouter from "./routes/sellersRouter.js";
 import questionRouter from "./routes/questionRouter.js";
 import sliderRouter from "./routes/sliderRouter.js";
 import uploadRouter from "./routes/uploadRouter.js";
+import couponRouter from "./routes/couponRouter.js";
 import { handleStripeWebhook } from "./controller/paymentController.js";
 import { startTrackingCron, stopTrackingCron } from "./services/trackingService.js";
 import mongoose from "mongoose";
@@ -184,6 +185,7 @@ app.use("/api/sellers", sellersRouter);
 app.use("/api/questions", questionRouter);
 app.use("/api/slider", sliderRouter);
 app.use("/api/upload", uploadRouter);
+app.use("/api/coupons", couponRouter);
 
 // Serve uploaded files publicly (local storage only)
 if (process.env.STORAGE !== 'supabase') {
