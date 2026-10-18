@@ -264,6 +264,7 @@ export default function Payment() {
         `/api/payment/create-checkout-session`,
         {
           items: buildCheckoutItems(),
+          couponCode: orderedata?.coupon?.code || undefined,
           deliveryFee: deliveryFee,
           shippingAddress: shippingAddressWithName,
           contactPhone: getUserPhone(),
@@ -511,6 +512,7 @@ export default function Payment() {
         `/api/payment/cod`,
         {
           items: buildCheckoutItems(),
+          couponCode: orderedata?.coupon?.code || undefined,
           shippingAddress: shippingAddressWithName,
           contactPhone: getUserPhone(),
           totalAmount: finalTotal,
@@ -789,6 +791,16 @@ export default function Payment() {
                     Rs. {subTotal.toLocaleString()}
                   </span>
                 </div>
+                {orderedata?.coupon && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-600 font-medium">
+                      Coupon ({orderedata.coupon.code})
+                    </span>
+                    <span className="font-bold text-brand-600">
+                      - Rs. {(orderedata.coupon.discountAmount || 0).toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Delivery Fee</span>
                   <span className="font-bold text-brand-600">

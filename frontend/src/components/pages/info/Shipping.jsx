@@ -101,7 +101,12 @@ export default function Shipping() {
   }, []);
 
   const subTotal = orderData?.total || 0;
-  const deliveryFee = subTotal >= shippingSettings.freeThreshold ? 0 : shippingSettings.standardCost;
+  const coupon = orderData?.coupon || null;
+  const deliveryFee = coupon?.discountType === "freeshipping"
+    ? 0
+    : subTotal >= shippingSettings.freeThreshold
+      ? 0
+      : shippingSettings.standardCost;
 
   const handleProceed = () => {
     let finalData = {};
@@ -407,10 +412,19 @@ export default function Shipping() {
                   <span className="text-gray-400">Items Subtotal</span>
                   <span className="text-gray-900">Rs. {(orderData?.total || 0).toLocaleString()}</span>
                 </div>
-                 <div className="flex justify-between items-center text-sm font-bold">
-                   <span className="text-gray-400">Delivery Fee</span>
-                   <span className="text-brand-500">Rs. {deliveryFee.toLocaleString()}</span>
-                 </div>
+                {coupon && (
+                  <div className="flex justify-between items-center text-sm font-bold">
+                    <span className="text-brand-600 flex items-center gap-1.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9z"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/></svg>
+                      Coupon ({coupon.code})
+                    </span>
+                    <span className="text-brand-600">-Rs. {(coupon.discountAmount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-sm font-bold">
+                  <span className="text-gray-400">Delivery Fee</span>
+                  <span className="text-brand-500">Rs. {deliveryFee.toLocaleString()}</span>
+                </div>
 
                  <div className="pt-4 mt-2 border-t-2 border-gray-900">
                    <div className="flex justify-between items-end">

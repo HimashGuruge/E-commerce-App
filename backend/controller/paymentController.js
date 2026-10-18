@@ -10,6 +10,7 @@ import SiteConfig from "../models/SiteConfig.js";
 import { recalcParentStock } from "./productVariantController.js";
 import { emitToAdmins } from "../services/socketService.js";
 import { notifyOrderSellers, notifyOrderSellersOfNewOrder, notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
+import { resolveCoupon, recordCouponUse } from "../utils/couponService.js";
 
 // Distinct product brands covered by an order's items (for seller-stats pings)
 const orderBrands = async (order) => {
@@ -140,6 +141,55 @@ const reserveStock = async (items) => {
   return reservations;
 };
 
+// Shared coupon handling for the checkout endpoints. The client's coupon is
+// ALWAYS re-validated server-side here — never trusted blindly. Throws 400
+// when the code no longer applies.
+const applyOrderCoupon = async (req, res, subtotal, shippingConfig) => {
+  const raw = req.body?.couponCode;
+  if (raw === undefined || raw === null || String(raw).trim() === "") {
+    return { coupon: null, couponDiscount: 0, shippingWaived: 0 };
+  }
+  const result = await resolveCoupon(String(raw).trim(), subtotal, shippingConfig.standardCost);
+  if (!result.ok) {
+    res.status(400);
+    throw new Error("Coupon no longer valid — please remove it and try again");
+  }
+  return { coupon: result.coupon, couponDiscount: result.discount };
+};
+
+// Subtract a whole-Rs coupon discount from Stripe line items so the session
+// total charges exactly (subtotal - discount). Works in rupees: an affected
+// item of price p × qty is replaced by (qty-k) units at p plus k units at
+// (k*p - d), which is always exact and non-negative.
+const applyCouponToLineItems = (lineItems, discountRs) => {
+  let remaining = Math.max(0, Math.round(discountRs));
+  for (let i = lineItems.length - 1; i >= 0 && remaining > 0; i--) {
+    const li = lineItems[i];
+    const qty = li.quantity || 1;
+    const priceRs = Math.round(li.price_data.unit_amount / 100);
+    const lineTotal = priceRs * qty;
+    const d = Math.min(remaining, lineTotal);
+    if (d <= 0) continue;
+    remaining -= d;
+    const k = Math.ceil(d / Math.max(priceRs, 1)); // units whose price is adjusted
+    const remainderRs = k * priceRs - d; // 0 <= remainder < priceRs
+    if (qty - k > 0) {
+      li.quantity = qty - k; // keep original price for the untouched part
+    }
+    const splitItem = {
+      price_data: { ...li.price_data, unit_amount: remainderRs * 100 },
+      quantity: k,
+    };
+    if (li.quantity < 1) {
+      li.quantity = splitItem.quantity;
+      li.price_data = splitItem.price_data;
+    } else {
+      lineItems.splice(i + 1, 0, splitItem);
+    }
+  }
+  return lineItems;
+};
+
 // Release reserved stock if checkout fails
 const releaseStock = async (reservations) => {
   for (const reservation of reservations) {
@@ -199,7 +249,25 @@ export const createStripeSession = asyncHandler(async (req, res) => {
   }
 
   const shippingConfig = await getShippingConfig();
-  const shippingCost = subtotal >= shippingConfig.freeThreshold ? 0 : shippingConfig.standardCost;
+
+  // Coupon (validated server-side) — freeshipping waives the delivery fee
+  const { coupon: appliedCoupon, couponDiscount } = await applyOrderCoupon(
+    req,
+    res,
+    subtotal,
+    shippingConfig
+  );
+  const freeShippingCoupon = appliedCoupon?.discountType === "freeshipping";
+  const payableSubtotal = Math.max(0, subtotal - couponDiscount);
+  const shippingWithoutCoupon =
+    payableSubtotal >= shippingConfig.freeThreshold ? 0 : shippingConfig.standardCost;
+  const shippingCost = freeShippingCoupon ? 0 : shippingWithoutCoupon;
+  // Amount of shipping actually waived by the coupon (for the order record)
+  const shippingWaived = freeShippingCoupon ? shippingWithoutCoupon : 0;
+
+  // The session charges exactly (subtotal - coupon discount); the delivery
+  // fee is settled separately, as before.
+  if (couponDiscount > 0) applyCouponToLineItems(lineItems, couponDiscount);
 
   // Reserve stock temporarily
   const reservations = await reserveStock(items);
@@ -210,9 +278,20 @@ export const createStripeSession = asyncHandler(async (req, res) => {
       items: orderItems,
       shippingAddress,
       paymentMethod: "stripe",
-      totalPrice: subtotal + shippingCost,
+      totalPrice: payableSubtotal + shippingCost,
       shippingCost,
       orderStatus: "pending",
+      coupon: appliedCoupon
+        ? {
+            _id: appliedCoupon._id,
+            code: appliedCoupon.code,
+            discountType: appliedCoupon.discountType,
+            discountValue: appliedCoupon.discountValue,
+            discountAmount: couponDiscount + shippingWaived,
+          }
+        : undefined,
+      discountTotal: couponDiscount + shippingWaived,
+      couponCounted: false,
     });
 
     // Real-time: refresh admin pending-orders badge without HTTP polling
@@ -265,6 +344,8 @@ export const verifyStripePayment = asyncHandler(async (req, res) => {
     order.orderStatus = "processing";
     await order.save();
     await finalizeStockForOrder(order);
+    // Count coupon usage exactly once (webhook and this verify may race)
+    if (order.coupon) await recordCouponUse(order);
     // Stripe webhook is the primary path; the client verify is a fallback
     // that may run after the webhook, so only notify when truly new.
     if (!wasPaid) await notifyAdminsOfOrder(order);
@@ -318,7 +399,20 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
   }
 
   const shippingConfig = await getShippingConfig();
-  const shippingCost = subtotal >= shippingConfig.freeThreshold ? 0 : shippingConfig.standardCost;
+
+  // Coupon (validated server-side) — freeshipping waives the delivery fee
+  const { coupon: appliedCoupon, couponDiscount } = await applyOrderCoupon(
+    req,
+    res,
+    subtotal,
+    shippingConfig
+  );
+  const freeShippingCoupon = appliedCoupon?.discountType === "freeshipping";
+  const payableSubtotal = Math.max(0, subtotal - couponDiscount);
+  const shippingWithoutCoupon =
+    payableSubtotal >= shippingConfig.freeThreshold ? 0 : shippingConfig.standardCost;
+  const shippingCost = freeShippingCoupon ? 0 : shippingWithoutCoupon;
+  const shippingWaived = freeShippingCoupon ? shippingWithoutCoupon : 0;
 
   // Reserve stock temporarily for COD order
   const reservations = await reserveStock(items);
@@ -331,12 +425,26 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
       paymentMethod: "cod",
       paymentStatus: "pending",
       orderStatus: "pending",
-      totalPrice: subtotal + shippingCost,
+      totalPrice: payableSubtotal + shippingCost,
       shippingCost,
+      coupon: appliedCoupon
+        ? {
+            _id: appliedCoupon._id,
+            code: appliedCoupon.code,
+            discountType: appliedCoupon.discountType,
+            discountValue: appliedCoupon.discountValue,
+            discountAmount: couponDiscount + shippingWaived,
+          }
+        : undefined,
+      discountTotal: couponDiscount + shippingWaived,
+      couponCounted: false,
     });
 
     // COD: order counts immediately, so finalize real stock now
     await finalizeStockForOrder(order);
+
+    // COD orders consume the coupon right away (counted exactly once)
+    if (appliedCoupon) await recordCouponUse(order);
 
     // Real-time: refresh admin pending-orders badge without HTTP polling
     emitToAdmins("admin:stats-changed", { orderId: order._id });
@@ -400,6 +508,8 @@ export const handleStripeWebhook = async (req, res) => {
         order.orderStatus = "processing";
         await order.save();
         await finalizeStockForOrder(order);
+        // Count coupon usage exactly once (client verify may also run)
+        if (order.coupon) await recordCouponUse(order);
         await notifyAdminsOfOrder(order);
       }
     }

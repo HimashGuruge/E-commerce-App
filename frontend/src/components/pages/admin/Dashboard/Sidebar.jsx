@@ -17,7 +17,7 @@ import {
   MdSettings,
 } from "react-icons/md";
 import { TbUserShield } from "react-icons/tb";
-import { FiMessageSquare, FiHelpCircle, FiPackage, FiClock } from "react-icons/fi";
+import { FiMessageSquare, FiHelpCircle, FiPackage, FiClock, FiTag } from "react-icons/fi";
 import { MdStore } from "react-icons/md";
 
 export default function Sidebar({
@@ -588,6 +588,18 @@ export default function Sidebar({
             <MdAnnouncement size={20} className="text-brand-600" />
             <span className="text-sm font-medium">
               Announcements
+            </span>
+          </NavLink>
+
+          {/* Coupons */}
+          <NavLink
+            to="/admin/dashboard/coupons"
+            className={navItemClass}
+            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
+          >
+            <FiTag size={20} className="text-brand-600" />
+            <span className="text-sm font-medium">
+              Coupons
             </span>
           </NavLink>
 
