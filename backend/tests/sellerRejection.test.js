@@ -1,6 +1,12 @@
-import { describe, test, expect } from "@jest/globals";
+import { describe, test, expect, jest } from "@jest/globals";
 import express from "express";
 import jwt from "jsonwebtoken";
+
+// The test-harness mongod can wedge mid-run on some Windows machines; the
+// setup helper detects that and respawns a fresh instance (up to 3 per
+// reset). Allow room for the recovery path so a single wedge doesn't
+// cascade into hook timeouts.
+jest.setTimeout(90_000);
 import {
   connectDb,
   disconnectDb,

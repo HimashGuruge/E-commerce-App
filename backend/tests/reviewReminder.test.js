@@ -18,6 +18,13 @@ import ReturnRequest from "../models/ReturnRequest.js";
 import jwt from "jsonwebtoken";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
 import { adminUpdateOrderStatus } from "../controller/orderController.js";
+import { jest } from "@jest/globals";
+
+// The test-harness mongod can wedge mid-run on some Windows machines; the
+// setup helper detects that and respawns a fresh instance (up to 3 per
+// reset). Allow room for the recovery path so a single wedge doesn't
+// cascade into hook timeouts.
+jest.setTimeout(90_000);
 
 beforeAll(async () => {
   await connectDb();
