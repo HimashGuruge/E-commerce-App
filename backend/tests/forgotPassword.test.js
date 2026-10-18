@@ -2,6 +2,12 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, jest } from "@je
 import express from "express";
 import crypto from "crypto";
 
+// The test-harness mongod can wedge mid-run on some Windows machines; the
+// setup helper detects that and respawns a fresh instance (up to 3 per
+// reset). Allow room for the recovery path so a single wedge doesn't
+// cascade into hook timeouts.
+jest.setTimeout(90_000);
+
 import User from "../models/User.js";
 
 import {

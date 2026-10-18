@@ -26,6 +26,7 @@ E-commerce app (Daraz-style). Two independent packages, no root package.json —
 - Backend (Jest, ESM): `npm test` from `backend/`. Single suite: `node --experimental-vm-modules node_modules/jest/bin/jest.js tests/<name>.test.js`.
 - Frontend (Vitest): `npm test` from `frontend/` (`vitest run`); watch mode `npm run test:watch`.
 - Frontend lints with `npm run lint` (ESLint 9 flat config); no typecheck (JS + jsconfig).
+- Test harness (`backend/tests/helpers/setup.js`) spawns a disposable `mongod` per suite. On some Windows machines a spawned instance can **wedge** (process alive, accepts connections, never processes operations — driver ops hang forever). The helper detects it via a 12 s watchdog + 10 s driver op `timeoutMS` and respawns fresh instances (up to 3 per reset); suites that reset per test carry `jest.setTimeout(90_000)` to absorb the recovery. If a wedge strikes *inside* a test body, that single test can still fail (assertion on 500); rerunning the suite clears it.
 
 ## Maintenance scripts (backend/, manual only — not server code)
 
