@@ -1,6 +1,21 @@
 import { Server as SocketIOServer } from "socket.io";
+import jwt from "jsonwebtoken";
 
 let socketIo = null;
+
+// Reject connections without a valid token (no trusting client-supplied identity)
+const verifySocketAuth = (socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error("unauthorized"));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.data.userId = decoded.id;
+    socket.data.role = decoded.role;
+    next();
+  } catch (err) {
+    next(new Error("unauthorized"));
+  }
+};
 
 // Initialize Socket.IO on the existing HTTP server
 export const initSocket = (server) => {
@@ -11,11 +26,12 @@ export const initSocket = (server) => {
     },
   });
 
+  socketIo.use(verifySocketAuth);
+
   // Join personal rooms so users only receive their own events
   socketIo.on("connection", (socket) => {
-    const userId = socket.handshake.auth?.userId;
-    if (userId) socket.join(`user:${userId}`);
-    if (socket.handshake.auth?.role === "admin") socket.join("admins");
+    if (socket.data.userId) socket.join(`user:${socket.data.userId}`);
+    if (socket.data.role === "admin") socket.join("admins");
   });
 
   return socketIo;

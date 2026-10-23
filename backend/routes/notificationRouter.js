@@ -52,15 +52,15 @@ router.get('/seller', sellerOnly, getSellerAlerts);                          // 
 
 // ========== ADMIN NOTIFICATION ROUTES ==========
 // These are for admin dashboard
-router.get('/admin/all', authMiddleware, getAdminNotifications);              // Get all user chats for admin
-router.get('/admin/unread-count', authMiddleware, getAdminUnreadCount);       // Get admin unread count
-router.post('/admin/mark-all-read', authMiddleware, markAllAdminNotificationsAsRead); // Mark all admin as read
-router.patch('/admin/:id/read', authMiddleware, markAdminNotificationAsRead); // Mark specific admin notification as read
+router.get('/admin/all', adminOnly, getAdminNotifications);              // Get all user chats for admin
+router.get('/admin/unread-count', adminOnly, getAdminUnreadCount);       // Get admin unread count
+router.post('/admin/mark-all-read', adminOnly, markAllAdminNotificationsAsRead); // Mark all admin as read
+router.patch('/admin/:id/read', adminOnly, markAdminNotificationAsRead); // Mark specific admin notification as read
 
 // ========== CHAT MANAGEMENT ROUTES ==========
 // These routes are for admin to interact with specific users
-router.get('/admin/chat/:userId', authMiddleware, getChat);                   // Get full chat history with a specific user
-router.post('/admin/reply/:userId', authMiddleware, replyToUser);             // Admin reply to a specific user
-router.patch('/admin/mark-read/:userId', authMiddleware, markUserChatAsRead); // Mark entire user chat as read
+router.get('/admin/chat/:userId', adminOnly, getChat);                   // Get full chat history with a specific user
+router.post('/admin/reply/:userId', adminOnly, replyToUser);             // Admin reply to a specific user
+router.patch('/admin/mark-read/:userId', adminOnly, markUserChatAsRead); // Mark entire user chat as read
 
 export default router;

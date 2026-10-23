@@ -29,13 +29,14 @@ export default function SellerDashboardHome() {
   useEffect(() => {
     loadDashboard();
     // Real-time refresh when a new order or buyer chat arrives (same event
-    // the sidebar Messages badge uses); 30s poll as fallback (also picks up
-    // new reviews). Matches the sidebar's existing 30s refresh cadence.
+    // the sidebar Messages badge uses). New approved reviews arrive via the
+    // broadcast "seller-stats:changed" event (emitted by the backend on
+    // review approval).
     const offSocket = onSocketEvent(["seller:new-message"], () => loadDashboard());
-    const poll = setInterval(loadDashboard, 30000);
+    const offStats = onSocketEvent(["seller-stats:changed"], () => loadDashboard());
     return () => {
       offSocket();
-      clearInterval(poll);
+      offStats();
     };
   }, [loadDashboard]);
 

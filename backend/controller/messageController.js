@@ -579,10 +579,9 @@ export const getUserMessages = asyncHandler(async (req, res) => {
     }
   }
 
-  await Message.updateMany(
-    { recipient: req.user._id, userRead: false },
-    { $set: { userRead: true } }
-  );
+  // Note: getting messages does NOT mark them read. Read state is driven by
+  // explicit actions: GET /initialize (opening the chat) and
+  // PUT /mark-user-read (frontend when the panel is open).
 
   res.json({
     success: true,
@@ -624,10 +623,13 @@ export const initializeChat = asyncHandler(async (req, res) => {
 
 // --- GET /api/messages/unread-chat-count (USER-facing) ---
 export const getUserUnreadCount = asyncHandler(async (req, res) => {
-  // Count admin messages this user hasn't read yet
+  // Count only admin replies the user hasn't read. Bot/AI replies and system
+  // status notes are excluded: they don't need action and would otherwise
+  // silently inflate the badge. This matches the frontend increment rules.
   const count = await Message.countDocuments({
     recipient: req.user._id,
     userRead: false,
+    senderType: "admin",
   });
   res.json({ success: true, count });
 });

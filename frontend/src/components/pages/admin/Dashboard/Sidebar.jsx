@@ -10,10 +10,6 @@ import {
   MdChat,
   MdShoppingCart,
   MdCampaign,
-  MdAnnouncement,
-  MdMiscellaneousServices,
-  MdTrendingUp,
-  MdStars,
   MdSettings,
 } from "react-icons/md";
 import { TbUserShield } from "react-icons/tb";
@@ -463,6 +459,11 @@ export default function Sidebar({
             <span className="text-sm font-medium">Overview</span>
           </NavLink>
 
+          {/* PRODUCTS */}
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+            Products
+          </div>
+
           {/* Products Section */}
           <NavLink
             to="/admin/dashboard/adminviewproducts"
@@ -512,33 +513,10 @@ export default function Sidebar({
             )}
           </NavLink>
 
-          {/* Notifications with Badge */}
-          <NavLink
-            to="/admin/dashboard/notification"
-            className={navItemClass}
-            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
-          >
-            <div className="relative">
-              <MdChat
-                size={20}
-                className="text-brand-600"
-              />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
-                </span>
-              )}
-            </div>
-            <span className="flex-1 text-sm font-medium">
-              Customer Support
-            </span>
-            {unreadNotifications > 0 && (
-              <span className="bg-red-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
-                {unreadNotifications}
-              </span>
-            )}
-          </NavLink>
+          {/* SALES */}
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+            Sales
+          </div>
 
           {/* Orders with Badge */}
           <NavLink
@@ -567,28 +545,28 @@ export default function Sidebar({
           </NavLink>
 
 
-          {/* Ads Management */}
-          <NavLink
-            to="/admin/dashboard/ads"
-            className={navItemClass}
-            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
-          >
-            <MdCampaign size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
-              Ads Management
-            </span>
-          </NavLink>
 
-          {/* Announcements */}
+          {/* Returns Management with Badge */}
           <NavLink
-            to="/admin/dashboard/announcements"
+            to="/admin/dashboard/returns"
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <MdAnnouncement size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
-              Announcements
-            </span>
+            <div className="relative">
+              <FiPackage size={20} className="text-brand-600" />
+              {pendingReturnsCount > 0 && (
+                <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-yellow-500"></span>
+                </span>
+              )}
+            </div>
+            <span className="flex-1 text-sm font-medium">Returns & Refunds</span>
+            {pendingReturnsCount > 0 && (
+              <span className="bg-yellow-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shadow-md animate-pulse">
+                {pendingReturnsCount} PENDING
+              </span>
+            )}
           </NavLink>
 
           {/* Coupons */}
@@ -603,31 +581,37 @@ export default function Sidebar({
             </span>
           </NavLink>
 
-          {/* Home Services */}
-          <NavLink
-            to="/admin/dashboard/home-services-management"
-            className={navItemClass}
-            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
-          >
-            <MdMiscellaneousServices
-              size={20}
-              className="text-brand-600"
-            />
-            <span className="text-sm font-medium">
-              Home Services
-            </span>
-          </NavLink>
+          {/* SUPPORT */}
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+            Support
+          </div>
 
-          {/* User Management */}
+          {/* Customer Support with Badge */}
           <NavLink
-            to="/admin/dashboard/user-privileges"
+            to="/admin/dashboard/notification"
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <TbUserShield size={20} className="text-brand-600" />
+            <div className="relative">
+              <MdChat
+                size={20}
+                className="text-brand-600"
+              />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
+                </span>
+              )}
+            </div>
             <span className="flex-1 text-sm font-medium">
-              User Management
+              Customer Support
             </span>
+            {unreadNotifications > 0 && (
+              <span className="bg-red-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
+                {unreadNotifications}
+              </span>
+            )}
           </NavLink>
 
           {/* ✅ Feedback Management Link with Badge */}
@@ -668,50 +652,20 @@ export default function Sidebar({
              <span className="text-sm font-medium">Q&A Management</span>
            </NavLink>
 
-           {/* Returns Management */}
-           <NavLink
-             to="/admin/dashboard/returns"
-             className={navItemClass}
-             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
-           >
-             <div className="relative">
-               <FiPackage size={20} className="text-brand-600" />
-               {pendingReturnsCount > 0 && (
-                 <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                   <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-yellow-500"></span>
-                 </span>
-               )}
-             </div>
-             <span className="flex-1 text-sm font-medium">Returns & Refunds</span>
-             {pendingReturnsCount > 0 && (
-               <span className="bg-yellow-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shadow-md animate-pulse">
-                 {pendingReturnsCount} PENDING
-               </span>
-             )}
-           </NavLink>
+          {/* PEOPLE */}
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+            People
+          </div>
 
-           {/* Trending Management */}
+          {/* User Management */}
           <NavLink
-            to="/admin/dashboard/trending"
+            to="/admin/dashboard/user-privileges"
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <MdTrendingUp size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
-              Trending
-            </span>
-          </NavLink>
-
-          {/* Features Management */}
-          <NavLink
-            to="/admin/dashboard/features"
-            className={navItemClass}
-            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
-          >
-            <MdStars size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
-              Home Features
+            <TbUserShield size={20} className="text-brand-600" />
+            <span className="flex-1 text-sm font-medium">
+              User Management
             </span>
           </NavLink>
 
@@ -738,6 +692,23 @@ export default function Sidebar({
                 {pendingSellersCount} PENDING
               </span>
             )}
+          </NavLink>
+
+          {/* SITE */}
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+            Site
+          </div>
+
+          {/* Home & Marketing */}
+          <NavLink
+            to="/admin/dashboard/home-marketing"
+            className={navItemClass}
+            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
+          >
+            <MdCampaign size={20} className="text-brand-600" />
+            <span className="text-sm font-medium">
+              Home & Marketing
+            </span>
           </NavLink>
 
           {/* Settings */}

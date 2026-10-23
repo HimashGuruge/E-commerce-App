@@ -17,6 +17,7 @@ export default function PendingProductApprovals() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
 
   const fetchPending = async () => {
     setLoading(true);
@@ -86,6 +87,76 @@ export default function PendingProductApprovals() {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedProducts.size === filtered.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filtered.map((p) => p.productId)));
+    }
+  };
+
+  const handleSelectProduct = (productId) => {
+    const next = new Set(selectedProducts);
+    if (next.has(productId)) next.delete(productId);
+    else next.add(productId);
+    setSelectedProducts(next);
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedProducts.size === 0) return;
+    const result = await Swal.fire({
+      title: "Approve selection?",
+      html: `Approve <strong>${selectedProducts.size}</strong> product(s)? They will become public.`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#059669",
+      confirmButtonText: "Yes, approve",
+      cancelButtonText: "Cancel",
+    });
+    if (!result.isConfirmed) return;
+
+    setBusyId("__bulk__");
+    try {
+      await api.put("/api/products/bulk/approve", { data: { ids: [...selectedProducts] } });
+      setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.productId)));
+      setSelectedProducts(new Set());
+      toast.success(`${selectedProducts.size} product(s) approved — now public`);
+    } catch (err) {
+      console.error("Bulk approve error:", err);
+      toast.error("Failed to approve products");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedProducts.size === 0) return;
+    const result = await Swal.fire({
+      title: "Reject selection?",
+      html: `<strong>${selectedProducts.size}</strong> product(s) will be deleted. This cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete them",
+      cancelButtonText: "Cancel",
+    });
+    if (!result.isConfirmed) return;
+
+    setBusyId("__bulk__");
+    try {
+      await api.delete("/api/products/bulk", { data: { ids: [...selectedProducts] } });
+      setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.productId)));
+      setSelectedProducts(new Set());
+      toast.success(`${selectedProducts.size} product(s) rejected and deleted`);
+    } catch (err) {
+      console.error("Bulk reject error:", err);
+      toast.error("Failed to delete products");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const term = searchTerm.toLowerCase();
   const filtered = products.filter(
     (p) =>
@@ -150,11 +221,47 @@ export default function PendingProductApprovals() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="space-y-4">
+          {selectedProducts.size > 0 && (
+            <div className="bg-brand-50 px-5 py-3 rounded-xl border border-brand-100 flex flex-wrap items-center gap-3">
+              <span className="text-brand-700 font-medium text-sm">
+                {selectedProducts.size} product(s) selected
+              </span>
+              <button
+                onClick={handleBulkApprove}
+                disabled={busyId !== null}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition disabled:opacity-50"
+              >
+                Approve Selected
+              </button>
+              <button
+                onClick={handleBulkReject}
+                disabled={busyId !== null}
+                className="px-3 py-1.5 bg-rose-500 text-white rounded-lg text-sm font-bold hover:bg-rose-600 transition disabled:opacity-50"
+              >
+                Reject Selected
+              </button>
+              <button
+                onClick={() => setSelectedProducts(new Set())}
+                className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50">
                 <tr>
+                  <th className="w-12 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      onChange={handleSelectAll}
+                      checked={selectedProducts.size === filtered.length && filtered.length > 0}
+                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    />
+                  </th>
                   <th className="px-4 py-3 font-bold text-slate-600">Product</th>
                   <th className="px-4 py-3 font-bold text-slate-600">Price</th>
                   <th className="px-4 py-3 font-bold text-slate-600">Stock</th>
@@ -167,6 +274,14 @@ export default function PendingProductApprovals() {
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((p) => (
                   <tr key={p.productId} className="hover:bg-slate-50">
+                    <td className="px-2 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.has(p.productId)}
+                        onChange={() => handleSelectProduct(p.productId)}
+                        className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 bg-slate-50 rounded-lg overflow-hidden border border-slate-100 flex-shrink-0">
@@ -231,6 +346,7 @@ export default function PendingProductApprovals() {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
       )}

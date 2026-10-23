@@ -13,7 +13,9 @@ import {
   updateProduct,
   onUpload,
   adminApproveProduct,
+  approveProductsBulk,
   adminGetPendingApprovals,
+  deleteProductsBulk,
 } from "../controller/productsController.js";
 import {
   createParentProduct,
@@ -52,7 +54,11 @@ router.get("/:id", productFindById); // Dynamic route
 router.get("/admin/pending-approvals", adminOnly, adminGetPendingApprovals);
 router.post("/", sellerOrAdmin, addproduct);
 router.patch("/:id", sellerOrAdmin, updateProduct);
+// Must be registered before DELETE /:id, otherwise "bulk" is captured as :id.
+router.delete("/bulk", sellerOrAdmin, deleteProductsBulk);
 router.delete("/:id", sellerOrAdmin, deleteProduct);
+// Must be registered before PUT /:id/approve, otherwise "bulk" is captured as :id.
+router.put("/bulk/approve", adminOnly, approveProductsBulk);
 router.put("/:id/approve", adminOnly, adminApproveProduct);
 
 // Product image upload endpoint

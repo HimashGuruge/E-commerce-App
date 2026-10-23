@@ -25,8 +25,18 @@ const connectSocket = () => {
 
   const url = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
   const s = io(url, {
-    auth: { userId: payload.id, role: payload.role },
+    auth: { token, userId: payload.id, role: payload.role },
     transports: ["websocket", "polling"],
+    reconnectionAttempts: 3,
+  });
+
+  // Server verifies the token on connect; drop the singleton on rejection
+  // (e.g. token invalidated) so a later initSocket() can re-create it.
+  s.on("connect_error", (err) => {
+    if (err?.message === "unauthorized") {
+      s.disconnect();
+      if (socket === s) socket = null;
+    }
   });
 
   socket = s;

@@ -76,7 +76,7 @@ export default function Signup() {
       toast.success("Registration successful!");
       navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Something went wrong");
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -113,12 +113,12 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <InputField label="First Name" name="name" icon={<UserIcon size={16}/>} placeholder="John" value={formData.name} onChange={handleChange} />
-              <InputField label="Last Name" name="lastname" icon={<UserIcon size={16}/>} placeholder="Doe" value={formData.lastname} onChange={handleChange} />
+              <InputField label="Last Name" required={false} name="lastname" icon={<UserIcon size={16}/>} placeholder="Doe" value={formData.lastname} onChange={handleChange} />
             </div>
 
             <InputField label="Email" type="email" name="email" icon={<Mail size={16}/>} placeholder="john@mail.com" value={formData.email} onChange={handleChange} />
-            <InputField label="Phone" type="tel" name="phone" icon={<Phone size={16}/>} placeholder="077..." value={formData.phone} onChange={handleChange} />
-            <InputField label="Address" name="address" icon={<MapPin size={16}/>} placeholder="123 Street, Colombo" value={formData.address} onChange={handleChange} />
+            <InputField label="Phone" required={false} type="tel" name="phone" icon={<Phone size={16}/>} placeholder="077..." value={formData.phone} onChange={handleChange} />
+            <InputField label="Address" required={false} name="address" icon={<MapPin size={16}/>} placeholder="123 Street, Colombo" value={formData.address} onChange={handleChange} />
             <InputField label="Password" type="password" name="password" icon={<Lock size={16}/>} placeholder="Min 6 characters" value={formData.password} onChange={handleChange} />
 
             <button
@@ -142,7 +142,7 @@ export default function Signup() {
   );
 }
 
-function InputField({ label, name, type = "text", icon, placeholder, value, onChange }) {
+function InputField({ label, name, type = "text", icon, placeholder, value, onChange, required = true }) {
   return (
     <div className="space-y-1">
       <label className="text-xs font-medium text-gray-600">{label}</label>
@@ -154,7 +154,7 @@ function InputField({ label, name, type = "text", icon, placeholder, value, onCh
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          required
+          required={required}
           className={`w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all ${icon ? "pl-10" : ""}`}
         />
       </div>

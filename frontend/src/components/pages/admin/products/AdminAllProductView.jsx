@@ -135,9 +135,7 @@ export default function AdminAllProductView() {
 
     if (result.isConfirmed) {
       try {
-        for (const productId of selectedProducts) {
-          await api.delete(`/api/products/${productId}`);
-        }
+        await api.delete("/api/products/bulk", { data: { ids: [...selectedProducts] } });
         setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.productId)));
         setSelectedProducts(new Set());
         Swal.fire("Success!", "Products deleted", "success");

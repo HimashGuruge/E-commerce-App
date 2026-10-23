@@ -12,7 +12,9 @@ const userSchema = new mongoose.Schema(
     // this field; it is only set by seed / manual DB operations.
     isMainAdmin: { type: Boolean, default: false },
     profileImage: { type: String },
+    lastname: { type: String },
     phone: { type: String },
+    address: { type: String },
     googleId: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpire: { type: Date },

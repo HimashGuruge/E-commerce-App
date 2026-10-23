@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
 import api from "@/utils/api";
-import { useNavigate } from "react-router-dom";
 import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiDownload } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 export default function ReturnsManagement() {
-  const navigate = useNavigate();
   const [returns, setReturns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -291,12 +289,6 @@ export default function ReturnsManagement() {
                               Complete
                             </button>
                           )}
-                          <button
-                            onClick={() => navigate(`/admin/dashboard/returns/${returnRequest._id}`)}
-                            className="text-gray-600 hover:text-gray-800 font-bold px-3 py-1 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            View Details
-                          </button>
                         </div>
                       </td>
                     </tr>
