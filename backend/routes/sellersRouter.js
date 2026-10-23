@@ -12,6 +12,7 @@ import {
   getSellerUnreadCount,
   markSellerMessagesRead,
   sendSellerMessage,
+  getSupportAdmin,
   sellerUpdateOrderStatus,
   getPublicStore,
   adminGetAllSellers,
@@ -38,6 +39,7 @@ router.get("/messages", sellerOnly, getSellerMessages);
 router.get("/messages/unread", sellerOnly, getSellerUnreadCount);
 router.patch("/messages/read", sellerOnly, markSellerMessagesRead);
 router.post("/messages", sellerOnly, sendSellerMessage);
+router.get("/messages/support", sellerOnly, getSupportAdmin);
 
 // Public store route
 router.get("/store/:shopName", getPublicStore);

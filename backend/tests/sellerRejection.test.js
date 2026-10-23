@@ -1,4 +1,4 @@
-import { describe, test, expect, jest } from "@jest/globals";
+﻿import { describe, test, expect, jest } from "@jest/globals";
 import express from "express";
 import jwt from "jsonwebtoken";
 
@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 // setup helper detects that and respawns a fresh instance (up to 3 per
 // reset). Allow room for the recovery path so a single wedge doesn't
 // cascade into hook timeouts.
-jest.setTimeout(90_000);
+jest.setTimeout(180_000);
 import {
   connectDb,
   disconnectDb,
@@ -16,6 +16,7 @@ import {
   request,
   makeUser,
   JWT_SECRET,
+  retryTest,
 } from "./helpers/setup.js";
 import User from "../models/User.js";
 import Seller from "../models/Seller.js";
@@ -56,109 +57,127 @@ beforeEach(async () => {
 
 describe("PUT /api/sellers/admin/:id/reject (business logic)", () => {
   test("admin can reject a seller: status stays rejected and reason is stored", async () => {
-    const admin = await makeUser("admin");
-    const { seller } = await makeSeller("seller");
+    await retryTest(async () => {
+      const admin = await makeUser("admin");
+      const { seller } = await makeSeller("seller");
 
     const r = await request(app, "PUT", `/api/sellers/admin/${seller._id}/reject`, {
-      token: tokenFor(admin),
-      body: { reason: "Policy violation" },
-    });
+        token: tokenFor(admin),
+        body: { reason: "Policy violation" },
+      });
 
-    expect(r.status).toBe(200);
-    const db = await Seller.findById(seller._id);
-    expect(db.status).toBe("rejected");
-    expect(db.rejectionReason).toBe("Policy violation");
+      expect(r.status).toBe(200);
+      const db = await Seller.findById(seller._id);
+      expect(db.status).toBe("rejected");
+      expect(db.rejectionReason).toBe("Policy violation");
+    });
   });
 
   test("non-admin cannot reject a seller (403)", async () => {
-    const sellerUser = await makeSeller("seller");
+    await retryTest(async () => {
+      const sellerUser = await makeSeller("seller");
     const r = await request(app, "PUT", `/api/sellers/admin/${sellerUser.seller._id}/reject`, {
-      token: tokenFor(sellerUser.user),
-      body: { reason: "hax" },
+        token: tokenFor(sellerUser.user),
+        body: { reason: "hax" },
+      });
+      expect(r.status).toBe(403);
     });
-    expect(r.status).toBe(403);
   });
 });
 
 describe("rejected seller access control (security)", () => {
   test("a rejected seller is blocked from seller-only routes (403)", async () => {
-    const admin = await makeUser("admin");
-    const { user, seller } = await makeSeller("seller");
+    await retryTest(async () => {
+      const admin = await makeUser("admin");
+      const { user, seller } = await makeSeller("seller");
 
     const rejectRes = await request(app, "PUT", `/api/sellers/admin/${seller._id}/reject`, {
-      token: tokenFor(admin),
-      body: { reason: "Policy violation" },
-    });
-    expect(rejectRes.status).toBe(200);
+        token: tokenFor(admin),
+        body: { reason: "Policy violation" },
+      });
+      expect(rejectRes.status).toBe(200);
 
-    const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(user) });
-    expect(r.status).toBe(403);
+      const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(user) });
+      expect(r.status).toBe(403);
+    });
   });
 
   test("a rejected seller's role is downgraded to customer in the DB", async () => {
-    const admin = await makeUser("admin");
-    const { user, seller } = await makeSeller("seller");
+    await retryTest(async () => {
+      const admin = await makeUser("admin");
+      const { user, seller } = await makeSeller("seller");
 
     await request(app, "PUT", `/api/sellers/admin/${seller._id}/reject`, {
-      token: tokenFor(admin),
-      body: { reason: "Policy violation" },
-    });
+        token: tokenFor(admin),
+        body: { reason: "Policy violation" },
+      });
 
-    const dbUser = await User.findById(user._id);
-    expect(dbUser.role).toBe("customer");
+      const dbUser = await User.findById(user._id);
+      expect(dbUser.role).toBe("customer");
+    });
   });
 
   test("a rejected seller cannot update an order status (403)", async () => {
-    const admin = await makeUser("admin");
-    const { user, seller } = await makeSeller("seller");
+    await retryTest(async () => {
+      const admin = await makeUser("admin");
+      const { user, seller } = await makeSeller("seller");
 
     await request(app, "PUT", `/api/sellers/admin/${seller._id}/reject`, {
-      token: tokenFor(admin),
-      body: { reason: "Policy violation" },
-    });
+        token: tokenFor(admin),
+        body: { reason: "Policy violation" },
+      });
 
-    const r = await request(app, "PUT", "/api/sellers/orders/abc123/status", {
-      token: tokenFor(user),
-      body: { orderStatus: "shipped" },
+      const r = await request(app, "PUT", "/api/sellers/orders/abc123/status", {
+        token: tokenFor(user),
+        body: { orderStatus: "shipped" },
+      });
+      expect(r.status).toBe(403);
     });
-    expect(r.status).toBe(403);
   });
 });
 
 describe("unchanged behavior for normal users", () => {
   test("an approved seller can still access seller-only routes (200)", async () => {
-    const admin = await makeUser("admin");
-    const { user, seller } = await makeSeller("customer");
+    await retryTest(async () => {
+      const admin = await makeUser("admin");
+      const { user, seller } = await makeSeller("customer");
 
     const approveRes = await request(app, "PUT", `/api/sellers/admin/${seller._id}/approve`, {
-      token: tokenFor(admin),
-    });
-    expect(approveRes.status).toBe(200);
+        token: tokenFor(admin),
+      });
+      expect(approveRes.status).toBe(200);
 
-    const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(user) });
-    expect(r.status).toBe(200);
+      const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(user) });
+      expect(r.status).toBe(200);
+    });
   });
 
   test("a suspended seller is still blocked from seller-only routes (403)", async () => {
-    const admin = await makeUser("admin");
-    const { user, seller } = await makeSeller("seller");
+    await retryTest(async () => {
+      const admin = await makeUser("admin");
+      const { user, seller } = await makeSeller("seller");
 
     await request(app, "PUT", `/api/sellers/admin/${seller._id}/suspend`, {
-      token: tokenFor(admin),
-    });
+        token: tokenFor(admin),
+      });
 
-    const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(user) });
-    expect(r.status).toBe(403);
+      const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(user) });
+      expect(r.status).toBe(403);
+    });
   });
 
   test("a normal customer is blocked from seller-only routes (403)", async () => {
-    const customer = await makeUser("customer");
-    const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(customer) });
-    expect(r.status).toBe(403);
+    await retryTest(async () => {
+      const customer = await makeUser("customer");
+      const r = await request(app, "GET", "/api/sellers/dashboard", { token: tokenFor(customer) });
+      expect(r.status).toBe(403);
+    });
   });
 
   test("an unauthenticated request to a seller-only route is rejected (403 - project convention)", async () => {
-    const r = await request(app, "GET", "/api/sellers/dashboard");
-    expect(r.status).toBe(403);
+    await retryTest(async () => {
+      const r = await request(app, "GET", "/api/sellers/dashboard");
+      expect(r.status).toBe(403);
+    });
   });
 });

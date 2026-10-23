@@ -4,6 +4,7 @@ import connectDB from "./config/db.js";
 import Product from "./models/Product.js";
 import Variant from "./models/Variant.js";
 import Category from "./models/Category.js";
+import { recalcParentStock } from "./controller/productVariantController.js";
 
 dotenv.config();
 
@@ -32,7 +33,6 @@ const products = [
     tags: ["headphones", "wireless", "bluetooth", "audio"],
     highlights: ["Noise Cancellation", "30hr Battery", "Bluetooth 5.0", "Comfort Fit"],
     whatsInTheBox: "1x Headphones, 1x Charging Cable, 1x User Manual",
-    isVariantParent: false,
   },
   {
     name: "Premium Cotton T-Shirt",
@@ -68,7 +68,6 @@ const products = [
     tags: ["lamp", "LED", "desk", "lighting"],
     highlights: ["Touch Control", "5 Color Modes", "USB Charging", "Eye Care"],
     whatsInTheBox: "1x Lamp, 1x Power Adapter, 1x User Manual",
-    isVariantParent: false,
   },
   {
     name: "Stainless Steel Water Bottle",
@@ -104,7 +103,6 @@ const products = [
     tags: ["chair", "office", "ergonomic", "furniture"],
     highlights: ["Lumbar Support", "Adjustable Height", "Breathable Mesh", "360° Swivel"],
     whatsInTheBox: "1x Chair, 1x Assembly Kit, 1x User Manual",
-    isVariantParent: false,
   },
   {
     name: "The Great Gatsby",
@@ -122,7 +120,6 @@ const products = [
     tags: ["book", "novel", "classic", "fiction"],
     highlights: ["Hardcover", "Original Cover", "192 Pages", "Award Winning"],
     whatsInTheBox: "1x Book",
-    isVariantParent: false,
   },
   {
     name: "Running Shoes",
@@ -158,7 +155,6 @@ const products = [
     tags: ["mug", "coffee", "ceramic", "kitchen"],
     highlights: ["Set of 4", "Microwave Safe", "Dishwasher Safe", "Handcrafted"],
     whatsInTheBox: "4x Coffee Mugs",
-    isVariantParent: false,
   },
 ];
 
@@ -215,8 +211,15 @@ const run = async () => {
       }
 
       if (prod.isVariantParent) {
-        const { isVariantParent, variantAttributes, highlights, whatsInTheBox, ...parentData } = prod;
-        const parent = await Product.create({ ...parentData, isVariantParent: true, variantAttributes });
+        // `highlights` is not a schema field (drop it); `whatsInTheBox` is — keep it
+        const { isVariantParent, variantAttributes, highlights, ...parentData } = prod;
+        // Mirror normalizeHighlights: the API turns `highlights[]` into `tags`
+        const parent = await Product.create({
+          ...parentData,
+          tags: prod.highlights || parentData.tags,
+          isVariantParent: true,
+          variantAttributes,
+        });
         console.log(`Created parent product: "${parent.name}" (${parent._id})`);
 
         const buildVariantSku = (attributes) => {
@@ -241,9 +244,11 @@ const run = async () => {
         await Product.findByIdAndUpdate(parent._id, {
           $push: { variants: { $each: created.map(v => v._id) } },
         });
-        console.log(`  → ${created.length} variants created`);
+        const totalStock = await recalcParentStock(parent._id);
+        console.log(`  → ${created.length} variants created, parent stock set to ${totalStock}`);
       } else {
-        const product = await Product.create(prod);
+        // Same highlights → tags mapping as the API (see normalizeHighlights)
+        const product = await Product.create({ ...prod, tags: prod.highlights || prod.tags });
         console.log(`Created product: "${product.name}" (${product._id})`);
       }
     }

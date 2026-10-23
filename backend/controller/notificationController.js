@@ -8,9 +8,36 @@ import Notification from "../models/Notification.js";
 import Feedback from "../models/Feedback.js";
 import Seller from "../models/Seller.js";
 
+// Create a seller alert without duplicating an alert that is still open for
+// the same seller with the same title and text. Returns the already-open
+// document (with deduplicated: true) instead of inserting a second one.
+// Different content under the same title is allowed (e.g. two different
+// "Product Rejected" alerts for two different products).
+export async function createSellerAlert({ user, title, message, product = null }) {
+  const t = String(title).trim();
+  const m = String(message).trim();
+  const existing = await Notification.findOne({
+    user,
+    type: "SELLER_ALERT",
+    title: t,
+    message: m,
+    read: false,
+  });
+  if (existing) return { notification: existing, deduplicated: true };
+  const doc = { user, type: "SELLER_ALERT", title: t, message: m, read: false };
+  if (product) doc.product = product;
+  const notification = await Notification.create(doc);
+  return { notification, deduplicated: false };
+}
+
 export const getUserNotifications = asyncHandler(async (req, res) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
-  const notifications = await Notification.find({ user: req.user._id })
+  // SELLER_ALERT notifications belong to the seller dashboard, not the
+  // public bell widget — exclude them from this generic endpoint.
+  const notifications = await Notification.find({
+    user: req.user._id,
+    type: { $ne: "SELLER_ALERT" },
+  })
     .populate("product", "name images")
     .sort({ createdAt: -1 })
     .limit(limit);
@@ -34,8 +61,10 @@ export const getNotificationById = asyncHandler(async (req, res) => {
 });
 
 export const getUnreadCount = asyncHandler(async (req, res) => {
+  // Exclude SELLER_ALERT — those live in the seller dashboard, not the public bell.
   const count = await Notification.countDocuments({
     user: req.user._id,
+    type: { $ne: "SELLER_ALERT" },
     read: false,
     reviewSubmitted: false,
   });
@@ -255,18 +284,13 @@ export const adminSendSellerAlert = asyncHandler(async (req, res) => {
     throw new Error("Recipient is not a registered seller");
   }
 
-  const notification = await Notification.create({
-    user: userId,
-    type: "SELLER_ALERT",
-    title: String(title).trim(),
-    message: String(message).trim(),
-    read: false,
-  });
+  const { notification, deduplicated } = await createSellerAlert({ user: userId, title, message });
 
-  // Real-time: push to the seller's open dashboard (no-op if offline)
+  // Real-time: push to the seller's open dashboard (no-op if offline).
+  // A duplicate re-push acts as a reminder of the still-open alert.
   emitToUser(userId, "seller:alert", notification);
 
-  res.status(201).json({ success: true, notification });
+  res.status(201).json({ success: true, notification, deduplicated });
 });
 
 // @desc    Get the seller's alerts, newest first (with unread count)

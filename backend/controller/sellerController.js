@@ -5,6 +5,7 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
+import Notification from "../models/Notification.js";
 import Feedback from "../models/Feedback.js";
 import { emitToAdmins, emitToUser } from "../services/socketService.js";
 import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
@@ -291,17 +292,19 @@ export const getSellerMessages = asyncHandler(async (req, res) => {
     ],
   })
     .populate("sender", "name profileImage role")
+    .populate("recipient", "name profileImage")
     .sort({ createdAt: -1 })
     .limit(100);
 
   const sellerId = req.user._id.toString();
   const conversation = (m) => {
     const mine = m.sender?._id?.toString() === sellerId;
-    const partnerId = mine ? String(m.recipient || "") : m.sender?._id?.toString() || "";
+    const partnerId = mine ? m.recipient?._id?.toString() || "" : m.sender?._id?.toString() || "";
+    const partnerUser = mine ? m.recipient : m.sender;
     return {
       key: partnerId || "no-buyer",
-      partnerName: (mine ? undefined : m.sender?.name) || "Customer",
-      partnerImage: mine ? null : m.sender?.profileImage || null,
+      partnerName: partnerUser?.name || "Customer",
+      partnerImage: partnerUser?.profileImage || null,
       mine,
       message: m.message,
       orderRef: m.orderRef ? m.orderRef.toString() : null,
@@ -428,25 +431,26 @@ export const sellerUpdateOrderStatus = asyncHandler(async (req, res) => {
   // Notify admins in their Notification center about the seller's order update
   notifyAdminsOfSellerEvent(req.user, `Order #${order._id.toString().slice(-8)} status updated by seller: ${oldStatus} → ${order.orderStatus}`);
 
-  // Notify buyer in their support chat
+  // Notify buyer through their notification feed (order status changes are
+  // transactional events, not support chat)
   try {
     const statusEmoji = { processing: "🔄", shipped: "🚚", delivered: "✅" };
     const emoji = statusEmoji[req.body.status] || "📦";
     const trackingInfo = order.trackingNumber
       ? `\nTracking: ${order.trackingNumber} (${order.courier || "N/A"})`
       : "";
-    const statusMsg = await Message.create({
-      sender: req.user._id,
-      recipient: order.user?._id || order.user,
-      orderRef: order._id,
+    const statusNotice = await Notification.create({
+      user: order.user?._id || order.user,
+      type: "ORDER_STATUS",
+      order: order._id,
+      title: "Order status updated",
       message: `${emoji} Order #${order._id.toString().slice(-8)} status updated: ${oldStatus} → ${order.orderStatus}${trackingInfo}`,
-      senderType: "bot",
-      isAdmin: false,
-      adminRead: true,
-      userRead: false,
     });
-    // Real-time: push the status note to the buyer's open chat instantly
-    emitToUser(order.user?._id || order.user, "chat:new-message", statusMsg);
+    // Real-time: bump the buyer's notification badge if they're online
+    emitToUser(order.user?._id || order.user, "notification:new", {
+      id: statusNotice._id,
+      type: statusNotice.type,
+    });
   } catch (err) {
     logger.error("Failed to notify buyer of seller order status update:", err);
   }
@@ -468,6 +472,10 @@ export const sendSellerMessage = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Receiver and message text are required");
   }
+  if (!mongoose.isValidObjectId(receiverId)) {
+    res.status(400);
+    throw new Error("Invalid receiver id");
+  }
 
   const receiver = await User.findById(receiverId);
   if (!receiver) {
@@ -488,15 +496,37 @@ export const sendSellerMessage = asyncHandler(async (req, res) => {
 
   // Direct product-page chats carry the pair's threadKey (buyer|seller) so the
   // reply stays in the same conversation; order-linked messages keep threadKey null.
+  //
+  // A buyer DM without an order link requires a purchase relationship: the
+  // receiver must have ordered at least one of this seller's products. This
+  // stops sellers from using the endpoint to cold-DM arbitrary users.
   let threadKey;
   if (!orderRef && receiver.role !== "admin") {
+    const myProductIds = await Product.find({ seller: req.user._id }).distinct("_id");
+    const purchaseOrder =
+      myProductIds.length > 0
+        ? await Order.findOne({
+            user: receiver._id,
+            "items.product": { $in: myProductIds },
+          }).lean()
+        : null;
+    if (!purchaseOrder) {
+      res.status(403);
+      throw new Error("You can only message buyers who purchased one of your products");
+    }
     threadKey = `${receiver._id}|${req.user._id}`;
   }
+
+  // Seller → admin support messages are stored with the @admin prefix so they
+  // show up in the admin Notification center (filtered by /@admin/i).
+  const trimmedText = String(text).trim();
+  const isToAdmin = receiver.role === "admin";
+  const finalText = isToAdmin && !/^@admin/i.test(trimmedText) ? `@admin ${trimmedText}` : trimmedText;
 
   const message = await Message.create({
     sender: req.user._id,
     recipient: receiver._id,
-    message: String(text).trim(),
+    message: finalText,
     orderRef,
     threadKey,
     senderType: "user",
@@ -512,6 +542,11 @@ export const sendSellerMessage = asyncHandler(async (req, res) => {
   // land in the AI support chat widget).
   if (threadKey) {
     emitToUser(receiver._id, "seller-chat:new-message", message);
+  } else if (receiver.role === "admin") {
+    // Seller → admin support message: ping every connected admin and make sure
+    // the text carries the @admin marker so the admin Notification center
+    // lists it (it filters with /@admin/i).
+    emitToAdmins("chat:unseen-user", { userId: req.user._id, userName: req.user.name });
   } else {
     emitToUser(receiver._id, "chat:new-message", message);
   }
@@ -524,6 +559,17 @@ export const sendSellerMessage = asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ success: true, message });
+});
+
+// @desc    Get the admin support contact for the seller's Messages page
+// @route   GET /api/sellers/messages/support
+export const getSupportAdmin = asyncHandler(async (req, res) => {
+  const admin = await User.findOne({ role: "admin" }).select("name profileImage").lean();
+  if (!admin) {
+    res.status(404);
+    throw new Error("No admin available");
+  }
+  res.json({ success: true, admin: { id: admin._id, name: admin.name, image: admin.profileImage || null } });
 });
 
 // ---- Admin endpoints ----
@@ -699,13 +745,22 @@ export const adminGetSellerDetail = asyncHandler(async (req, res) => {
 // @desc    Get public store page by shop name
 // @route   GET /api/sellers/store/:shopName
 export const getPublicStore = asyncHandler(async (req, res) => {
-  const seller = await Seller.findOne({
-    shopName: { $regex: new RegExp(`^${req.params.shopName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+  // A shop name may map to several records (e.g. if a user was deleted while
+  // their Seller doc remained). findOne returns the first match, which can be a
+  // stale doc whose `user` no longer exists — reading `seller.user._id` on it
+  // crashes the request. So fetch all matches and pick one whose user resolved.
+  const escaped = req.params.shopName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const candidates = await Seller.find({
+    shopName: { $regex: new RegExp(`^${escaped}$`, "i") },
   })
     .populate("user", "name")
     .select("shopName shopLogo shopBanner shopDescription rating numRatings shipOnTime chatResponseRate createdAt user status");
 
-  if (!seller || seller.status !== "approved") {
+  const seller =
+    candidates.find((c) => c.status === "approved" && c.user) ||
+    candidates.find((c) => c.status === "approved");
+
+  if (!seller || seller.status !== "approved" || !seller.user) {
     res.status(404);
     throw new Error("Store not found");
   }

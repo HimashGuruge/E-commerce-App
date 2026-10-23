@@ -12,7 +12,7 @@ import HomeContainer from "./HomeContainer.jsx";
 import ViewCartPage from "@/components/pages/account/ViewCart.jsx";
 import AboutPage from "@/components/pages/info/About.jsx";
 import ShipingPage from "@/components/pages/info/Shipping.jsx";
-import PaymentPage from "@/components/pages/admin/orders/Payment.jsx";
+import PaymentPage from "./Payment.jsx";
 import Login from "@/components/pages/auth/Login.jsx";
 import Signup from "@/components/pages/auth/SingUp.jsx";
 import ForgotPassword from "@/components/pages/auth/ForgotPasswordpage.jsx";
@@ -51,6 +51,7 @@ function ScrollToTop() {
 }
 
 export default function Homepage() {
+  const location = useLocation();
   const [user, setUser] = useState("customer");
   const [showBanner, setShowBanner] = useState(true); // State for dismissible banner
 
@@ -127,7 +128,8 @@ export default function Homepage() {
         </Routes>
 
       </div>
-      <AiChatBot />
+      {/* Hide the AI chat widget on the seller dashboard */}
+      {!location.pathname.startsWith("/seller/dashboard") && <AiChatBot />}
     </div>
   );
 }

@@ -12,16 +12,14 @@ import {
   Package,
   Award,
   ShoppingBag,
-  ArrowRight,
   MapPin,
   Phone,
-  Mail,
   Calendar,
-  Receipt,
 } from "lucide-react";
 
 const API_URL = `/api/payment`;
 const USER_API_URL = `/api/users`;
+
 
 export default function Payment() {
   const location = useLocation();
@@ -294,10 +292,13 @@ export default function Payment() {
 
   // ==================== COD PAYMENT ====================
   const handleCOD = async () => {
+    const couponDiscount = orderedata?.coupon?.discountAmount || 0;
+    const hasCoupon = !!orderedata?.coupon && couponDiscount > 0;
+
     const { value: accept } = await Swal.fire({
-      width: "95%",
-      maxWidth: "1200px",
-      padding: "1.5rem",
+      width: "94%",
+      maxWidth: "500px",
+      padding: "1.25rem",
       background: "#fff",
       backdrop: `rgba(0,0,0,0.4)`,
       showClass: {
@@ -307,160 +308,134 @@ export default function Payment() {
         popup: "animate__animated animate__fadeOutDown animate__faster",
       },
       title: `
-        <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-          <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-brand-500 to-green-600 flex items-center justify-center shadow-xl shadow-brand-200">
-            <svg class="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+        <div class="flex items-center gap-3 border-b border-slate-200 pb-3">
+          <div class="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6 text-emerald-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </div>
-          <div class="text-center sm:text-left">
-            <h2 class="text-xl sm:text-2xl font-black text-slate-900">Confirm Your Order</h2>
-            <p class="text-xs sm:text-sm text-slate-500">Please review your order details before confirming</p>
+          <div class="min-w-0">
+            <h1 class="m-0 text-xl font-bold text-slate-900">Confirm Your Order</h1>
+            <p class="m-0 text-xs text-slate-500">Review your order before confirming.</p>
           </div>
         </div>
       `,
       html: `
-        <div class="font-sans">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <!-- Left Column - User & Delivery -->
-            <div class="lg:col-span-1 space-y-5">
-              <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
-                <div class="flex items-center gap-4 mb-4">
-                  <div class="relative">
-                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-green-600 flex items-center justify-center text-white font-black text-xl sm:text-2xl shadow-lg">
-                      ${getUserInitials()}
-                    </div>
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                  </div>
-                  <div class="flex-1">
-                    <h3 class="font-bold text-slate-900 text-base sm:text-lg">${getUserFullName()}</h3>
-                    <p class="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                      <Mail size="12" /> ${getUserEmail()}
-                    </p>
-                    <p class="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                      <Phone size="12" /> ${getDisplayPhone()}
-                    </p>
-                  </div>
-                </div>
+        <div class="font-sans text-slate-800">
+          <!-- Customer + Address -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+
+            <section class="border border-slate-200 rounded-xl p-3">
+              <h2 class="m-0 text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Customer Details</h2>
+              <p class="m-0 text-sm font-semibold text-slate-900">${getUserFullName()}</p>
+              <p class="m-0 text-xs text-slate-500 mt-1">${getUserEmail()}</p>
+              <p class="m-0 text-xs text-slate-500 mt-1">${getDisplayPhone()}</p>
+            </section>
+
+            <section class="border border-slate-200 bg-slate-50 rounded-xl p-3">
+              <h2 class="m-0 text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Delivery Address</h2>
+              <p class="m-0 text-sm font-semibold text-slate-900">${orderedata?.shippingAddress?.address || "No address provided"}</p>
+              ${orderedata?.shippingAddress?.city ? `<p class="m-0 text-xs text-slate-500 mt-1">${orderedata.shippingAddress.city}</p>` : ""}
+            </section>
+
+          </div>
+
+          <!-- Order + Payment -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            <section class="border border-slate-200 rounded-xl p-3">
+              <div class="flex justify-between items-center mb-3">
+                <h2 class="m-0 text-sm font-bold text-slate-900">Order Summary</h2>
+                <span class="m-0 text-xs bg-slate-100 rounded-full px-2 py-1 text-slate-600">${items.length} item${items.length === 1 ? "" : "s"}</span>
               </div>
 
-              <div class="bg-gradient-to-br from-slate-50 to-white rounded-2xl p-5 border border-slate-200">
-                <div class="flex items-center gap-2 mb-3">
-                  <MapPin size="18" class="text-brand-600" />
-                  <h3 class="font-bold text-slate-900">Delivery Address</h3>
-                </div>
-                <div class="space-y-1 text-sm">
-                  <p class="font-medium text-slate-800">${orderedata?.shippingAddress?.address || "No address provided"}</p>
-                  <p class="text-slate-500">${orderedata?.shippingAddress?.city || ""}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Middle Column - Order Items -->
-            <div class="lg:col-span-1">
-              <div class="bg-white rounded-2xl p-5 border border-slate-200 h-full">
-                <div class="flex items-center gap-2 mb-4">
-                  <Package size="18" class="text-brand-600" />
-                  <h3 class="font-bold text-slate-900">Order Items (${items.length})</h3>
-                </div>
-                <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  ${items
-                    .map((item) => {
-                      const displayPrice =
-                        item.sellingPrice ||
-                        item.lastPrice ||
-                        item.lastPrices ||
-                        item.price ||
-                        0;
-                      const itemTotal = displayPrice * (item.qty || 1);
-                      return `
-                      <div class="flex gap-3 items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <div class="relative shrink-0">
-                          <img src="${Array.isArray(item.images) ? item.images[0] : item.images}"
-                               alt="${item.productName}"
-                               class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover border border-slate-200"
-                               onerror="this.src='https://placehold.co/150?text=No+Image'" />
+              <div class="space-y-3 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                ${items
+                  .map((item) => {
+                    const displayPrice =
+                      item.sellingPrice ||
+                      item.lastPrice ||
+                      item.lastPrices ||
+                      item.price ||
+                      0;
+                    const itemTotal = displayPrice * (item.qty || 1);
+                    return `
+                      <div class="flex items-center gap-3">
+                        <img
+                          src="${Array.isArray(item.images) ? item.images[0] : item.images}"
+                          alt="${item.productName}"
+                          class="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0"
+                          onerror="this.style.display='none'"
+                        >
+                        <div class="flex-1 min-w-0">
+                          <p class="m-0 text-sm font-semibold text-slate-900 truncate">${item.productName}</p>
+                          <p class="m-0 text-xs text-slate-500 mt-1">Rs. ${displayPrice.toLocaleString()} × ${item.qty || 1}</p>
                         </div>
-                        <div class="flex-1">
-                          <p class="text-sm font-bold text-slate-900">${item.productName}</p>
-                          <p class="text-xs text-slate-500">Rs. ${displayPrice.toLocaleString()} each</p>
-                        </div>
-                        <div class="text-right">
-                          <p class="text-sm font-bold text-brand-600">Rs. ${itemTotal.toLocaleString()}</p>
-                          <p class="text-[10px] text-slate-400">Qty: ${item.qty}</p>
-                        </div>
+                        <p class="m-0 text-sm font-bold text-slate-900 whitespace-nowrap">Rs. ${itemTotal.toLocaleString()}</p>
                       </div>
                     `;
-                    })
-                    .join("")}
-                </div>
+                  })
+                  .join("")}
               </div>
-            </div>
 
-            <!-- Right Column - Payment Summary -->
-            <div class="lg:col-span-1">
-              <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 text-white h-full">
-                <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                  <Receipt size="18" />
-                  Payment Summary
-                </h3>
-                <div class="space-y-3">
-                  <div class="flex justify-between text-sm">
-                    <span class="text-slate-300">Subtotal</span>
-                    <span class="font-bold">Rs. ${subTotal.toLocaleString()}</span>
-                  </div>
-                  <div class="flex justify-between text-sm">
-                    <span class="text-slate-300">Delivery Fee</span>
-                    <span class="font-bold text-brand-400">+ Rs. ${deliveryFee.toLocaleString()}</span>
-                  </div>
-                  <div class="border-t border-slate-700 my-3 pt-3">
-                    <div class="flex justify-between items-center">
-                      <span class="text-slate-300">Total</span>
-                      <span class="text-2xl font-bold text-white">Rs. ${finalTotal.toLocaleString()}</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-1">Cash on Delivery</p>
-                  </div>
+              <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                </div>
+                <div>
+                  <p class="m-0 text-xs font-bold text-slate-900">Cash on Delivery</p>
+                  <p class="m-0 text-[11px] text-slate-500">Pay when delivered</p>
                 </div>
               </div>
-            </div>
+            </section>
+
+            <section class="border border-slate-200 rounded-xl p-3">
+              <h2 class="m-0 text-sm font-bold text-slate-900 mb-3">Payment Summary</h2>
+
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between gap-2">
+                  <span class="text-slate-500">Subtotal</span>
+                  <span class="font-medium">Rs. ${subTotal.toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between gap-2">
+                  <span class="text-slate-500">Delivery Fee</span>
+                  <span class="font-medium">Rs. ${deliveryFee.toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between gap-2 text-emerald-700">
+                  <span>${hasCoupon ? `Discount (${orderedata.coupon.code})` : "Discount"}</span>
+                  <span class="font-medium">Rs. ${couponDiscount.toLocaleString()}</span>
+                </div>
+
+                <div class="border-t border-dashed border-slate-200 pt-3 mt-3">
+                  <p class="m-0 text-xs text-slate-500">Total Amount</p>
+                  <p class="m-0 text-2xl font-extrabold text-emerald-700 mt-1">Rs. ${finalTotal.toLocaleString()}</p>
+                </div>
+              </div>
+            </section>
+
           </div>
 
-          <div class="mt-5 bg-brand-50/30 rounded-xl p-4 border border-brand-100">
-            <label class="flex items-start gap-3 cursor-pointer group">
-              <div class="relative mt-0.5">
-                <input type="checkbox" id="codTerms" class="sr-only" />
-                <div class="w-5 h-5 rounded-md border-2 border-emerald-300 group-hover:border-emerald-600 transition-colors flex items-center justify-center checked-indicator">
-                  <svg class="w-3 h-3 text-brand-600 hidden check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
+          <!-- Agreement -->
+          <label class="flex items-start gap-2 mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer group">
+            <div class="relative mt-0.5">
+              <input type="checkbox" id="codTerms" class="sr-only" />
+              <div class="w-4 h-4 rounded border-2 border-emerald-300 group-hover:border-emerald-600 transition-colors flex items-center justify-center checked-indicator">
+                <svg class="w-2.5 h-2.5 text-emerald-700 hidden check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
               </div>
-              <div class="flex-1">
-                <span class="text-sm text-slate-700 font-medium">
-                  I agree to pay <span class="font-bold text-brand-600">Rs. ${finalTotal.toLocaleString()}</span> in cash upon delivery
-                </span>
-                <p class="text-xs text-slate-500 mt-1">By confirming, you agree to our terms and conditions</p>
-              </div>
-            </label>
-          </div>
+            </div>
+            <span class="text-xs text-slate-600">
+              I agree to pay <strong class="text-slate-900">Rs. ${finalTotal.toLocaleString()}</strong> in cash upon delivery.
+            </span>
+          </label>
         </div>
       `,
       showCancelButton: true,
-      confirmButtonText: `
-        <div class="flex items-center gap-2 px-3 sm:px-4">
-          <span class="text-sm sm:text-base">Confirm Order</span>
-          <ArrowRight size="16" />
-        </div>
-      `,
+      confirmButtonText: "Confirm Order",
       cancelButtonText: "Go Back",
       confirmButtonColor: "#10b981",
       cancelButtonColor: "#64748b",
       customClass: {
-        popup: "!rounded-2xl sm:!rounded-3xl !shadow-2xl !p-4 sm:!p-6",
-        confirmButton:
-          "!rounded-xl !px-5 sm:!px-8 !py-3 sm:!py-4 !font-bold !text-sm sm:!text-base !bg-brand-600 hover:!bg-brand-700",
-        cancelButton:
-          "!rounded-xl !px-5 sm:!px-8 !py-3 sm:!py-4 !font-bold !text-sm sm:!text-base !bg-slate-100 !text-slate-700 hover:!bg-slate-200",
+        popup: "!rounded-2xl !shadow-xl !p-4 sm:!p-5",
+        confirmButton: "!rounded-xl !py-3 !px-5 !font-bold !text-sm !bg-emerald-600 hover:!bg-emerald-700",
+        cancelButton: "!rounded-xl !py-3 !px-5 !font-bold !text-sm !bg-slate-100 !text-slate-700 hover:!bg-slate-200",
       },
       buttonsStyling: true,
       reverseButtons: true,

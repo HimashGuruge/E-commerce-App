@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import Order from "../models/Order.js";
-import Message from "../models/Message.js";
+import Notification from "../models/Notification.js";
 import { emitToUser } from "./socketService.js";
 import { generateReviewReminders } from "./reviewReminderService.js";
 
@@ -55,16 +55,19 @@ async function processShippedOrders() {
         await order.save();
 
         try {
-          await Message.create({
-            sender: order.user,
-            recipient: order.user,
-            orderRef: order._id,
+          // Delivery detection is a transactional event: deliver it through the
+          // notification feed, not the support chat. The "delivered" state
+          // already triggers review reminders below.
+          const statusNotice = await Notification.create({
+            user: order.user,
+            type: "ORDER_STATUS",
+            order: order._id,
+            title: "Order delivered",
             message: `✅ Order #${order._id} has been delivered (auto-detected via tracking).`,
-            senderType: "bot",
-            isAdmin: true,
-            isBot: true,
-            adminRead: true,
-            userRead: false,
+          });
+          emitToUser(order.user, "notification:new", {
+            id: statusNotice._id,
+            type: statusNotice.type,
           });
         } catch (msgErr) {
           console.error(`[TrackingService] Failed to notify user for order ${order._id}:`, msgErr.message);

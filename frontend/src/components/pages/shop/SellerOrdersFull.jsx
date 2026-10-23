@@ -154,6 +154,18 @@ export default function SellerOrdersFull() {
 
   const handleStatusUpdate = async (orderId, status, trackingNumber) => {
     setUpdatingId(orderId);
+    // Show the new status (and its color) immediately, before the API answer
+    setOrders((prev) =>
+      prev.map((o) =>
+        o._id === orderId
+          ? {
+              ...o,
+              orderStatus: status,
+              trackingNumber: trackingNumber || o.trackingNumber,
+            }
+          : o
+      )
+    );
     try {
       await api.put(`/api/orders/admin/update-order-status/${orderId}`, {
         status,

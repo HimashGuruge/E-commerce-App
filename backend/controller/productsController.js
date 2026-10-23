@@ -11,7 +11,7 @@ import logger from "../utils/logger.js";
 import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import { productUpload } from "../middleware/uploadMiddleware.js";
 import { recalcParentStock } from "./productVariantController.js";
-import { notifyAdminsOfSellerEvent } from "./notificationController.js";
+import { notifyAdminsOfSellerEvent, createSellerAlert } from "./notificationController.js";
 
 export const onUpload = asyncHandler(async (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -362,9 +362,9 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     // deleting their own product is not a rejection — no notification.
     if (rejectNotify) {
       try {
-        const notification = await Notification.create({
+        // Deduped: one open alert per seller per title+text
+        const { notification } = await createSellerAlert({
           user: rejectNotify.sellerId,
-          type: "SELLER_ALERT",
           title: "Product Rejected",
           message: `Your product "${rejectNotify.name}" was rejected and removed from the marketplace.`,
         });
@@ -382,6 +382,75 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     res.json({ success: true, message: "Product deleted" });
   } catch (error) {
     logger.error("Delete product error:", error);
+    throw error;
+  }
+});
+
+export const deleteProductsBulk = asyncHandler(async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    if (ids.length === 0) {
+      res.status(400);
+      throw new Error("No product ids provided");
+    }
+    const validIds = ids.filter((id) => mongoose.isValidObjectId(id));
+    if (validIds.length === 0) {
+      res.status(400);
+      throw new Error("No valid product ids provided");
+    }
+
+    const toDelete = await Product.find({ _id: { $in: validIds } });
+    // Seller can only delete own products; admin can delete anything.
+    const forbidden = toDelete.filter(
+      (p) => req.user.role === "seller" && p.seller?.toString() !== req.user._id.toString()
+    );
+    if (forbidden.length > 0) {
+      res.status(403);
+      throw new Error("You can only delete your own products");
+    }
+    if (toDelete.length === 0) {
+      res.status(404);
+      throw new Error("No products found to delete");
+    }
+
+    // Collect rejections (admin removing pending/unapproved products) so we
+    // can alert the sellers, mirroring the single-delete behaviour.
+    const rejections = toDelete.filter(
+      (p) => req.user.role === "admin" && !p.approvedByAdmin && p.seller
+    );
+
+    await Product.deleteMany({ _id: { $in: toDelete.map((p) => p._id) } });
+
+    // Cascade child variants for parent products (same as single delete).
+    const parents = toDelete.filter((p) => p.isVariantParent && p.variants?.length > 0);
+    if (parents.length > 0) {
+      const Variant = mongoose.model("Variant");
+      const variantIds = parents.flatMap((p) => p.variants);
+      await Variant.deleteMany({ _id: { $in: variantIds } });
+    }
+
+    for (const p of rejections) {
+      try {
+        // Deduped: one open alert per seller per title+text
+        const { notification } = await createSellerAlert({
+          user: p.seller,
+          title: "Product Rejected",
+          message: `Your product "${p.name}" was rejected and removed from the marketplace.`,
+        });
+        emitToUser(String(p.seller), "seller:alert", notification);
+      } catch (err) {
+        logger.error("Failed to notify seller of product rejection:", err);
+      }
+    }
+
+    if (rejections.length > 0) {
+      // Real-time: refresh the admin sidebar Pending Approvals badge
+      emitToAdmins("admin:stats-changed", { count: rejections.length, type: "product" });
+    }
+
+    res.json({ success: true, deleted: toDelete.length });
+  } catch (error) {
+    logger.error("Bulk delete products error:", error);
     throw error;
   }
 });
@@ -548,9 +617,9 @@ export const adminApproveProduct = asyncHandler(async (req, res) => {
   // (badge + live "seller:alert" event; no duplicate if already approved)
   if (!wasApproved && product.seller) {
     try {
-      const notification = await Notification.create({
+      // Deduped: one open alert per seller per title+text
+      const { notification } = await createSellerAlert({
         user: product.seller,
-        type: "SELLER_ALERT",
         title: "Product Approved",
         message: `Your product "${product.name}" has been approved and is now live on the marketplace.`,
         product: product._id,
@@ -562,6 +631,57 @@ export const adminApproveProduct = asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, product: formatProduct(product) });
+});
+
+// @desc    Admin approve several seller products at once
+// @route   PUT /api/products/bulk/approve
+export const approveProductsBulk = asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  if (ids.length === 0) {
+    res.status(400);
+    throw new Error("No product ids provided");
+  }
+  const validIds = ids.filter((id) => mongoose.isValidObjectId(id));
+  if (validIds.length === 0) {
+    res.status(400);
+    throw new Error("No valid product ids provided");
+  }
+
+  // Mirror single-product approval (adminApproveProduct) over every id, in one pass.
+  const results = await Promise.all(
+    validIds.map(async (id) => {
+      const product = await Product.findById(id);
+      if (!product) return { id, ok: false, reason: "not_found" };
+      const wasApproved = product.approvedByAdmin;
+      product.approvedByAdmin = true;
+      product.status = "active";
+      await product.save();
+
+      if (!wasApproved && product.seller) {
+        try {
+          // Deduped: one open alert per seller per title+text
+          const { notification } = await createSellerAlert({
+            user: product.seller,
+            title: "Product Approved",
+            message: `Your product "${product.name}" has been approved and is now live on the marketplace.`,
+            product: product._id,
+          });
+          emitToUser(String(product.seller), "seller:alert", notification);
+        } catch (err) {
+          logger.error("Failed to notify seller of product approval:", err);
+        }
+      }
+      return { id, ok: true, wasApproved };
+    })
+  );
+
+  const approved = results.filter((r) => r.ok).length;
+  // Real-time: refresh the admin sidebar Pending Approvals badge once for all new approvals (same as single-approve).
+  if (results.some((r) => r.ok && !r.wasApproved)) {
+    emitToAdmins("admin:stats-changed", { count: approved, type: "product" });
+  }
+
+  res.json({ success: true, approved, total: validIds.length });
 });
 
 // @desc    Admin: list all unapproved seller products (pending-approval queue)

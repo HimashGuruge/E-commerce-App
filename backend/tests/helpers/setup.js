@@ -59,8 +59,28 @@ function freePort() {
  */
 const WEDGE_WATCHDOG_MS = 12000;
 const MAX_MONGOD_RESTARTS = 3;
+// retryTest gets its own attempt budget, separate from the per-reset respawn
+// cap. On this machine wedges cluster: several freshly spawned instances in
+// a row can all wedge, so one test needs more attempts than MAX_MONGOD_RESTARTS.
+// Each attempt costs at worst ~10 s (driver op timeout) + respawn time, so 5
+// stays under the suites' 180 s jest cap.
+const MAX_RETRY_ATTEMPTS = 5;
+// Hard client-side deadline for request(): a wedged route handler is capped
+// by the driver's global timeoutMS (10 s) and would otherwise surface as a
+// bare 500; 60 s still leaves headroom under the suites' jest cap.
+const REQUEST_DEADLINE_MS = 60_000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * True when an error was caused by a wedged/unreachable test mongod (driver
+ * timeout, unresponsive watchdog, dropped socket, fetch failure) rather than
+ * a genuine application/assertion failure. Only such errors are retried.
+ */
+const WEDGE_PATTERNS =
+  /unresponsive|unreachable|wedged|timed out|timeoutMS|MongoTimeoutError|MongoServerSelectionError|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|other side closed|connection closed|fetch failed|UND_ERR/i;
+
+const isWedgeError = (err) => WEDGE_PATTERNS.test(String(err?.stack ?? err));
 
 /** Await a driver operation with a hard client-side deadline. */
 async function raceWithDeadline(promise, ms, label) {
@@ -157,10 +177,14 @@ async function tryConnect(uri) {
       // timeoutMS is the per-operation deadline: a wedged server then fails a
       // driver op with a quick MongoTimeoutError (~10s) instead of hanging
       // indefinitely, so recovery stays fast and failures are informative.
+      // maxPoolSize: 1 — a single shared socket, so there is no "pool split
+      // brain" where one half-dead pooled socket stalls a specific op while
+      // ping rides a healthy one. Wedges are then uniform and detectable.
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 1500,
         connectTimeoutMS: 1500,
         timeoutMS: 10000,
+        maxPoolSize: 1,
       });
       await raceWithDeadline(mongoose.connection.db.command({ ping: 1 }), 5000, "initial ping");
       return true;
@@ -201,6 +225,41 @@ async function respawnTestMongod() {
     } catch {}
   }
   return ensureFreshDb();
+}
+
+/**
+ * Run a DB-dependent test body with wedge recovery.
+ *
+ * If the attempt fails with an error that looks like a wedged test mongod
+ * (driver timeout, unresponsive watchdog, dropped socket) — and not a real
+ * assertion failure — the test mongod is torn down, a fresh instance is
+ * spawned, the test's seed data is dropped, and the body runs again (up to
+ * MAX_RETRY_ATTEMPTS attempts in total). Genuine assertion failures are
+ * re-thrown as-is so real bugs still fail the suite.
+ */
+export async function retryTest(fn) {
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    try {
+      await fn();
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (!isWedgeError(err) || attempt >= MAX_RETRY_ATTEMPTS) throw err;
+      console.error(
+        `[setup] test attempt ${attempt} hit a wedged test mongod (${err.message}) — respawning and retrying`
+      );
+      await respawnTestMongod();
+      try {
+        await raceWithDeadline(resetCollections(), WEDGE_WATCHDOG_MS, "post-respawn resetCollections");
+      } catch (resetErr) {
+        if (!isWedgeError(resetErr)) throw resetErr;
+        // Fresh instance failed the reset too — keep the recovery loop going.
+        lastErr = resetErr;
+      }
+    }
+  }
+  throw lastErr;
 }
 
 export async function connectDb() {
@@ -289,23 +348,51 @@ export async function stopServer(app) {
 
 export const serverUrl = (app) => `http://127.0.0.1:${app.server?.address()?.port}`;
 
-/** Supertest-style request against a running app: returns { status, body }. */
+/**
+ * Supertest-style request against a running app: returns { status, body }.
+ *
+ * Wedge defense: the fetch itself gets a hard client-side deadline. When the
+ * route answers 500, the error text in the body is checked against
+ * WEDGE_PATTERNS — the app's error middleware echoes the driver error
+ * message (e.g. a MongoTimeoutError from the driver's timeoutMS), so a
+ * half-dead pooled socket that still answers ping but stalls a specific
+ * op is classified as a wedge. A matching 500 is thrown (instead of
+ * returned) so the caller's recovery path (retryTest / next beforeEach)
+ * can respawn the test mongod. Healthy servers and genuine app failures
+ * are returned untouched.
+ */
 export async function request(app, method, path, { token, body, query } = {}) {
   const url = new URL(path, serverUrl(app));
   if (query) for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
   const headers = { "content-type": "application/json" };
   if (token) headers.authorization = `Bearer ${token}`;
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const res = await raceWithDeadline(
+    fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+    REQUEST_DEADLINE_MS,
+    `request ${method} ${path}`
+  );
   let parsed;
   const text = await res.text();
   try {
     parsed = JSON.parse(text);
   } catch {
     parsed = null;
+  }
+  if (res.status === 500) {
+    const errText = String(parsed?.error ?? parsed?.message ?? text);
+    if (WEDGE_PATTERNS.test(errText)) {
+      // Truncate: the body is often the full HTML error page (with a stack
+      // trace), and dumping all of it buries the useful part of the failure.
+      const snippet = errText.length > 300 ? errText.slice(0, 300).trimEnd() + "…" : errText;
+      throw Object.assign(
+        new Error(`${method} ${path}: route hit 500 from a wedged test mongod (${snippet})`),
+        { cause: new Error(errText) }
+      );
+    }
   }
   return { status: res.status, body: parsed };
 }

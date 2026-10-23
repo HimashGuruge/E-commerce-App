@@ -66,13 +66,10 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
     const unsubMsg = onSocketEvent(["seller:new-message"], fetchUnreadMessages);
     // New buyer order → refresh the pending-orders badge live
     const unsubNewOrder = onSocketEvent(["seller:new-order"], refresh);
-    // Polling fallback keeps the badge fresh if the socket is unavailable
-    const poll = setInterval(fetchUnreadMessages, 30000);
     window.addEventListener("seller-orders-changed", refresh);
     window.addEventListener("seller-alerts-changed", onAlertsChanged);
     window.addEventListener("seller-messages-changed", onMessagesChanged);
     return () => {
-      clearInterval(poll);
       window.removeEventListener("seller-orders-changed", refresh);
       window.removeEventListener("seller-alerts-changed", onAlertsChanged);
       window.removeEventListener("seller-messages-changed", onMessagesChanged);

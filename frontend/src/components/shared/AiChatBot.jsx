@@ -568,7 +568,9 @@ export default function ChatBot() {
         const next = [...prev, msg];
         return next.length > 20 ? next.slice(-20) : next;
       });
-      if (!msg.userRead) setChatUnreadCount((n) => n + 1);
+      // Only admin replies drive the badge (matches backend unread-chat-count)
+      if (!msg.userRead && msg.senderType === "admin")
+        setChatUnreadCount((n) => n + 1);
     });
   }, []);
 
@@ -577,18 +579,17 @@ export default function ChatBot() {
     fetchChatUnreadCount();
   }, [fetchChatUnreadCount, fetchUserProfile]);
 
-  // Clear badge when chat opens + mark messages as read in backend
-  const chatClearedRef = useRef(false);
+  // Clear badge while the chat is open + mark messages as read in backend.
+  // No ref guard: every time the badge goes above 0 while open, we clear it
+  // and persist read state, so a reply arriving mid-conversation also clears.
   useEffect(() => {
-    if (isOpen && chatUnreadCount > 0 && !chatClearedRef.current) {
-      chatClearedRef.current = true;
+    if (isOpen && chatUnreadCount > 0) {
       setChatUnreadCount(0);
       // Tell backend to mark these messages as read so badge doesn't persist on refresh
       api.put("/api/messages/mark-user-read").catch((err) => {
         console.error("❌ Failed to mark messages as read:", err?.response?.data || err.message);
       });
     }
-    if (!isOpen) chatClearedRef.current = false;
   }, [isOpen, chatUnreadCount]);
 
   // Audio Player
@@ -651,7 +652,9 @@ export default function ChatBot() {
         const merged = [...prev, ...missing];
         return merged.length > 20 ? merged.slice(-20) : merged;
       });
-      setChatUnreadCount((n) => n + newMessages.filter((m) => !m.userRead).length);
+      setChatUnreadCount(
+        (n) => n + newMessages.filter((m) => !m.userRead && m.senderType === "admin").length
+      );
     } catch (err) {
       console.error("❌ Catch-up fetch error:", err);
     }

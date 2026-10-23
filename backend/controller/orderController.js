@@ -4,7 +4,7 @@ import { emitToUser, emitToAdmins } from "../services/socketService.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
-import Message from "../models/Message.js";
+import Notification from "../models/Notification.js";
 import logger from "../utils/logger.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
@@ -283,22 +283,19 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
     };
     const emoji = statusEmoji[req.body.status] || "📦";
     const trackingInfo = order.trackingNumber ? `\nTracking: ${order.trackingNumber} (${order.courier || "N/A"})` : "";
-    const statusMsg = await Message.create({
-      sender: req.user._id,
-      recipient: order.user?._id || order.user,
-      orderRef: order._id,
+    // Order status changes are transactional events: deliver them through the
+    // buyer's notification feed (not the support chat).
+    const statusNotice = await Notification.create({
+      user: order.user?._id || order.user,
+      type: "ORDER_STATUS",
+      order: order._id,
+      title: "Order status updated",
       message: `${emoji} Order #${order._id} status updated: ${oldStatus} → ${req.body.status}${trackingInfo}`,
-      senderType: "bot",
-      isAdmin: true,
-      adminRead: true,
-      userRead: false,
     });
-    // Real-time: push the bot status note to the buyer's open chat instantly
-    emitToUser(order.user?._id || order.user, "chat:new-message", statusMsg);
-    // Ping admins so their chat centre refreshes without waiting for polling
-    emitToAdmins("chat:unseen-user", {
-      userId: order.user?._id || order.user,
-      userName: order.user?.name || "A user",
+    // Real-time: bump the buyer's notification badge if they're online
+    emitToUser(order.user?._id || order.user, "notification:new", {
+      id: statusNotice._id,
+      type: statusNotice.type,
     });
   } catch (err) {
     logger.error("Failed to send order status notification:", err);

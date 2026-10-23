@@ -29,7 +29,6 @@ const TYPE_CONFIG = {
   ORDER_STATUS: { icon: Truck, color: "text-blue-500", bg: "bg-blue-50", label: "Order Status" },
   admin_reply: { icon: MessageSquare, color: "text-brand-500", bg: "bg-brand-50", label: "Admin Reply" },
   REVIEW_REMINDER: { icon: Star, color: "text-yellow-500", bg: "bg-yellow-50", label: "Review Reminder" },
-  SELLER_ALERT: { icon: Bell, color: "text-brand-500", bg: "bg-brand-50", label: "Alert" },
 };
 const FALLBACK_TYPE = { icon: Bell, color: "text-slate-500", bg: "bg-slate-100", label: "Notification" };
 

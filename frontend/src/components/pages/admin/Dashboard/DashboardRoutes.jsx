@@ -10,14 +10,10 @@ import EditProducts from "@/components/pages/admin/products/EditProducts.jsx";
 import Notification from "@/components/pages/admin/orders/Notification.jsx";
 import StatCard from "@/components/pages/admin/Dashboard/StatCard.jsx";
 import OrderedPage from "@/components/pages/admin/Dashboard/AdminOrderedPage.jsx";
-import AdsManagement from "@/components/pages/admin/marketing/AdsManagement.jsx";
-import AnnouncementManagement from "@/components/pages/admin/marketing/AnnouncementManagement.jsx";
+import HomeMarketing from "@/components/pages/admin/marketing/HomeMarketing.jsx";
 import CouponManagement from "@/components/pages/admin/marketing/CouponManagement.jsx";
 import ControllerUsersPrevilegepage from "@/components/pages/admin/users/ControlUsersprivilege.jsx";
 import FeedbackManagement from "@/components/pages/admin/marketing/FeedbackManagement.jsx";
-import ManageServices from "./ManageServices";
-import TrendingManagement from "@/components/pages/admin/marketing/TrendingManagement.jsx";
-import FeaturesManagement from "@/components/pages/admin/marketing/FeaturesManagement.jsx";
 import SettingsManagement from "@/components/pages/admin/marketing/SettingsManagement.jsx";
 import AdminSellerManagement from "@/components/pages/admin/marketing/AdminSellerManagement.jsx";
 import AdminSellerDetail from "@/components/pages/admin/marketing/AdminSellerDetail.jsx";
@@ -282,14 +278,10 @@ export default function DashboardRoutes() {
       <Route path="editproducts/:productId" element={<EditProducts />} />
       <Route path="notification" element={<Notification />} />
       <Route path="orders" element={<OrderedPage />} />
-      <Route path="ads" element={<AdsManagement />} />
-      <Route path="announcements" element={<AnnouncementManagement />} />
       <Route path="coupons" element={<CouponManagement />} />
-      <Route path="home-services-management" element={<ManageServices />} />
+      <Route path="home-marketing" element={<HomeMarketing />} />
       <Route path="user-privileges" element={<ControllerUsersPrevilegepage />} />
       <Route path="feedback" element={<FeedbackManagement />} />
-      <Route path="trending" element={<TrendingManagement />} />
-      <Route path="features" element={<FeaturesManagement />} />
       <Route path="settings" element={<SettingsManagement />} />
       <Route path="sellers" element={<AdminSellerManagement />} />
       <Route path="sellers/:sellerId" element={<AdminSellerDetail />} />
