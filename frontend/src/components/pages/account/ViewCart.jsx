@@ -404,7 +404,16 @@ export default function ViewCart() {
           <div className="lg:col-span-2 space-y-6">
             {message && (
               <div className="p-4 bg-white border-l-4 border-amber-500 rounded-xl shadow-sm flex items-center text-amber-700 font-medium">
-                <AlertCircle className="h-5 w-5 mr-3 flex-shrink-0" /> {message}
+                <AlertCircle className="h-5 w-5 mr-3 flex-shrink-0" />
+                <span className="flex-1">{message}</span>
+                {!token && (
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="ml-4 flex-shrink-0 px-4 py-1.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors"
+                  >
+                    Log In
+                  </button>
+                )}
               </div>
             )}
 
