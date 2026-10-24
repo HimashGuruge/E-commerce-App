@@ -282,7 +282,7 @@ const handleEditCategory = async (cat) => {
           category: product.category || "General",
           brand: product.brand || "Unbranded",
           status: product.status || "pending",
-          highlights: Array.isArray(product.highlights) ? product.highlights.join(", ") : product.highlights || "",
+          highlights: Array.isArray(product.tags) ? product.tags.join(", ") : Array.isArray(product.highlights) ? product.highlights.join(", ") : product.highlights || "",
           whatsInTheBox: product.whatsInTheBox || "",
         });
         

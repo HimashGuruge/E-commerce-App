@@ -994,14 +994,10 @@ export default function ProductOverview() {
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-LK", {
-      style: "currency",
-      currency: "LKR",
+    return `Rs. ${(Number(price) || 0).toLocaleString("en-LK", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    })
-      .format(price)
-      .replace("LKR", "Rs.");
+    })}`;
   };
 
   const data = product;
@@ -1609,6 +1605,21 @@ export default function ProductOverview() {
               >
                 {descExpanded ? 'View Less' : 'View More'}
               </button>
+            )}
+            {Array.isArray(data.tags) && data.tags.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-start gap-2">
+                  <FiCheckCircle className="text-brand-500 mt-0.5 flex-shrink-0 w-4 h-4" />
+                  <div>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Key Features</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.tags.map((tag, i) => (
+                        <span key={i} className="text-xs text-gray-700 bg-gray-50 px-2.5 py-1 rounded-full">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
             {data.whatsInTheBox && (
               <div className="mt-4 pt-4 border-t border-gray-200">

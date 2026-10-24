@@ -369,7 +369,7 @@ export default function AdminAllProductView() {
                         </td>
                         <td className="p-4">
                           <span className="font-bold text-slate-900">
-                            ${parseFloat(product.price || 0).toFixed(2)}
+                            Rs. {parseFloat(product.price || 0).toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </td>
                         <td className="p-4">
