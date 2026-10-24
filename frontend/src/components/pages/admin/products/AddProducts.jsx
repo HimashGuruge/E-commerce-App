@@ -369,6 +369,13 @@ const handleEditCategory = async (cat) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // For price/stock fields: strip any minus sign so negative values are impossible.
+  const handleNumericChange = (e) => {
+    const { name, value } = e.target;
+    const clean = value.replace(/-/g, "");
+    setFormData(prev => ({ ...prev, [name]: clean }));
+  };
+
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setImages(files);
@@ -885,11 +892,11 @@ const handleEditCategory = async (cat) => {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Price (LKR) <span style={{ color: Colors.danger }}>*</span></label>
-                <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="0.00" min="0" step="0.01" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                <input type="number" name="price" value={formData.price} onChange={handleNumericChange} placeholder="0.00" min="0" step="0.01" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Selling Price</label>
-                <input type="number" name="sellingPrice" value={formData.sellingPrice} onChange={handleChange} placeholder="0.00" min="0" step="0.01" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                <input type="number" name="sellingPrice" value={formData.sellingPrice} onChange={handleNumericChange} placeholder="0.00" min="0" step="0.01" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>
 
@@ -906,7 +913,7 @@ const handleEditCategory = async (cat) => {
               ) : (
                 <>
                   <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Stock Quantity</label>
-                  <input type="number" name="stock" value={formData.stock} onChange={handleChange} placeholder="0" min="0" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  <input type="number" name="stock" value={formData.stock} onChange={handleNumericChange} placeholder="0" min="0" style={{ width: "100%", padding: "12px", border: `1px solid ${Colors.border}`, borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
                 </>
               )}
             </div>
@@ -1311,7 +1318,7 @@ const handleEditCategory = async (cat) => {
                                             type="number"
                                             min="0"
                                             value={variantStock}
-                                            onChange={(e) => setVariantStocks(prev => ({ ...prev, [variantKey]: parseInt(e.target.value) || 0 }))}
+                                            onChange={(e) => setVariantStocks(prev => ({ ...prev, [variantKey]: parseInt(e.target.value.replace(/-/g, "")) || 0 }))}
                                             placeholder="0"
                                             className={`w-full px-2 py-1.5 text-xs border rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white text-center ${Number(variantStock) === 0 ? "border-amber-300 text-amber-700" : "border-slate-200"}`}
                                           />
@@ -1322,7 +1329,7 @@ const handleEditCategory = async (cat) => {
                                             type="number"
                                             min="0"
                                             value={variantPrice}
-                                            onChange={(e) => setVariantPrices(prev => ({ ...prev, [variantKey]: parseFloat(e.target.value) || basePrice }))}
+                                            onChange={(e) => setVariantPrices(prev => ({ ...prev, [variantKey]: parseFloat(e.target.value.replace(/-/g, "")) || basePrice }))}
                                             placeholder={basePrice}
                                             className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white text-center"
                                           />

@@ -126,7 +126,7 @@ const Footer = () => {
           <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Mail size={24} style={{ color: footerSettings.newsletter?.iconColor || "#ffffff" }} />
-              <span className="font-bold text-lg" style={{ color: "rgb(0, 0, 0)" }}>
+              <span className="font-bold text-lg" style={{ color: footerSettings.newsletter?.textColor || "#ffffff" }}>
                 {footerSettings.newsletter?.title || "Subscribe & get 10% off your first order!"}
               </span>
             </div>

@@ -1,6 +1,29 @@
 import api from "@/utils/api";
 
-let cache = null;
+const LS_KEY = "sitePublicSettings";
+
+function readStoredSettings() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Only accept a plain object; ignore corrupt or unexpected values.
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSettings(settings) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(settings));
+  } catch {
+    // Storage unavailable (private mode, quota) — in-memory cache still works.
+  }
+}
+
+let cache = readStoredSettings();
 let pending = null;
 const listeners = new Set();
 
@@ -20,6 +43,7 @@ export function getPublicSettings({ force = false } = {}) {
       if (res.data?.success && res.data.settings) {
         cache = res.data.settings;
         pending = null;
+        writeStoredSettings(cache);
         notify(cache);
         return cache;
       }
@@ -43,7 +67,7 @@ export function subscribeToSettings(cb) {
   return () => listeners.delete(cb);
 }
 
-// Admin saves trigger this; next fetch will refetch fresh data.
+// Admin save triggers this; next fetch will refetch fresh data.
 export function invalidatePublicSettings() {
   cache = null;
 }

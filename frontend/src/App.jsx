@@ -2,7 +2,7 @@ import usePublicSettings from "@/hooks/usePublicSettings";
 import { injectFont, injectNavbar, injectTheme } from "@/utils/color";
 import { destroySocket, initSocket, onSocketEvent } from "@/utils/socket";
 import { Toaster } from "react-hot-toast";
-import React, { useEffect } from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import CategoryPage from "./components/pages/shop/CategoryPage.jsx";
 import Homepage from "./components/pages/shop/Homepage.jsx";
 import AiChatBot from "@/components/shared/AiChatBot.jsx";
@@ -139,9 +139,11 @@ function AppLayout() {
 }
 
 function App() {
-  const { settings } = usePublicSettings();
+  const { settings, refresh } = usePublicSettings();
 
-  useEffect(() => {
+  // useLayoutEffect so theme/font/navbar CSS variables are set before the
+  // browser paints the first frame — prevents the default-color flash.
+  useLayoutEffect(() => {
     if (!settings) return;
     if (settings.primaryColor) injectTheme(settings.primaryColor);
     if (settings.chatWidgetColor || settings.primaryColor) {
@@ -162,6 +164,9 @@ function App() {
   }, [settings]);
 
   useEffect(() => {
+    // Settings are warmed from localStorage for the first paint;
+    // refresh from the API so a fresh session always gets live values.
+    refresh();
     const handleAuthChange = () => {
       if (localStorage.getItem("token")) initSocket();
       else destroySocket();
