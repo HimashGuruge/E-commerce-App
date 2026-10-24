@@ -16,7 +16,6 @@ import {
   Briefcase,
   Mail,
   Wifi,
-  WifiOff,
   Sun,
   Moon,
 } from "lucide-react";
@@ -32,7 +31,6 @@ export default function Navbar() {
   const [hasUpdates, setHasUpdates] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [settings, setSettings] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,20 +124,6 @@ export default function Navbar() {
       window.removeEventListener("cartUpdated", updateCartCount);
     };
   }, [updateCartCount]);
-
-  // Online/Offline detection
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -665,32 +649,6 @@ export default function Navbar() {
                 >
                   <HiX size={22} />
                 </button>
-              </div>
-
-              {/* Online Status in Mobile Menu */}
-              <div className="px-4 pt-4 pb-2">
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isOnline ? "bg-green-50" : "bg-gray-50"}`}
-                >
-                  {isOnline ? (
-                    <>
-                      <div className="relative">
-                        <span className="absolute inset-0 rounded-full animate-ping bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                      </div>
-                      <span className="text-sm text-green-600 font-medium">
-                        You are online
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff size={14} className="text-gray-500" />
-                      <span className="text-sm text-gray-500 font-medium">
-                        You are offline
-                      </span>
-                    </>
-                  )}
-                </div>
               </div>
 
               <div className="p-4 flex flex-col gap-2">
