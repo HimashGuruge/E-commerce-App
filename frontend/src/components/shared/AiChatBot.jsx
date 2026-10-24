@@ -188,6 +188,7 @@ export default function ChatBot() {
   const [input, setInput] = useState("");
   const [showJumpButton, setShowJumpButton] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [streamText, setStreamText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [selectedLang, setSelectedLang] = useState(
@@ -485,11 +486,11 @@ export default function ChatBot() {
     if (hasNewMessage && shouldAutoScroll) {
       scrollToBottom("smooth");
       prevMessageLength.current = currentLength;
-    } else if (loading && shouldAutoScroll) {
-      // Keep the typing dots in view while waiting for the reply
+    } else if ((loading || streamText) && shouldAutoScroll) {
+      // Keep the typing dots / live typing bubble in view
       scrollToBottom("smooth");
     }
-  }, [allMessages, isOpen, shouldAutoScroll, scrollToBottom, isChatLoading, loading]);
+  }, [allMessages, isOpen, shouldAutoScroll, scrollToBottom, isChatLoading, loading, streamText]);
 
   // Reset state when chat closes
   useEffect(() => {
@@ -499,6 +500,7 @@ export default function ChatBot() {
       prevScrollHeight.current = 0;
       setCursor(null);
       setHasMore(true);
+      setStreamText("");
       hasFetchedSession.current = false;
     }
   }, [isOpen]);
@@ -557,10 +559,24 @@ export default function ChatBot() {
     }
   }, [fetchChatUnreadCount, fetchUserProfile]);
 
+  // Real-time: live AI answer typing — show the partial text as chunks arrive
+  useEffect(() => {
+    const chunkUnsub = onSocketEvent("chat:stream-chunk", (data) => {
+      if (data && typeof data.text === "string") {
+        setStreamText(data.text);
+      }
+    });
+    return () => {
+      chunkUnsub();
+    };
+  }, []);
+
   // Real-time: push new chat messages instantly (replaces 5s polling as primary path)
   useEffect(() => {
     return onSocketEvent("chat:new-message", (msg) => {
       if (!msg?._id) return;
+      // A bot reply arrived — stop showing the live typing bubble
+      if (msg.senderType === "bot") setStreamText("");
       if (msg._id === lastMessageIdRef.current) return; // already visible
       lastMessageIdRef.current = msg._id;
       setAllMessages((prev) => {
@@ -707,11 +723,12 @@ export default function ChatBot() {
         createdAt: new Date().toISOString(),
       };
 
-       // Clear input immediately
-       setAllMessages((prev) => [...prev, optimisticUserMsg]);
-       setLoading(true);
-       setInput("");
-       requestAnimationFrame(autoGrowInput);
+        // Clear input immediately
+        setAllMessages((prev) => [...prev, optimisticUserMsg]);
+        setLoading(true);
+        setStreamText("");
+        setInput("");
+        requestAnimationFrame(autoGrowInput);
 
       // Extract and clear selected image before upload
       setSelectedImage(null);
@@ -763,6 +780,9 @@ export default function ChatBot() {
           },
         );
 
+        // The final saved answer arrived (or a canned reply) — stop the live typing bubble
+        setStreamText("");
+
         if (data?.success) {
           const newMsgs = Array.isArray(data.messages)
             ? data.messages
@@ -795,6 +815,7 @@ export default function ChatBot() {
         
         // Clean up optimistic message only
         setAllMessages((prev) => prev.filter((m) => m._id !== tempId));
+        setStreamText("");
         
         Swal.fire({
           icon: "error",
@@ -1223,7 +1244,19 @@ export default function ChatBot() {
                 </>
               )}
 
-              {loading && !isChatLoading && <TypingIndicator />}
+              {!isChatLoading && streamText ? (
+                <MessageBubble
+                  msg={{
+                    _id: "stream-preview",
+                    message: streamText,
+                    senderType: "bot",
+                    createdAt: new Date().toISOString(),
+                  }}
+                  userProfilePic={userProfilePic}
+                />
+              ) : (
+                loading && <TypingIndicator />
+              )}
 
               {/* Pending audio play button */}
               {pendingAudio && (
