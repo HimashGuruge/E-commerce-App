@@ -6,6 +6,7 @@ import { HiMenuAlt3, HiX } from "react-icons/hi";
 import { RxExit } from "react-icons/rx";
 import {
   ShoppingCart,
+  Search,
   Package,
   LogOut,
   ChevronRight,
@@ -460,7 +461,7 @@ export default function Navbar() {
                     className="px-3 lg:px-6 py-1 lg:py-3 bg-brand-500 text-white font-semibold text-xs lg:text-sm rounded-r-lg hover:bg-brand-600 transition-colors"
                   >
                     <span className="hidden lg:inline">SEARCH</span>
-                    <span className="lg:hidden">🔍</span>
+                    <span className="lg:hidden"><Search size={15} style={{ fill: "white" }} /></span>
                   </button>
               </div>
               
