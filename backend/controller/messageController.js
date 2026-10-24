@@ -172,6 +172,68 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
     });
   }
 
+  // 2c. Instant canned replies for small talk (no AI call, replies in under a second)
+  const compactMsg = displayMessage.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  const SMALL_TALK_GROUPS = [
+    {
+      phrases: new Set(["hi", "hii", "hiii", "hello", "hey", "hey hey", "hiya", "good morning", "good afternoon", "good evening", "good night", "ayubowan"]),
+      en: "Hi! 👋 I'm your store assistant. Ask me about products, orders, or your cart.",
+      si: "හිය! 👋 මම ඔබේ වෙළඳසැල සහායක. නිෂ්පාදන, ඇණවුම් හෝ කාට්ට් ගැන ඕනිම දෙයක් අහන්න.",
+    },
+    {
+      phrases: new Set(["how are you", "how r u", "hru", "how are u", "how do you do", "how is it going", "wassup"]),
+      en: "I'm good, thanks! 😊 How can I help with your store today?",
+      si: "මම හොඳයි, ස්තූතියි! 😊 අද වෙළඳසැල ගැන කුමක් උදව් කරන්න ද?",
+    },
+    {
+      phrases: new Set(["thanks", "thank you", "thx", "ty"]),
+      en: "You're welcome! Is there anything else I can help with?",
+      si: "ස්තූතියි! තවත් උදව් කරන්න ද?",
+    },
+    {
+      phrases: new Set(["bye", "bye bye", "see you", "see ya", "cya", "good bye", "goodbye"]),
+      en: "Bye! 👋 I'm here if you need anything.",
+      si: "විලේහි! 👋 ඕනි නම් මම මේතැන ඉන්නවා.",
+    },
+  ];
+
+  let cannedReply = null;
+  for (const group of SMALL_TALK_GROUPS) {
+    if (group.phrases.has(compactMsg)) {
+      cannedReply = effectiveLang === "si-LK" ? group.si : group.en;
+      break;
+    }
+  }
+
+  if (cannedReply) {
+    let adminUser = await User.findOne({ role: "admin" });
+    if (!adminUser) {
+      const adminUsers = await User.find().limit(1);
+      adminUser = adminUsers[0];
+    }
+
+    const cannedMsg = await Message.create({
+      sender: adminUser?._id || userId,
+      recipient: userId,
+      message: cannedReply,
+      language: effectiveLang,
+      senderType: "bot",
+      isAdmin: true,
+      adminRead: true,
+      userRead: false,
+    });
+
+    // Real-time: push the canned reply to the user's open chat
+    emitToUser(userId, "chat:new-message", cannedMsg);
+
+    return res.status(201).json({
+      success: true,
+      messages: [userMsg, cannedMsg],
+      audio: null,
+    });
+  }
+
   // 3. Fetch user context for AI
   let user = null;
   let products = [];
@@ -252,7 +314,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
       "1. ONLY answer questions about products, orders, cart, or wishlist from this store",
       "2. For product questions, recommend ONLY from the available products list above",
       "3. For order inquiries, reference ONLY the user's recent orders above",
-      "4. If the user asks anything else (general chat, advice, coding, etc.), politely say you can only help with store-related questions and suggest @admin",
+      "4. If the user asks anything outside the store (small talk, weather, coding, general chat), reply with ONE short friendly sentence staying in your role, and suggest @admin for a person",
       "5. Be very concise — 1-2 sentences max",
       "6. Never roleplay, never generate code, never answer general knowledge questions",
     ].join("\n"));
