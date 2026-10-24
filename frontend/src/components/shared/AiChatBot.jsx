@@ -42,10 +42,25 @@ const MessageBubble = React.memo(({ msg, userProfilePic }) => {
   const label = senderType === "bot" ? "AI Assistant" : "Support";
   const accentColor = senderType === "admin" ? "#2563eb" : "var(--chat-color)";
 
+  const sameDay = (a, b) => a.toDateString() === b.toDateString();
+  // Timestamp rules: today = "7:42 PM", yesterday = "Yesterday, 7:42 PM",
+  // older = "Oct 20, 2026, 7:42 PM".
   const formatTime = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (isNaN(date.getTime())) return "";
+    const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const now = new Date();
+    const yest = new Date();
+    yest.setDate(now.getDate() - 1);
+    if (sameDay(date, now)) return time;
+    if (sameDay(date, yest)) return `Yesterday, ${time}`;
+    const day = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    return `${day}, ${time}`;
   };
 
   return (
@@ -181,6 +196,24 @@ const getChatColorCookie = () => {
   return null;
 };
 
+// Merge one incoming chat message into the list — dedupe-safe by _id and
+// chronological (oldest first), so delivery timing can never scramble order.
+// If replaceTempId is given, that optimistic bubble is dropped first
+// (server-confirmed replacement of our own just-sent message).
+const mergeChatMessages = (prev, msg, replaceTempId = null) => {
+  let next = replaceTempId ? prev.filter((m) => m._id !== replaceTempId) : [...prev];
+  const idx = next.findIndex((m) => String(m._id) === String(msg._id));
+  if (idx !== -1) next[idx] = { ...next[idx], ...msg };
+  else next.push(msg);
+  next.sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (ta !== tb) return ta - tb;
+    return String(a._id || "") < String(b._id || "") ? -1 : 1;
+  });
+  return next.length > 20 ? next.slice(-20) : next;
+};
+
 export default function ChatBot() {
   const navigate = useNavigate();
 
@@ -219,6 +252,16 @@ export default function ChatBot() {
   const lastMessageIdRef = useRef(null);
   const chatBadgeRef = useRef(0);
   const [pendingAudio, setPendingAudio] = useState(null);
+  // _id of the in-flight optimistic "user" bubble, so the server-confirmed
+  // message (via socket) can replace it without leaving a duplicate.
+  const pendingTempIdRef = useRef(null);
+
+  // The ONLY place new messages / server confirmations enter the list.
+  // Merges by _id (dedupe-safe) and keeps the list chronological, so
+  // delivery timing can never scramble order.
+  const addOrReplaceMessage = useCallback((msg) => {
+    setAllMessages((prev) => mergeChatMessages(prev, msg));
+  }, []);
 
   // Dynamic brand color from settings — module cache → cookie → CSS var → fallback
   const getInitialColor = () => {
@@ -571,24 +614,26 @@ export default function ChatBot() {
     };
   }, []);
 
-  // Real-time: push new chat messages instantly (replaces 5s polling as primary path)
+  // Real-time: the socket is the single source of truth for the chat list.
+  // Each event upserts by _id (dedupe-safe) and keeps the list chronological.
   useEffect(() => {
     return onSocketEvent("chat:new-message", (msg) => {
       if (!msg?._id) return;
       // A bot reply arrived — stop showing the live typing bubble
       if (msg.senderType === "bot") setStreamText("");
-      if (msg._id === lastMessageIdRef.current) return; // already visible
+      // Server confirmed OUR in-flight message: replace the temp bubble with it.
+      const tempId =
+        msg.senderType === "user" && pendingTempIdRef.current
+          ? pendingTempIdRef.current
+          : null;
+      if (tempId) pendingTempIdRef.current = null;
+      setAllMessages((prev) => mergeChatMessages(prev, msg, tempId));
       lastMessageIdRef.current = msg._id;
-      setAllMessages((prev) => {
-        if (prev.some((m) => m._id === msg._id)) return prev; // dedupe vs poller
-        const next = [...prev, msg];
-        return next.length > 20 ? next.slice(-20) : next;
-      });
       // Only admin replies drive the badge (matches backend unread-chat-count)
       if (!msg.userRead && msg.senderType === "admin")
         setChatUnreadCount((n) => n + 1);
     });
-  }, []);
+  }, [addOrReplaceMessage]);
 
   useEffect(() => {
     fetchUserProfile();
@@ -661,12 +706,24 @@ export default function ChatBot() {
       const last = newMessages[newMessages.length - 1];
       if (last?._id) lastMessageIdRef.current = last._id;
 
-      setAllMessages((prev) => {
-        const seen = new Set(prev.map((m) => m._id && String(m._id).replace(/^temp-/, "")).filter(Boolean));
-        const missing = newMessages.filter((msg) => msg._id && !String(msg._id).startsWith("temp-") && !seen.has(msg._id.toString()));
-        if (missing.length === 0) return prev;
-        const merged = [...prev, ...missing];
-        return merged.length > 20 ? merged.slice(-20) : merged;
+      // If the missed page contains OUR just-sent message, remember its
+      // real _id so the optimistic temp bubble is dropped exactly once.
+      const pendingTempId = pendingTempIdRef.current;
+      const hasUserMsg = newMessages.some(
+        (m) => m.senderType === "user" && m._id !== pendingTempId,
+      );
+      const dropTempId = pendingTempId && hasUserMsg ? pendingTempId : null;
+      if (dropTempId) pendingTempIdRef.current = null;
+
+      // Upsert each missed message by _id (dedupe-safe), then sort.
+      newMessages.forEach((msg) => {
+        if (!msg._id) return;
+        // Drop the temp bubble before inserting its server-confirmed twin.
+        if (dropTempId && msg.senderType === "user" && msg._id !== dropTempId) {
+          setAllMessages((prev) => mergeChatMessages(prev, msg, dropTempId));
+        } else {
+          addOrReplaceMessage(msg);
+        }
       });
       setChatUnreadCount(
         (n) => n + newMessages.filter((m) => !m.userRead && m.senderType === "admin").length
@@ -717,18 +774,23 @@ export default function ChatBot() {
 
       const optimisticUserMsg = {
         _id: tempId,
-        message: trimmedText,
+        message: trimmedText || "Sent an image",
         senderType: "user",
         isAdmin: false,
         createdAt: new Date().toISOString(),
       };
 
-        // Clear input immediately
-        setAllMessages((prev) => [...prev, optimisticUserMsg]);
-        setLoading(true);
-        setStreamText("");
-        setInput("");
-        requestAnimationFrame(autoGrowInput);
+      // Remember the temp bubble so the server-confirmed message (socket)
+      // replaces it instead of creating a second copy of our own message.
+      pendingTempIdRef.current = tempId;
+
+      // Show it immediately (optimistic) — the socket is the only place
+      // the real saved messages are merged in.
+      setAllMessages((prev) => [...prev, optimisticUserMsg]);
+      setLoading(true);
+      setStreamText("");
+      setInput("");
+      requestAnimationFrame(autoGrowInput);
 
       // Extract and clear selected image before upload
       setSelectedImage(null);
@@ -780,41 +842,30 @@ export default function ChatBot() {
           },
         );
 
-        // The final saved answer arrived (or a canned reply) — stop the live typing bubble
-        setStreamText("");
-
+        // No merge here: our own message + the bot reply are added by the
+        // socket handlers (single source of truth). The HTTP response is
+        // used only for persistence confirmation, catch-up cursor, and audio.
         if (data?.success) {
           const newMsgs = Array.isArray(data.messages)
             ? data.messages
             : [data.messages];
-
-          // Debug: Log server response with images
-          const serverMsgsWithImages = newMsgs.filter(m => m.imageUrl).length;
-
-          setAllMessages((prev) => {
-            const filtered = prev.filter((m) => m._id !== tempId);
-            // The socket push may have already delivered these replies — dedupe
-            const seen = new Set(filtered.map((m) => (m._id ? m._id.toString() : null)));
-            const fresh = newMsgs.filter((m) => m._id && !seen.has(m._id.toString()));
-            const updated = [...filtered, ...fresh];
-            if (updated.length > 20 && !hasMore) {
-              return updated.slice(-20);
-            }
-            return updated;
-          });
-
+          // Keep the socket catch-up cursor in sync.
           if (newMsgs.length > 0) {
             const lastMsg = newMsgs[newMsgs.length - 1];
             if (lastMsg?._id) lastMessageIdRef.current = lastMsg._id;
           }
-
           if (data.audio) playAudio(data.audio);
+        } else {
+          // Server rejected (e.g. rate limit / bad state) — drop the temp bubble
+          setAllMessages((prev) => prev.filter((m) => m._id !== tempId));
+          pendingTempIdRef.current = null;
         }
       } catch (err) {
         console.error("❌ Send Error:", err);
-        
-        // Clean up optimistic message only
+
+        // Clean up optimistic message + pending flag
         setAllMessages((prev) => prev.filter((m) => m._id !== tempId));
+        pendingTempIdRef.current = null;
         setStreamText("");
         
         Swal.fire({
