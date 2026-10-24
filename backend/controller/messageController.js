@@ -257,6 +257,22 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
   const userPhone = user?.phone || "";
   let aiMessageText = "";
 
+  // Live streaming: push the partial answer to the user as it arrives,
+  // so the chat shows a typing bubble instead of a long silence.
+  let partialText = "";
+  let lastPushAt = 0;
+  const pushPartial = (force = false) => {
+    if (!partialText) return;
+    const now = Date.now();
+    if (!force && now - lastPushAt < 80) return; // ~12fps is plenty
+    lastPushAt = now;
+    emitToUser(userId, "chat:stream-chunk", { text: partialText });
+  };
+  const handleChunk = (chunk) => {
+    partialText += chunk;
+    pushPartial();
+  };
+
   // 4. Call OpenAI (GPT)
   try {
     const langInstruction = effectiveLang === "si-LK"
@@ -343,7 +359,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
     // Parses the agent-events-v1 stream per docs.sim.ai (Workflows > Deployment > Agent stream events).
     // Returns { ok, text, terminalError } where text is the settled final answer.
-    async function consumeSimStream(body) {
+    async function consumeSimStream(body, onChunk) {
       const reader = body.getReader();
       const decoder = new TextDecoder();
       const answers = new Map();
@@ -364,6 +380,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
           if (typeof frame.chunk === "string" && blockId != null) {
             answers.set(blockId, (answers.get(blockId) ?? "") + frame.chunk);
             lastChunkRaw = payload;
+            if (onChunk) onChunk(frame.chunk);
           }
           return null;
         }
@@ -441,6 +458,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       if (attempt > 0) {
+        partialText = ""; // start fresh per attempt
         console.log(`🔄 Retrying SIM.ai (attempt ${attempt + 1}/${MAX_RETRIES + 1}, delay 5000ms)...`);
         await new Promise((r) => setTimeout(r, 5000));
       }
@@ -461,7 +479,7 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
         });
 
         if (simRes.ok) {
-          const result = await consumeSimStream(simRes.body);
+          const result = await consumeSimStream(simRes.body, handleChunk);
           clearTimeout(timeoutId);
 
           if (!result.ok) {
@@ -594,6 +612,8 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
     userRead: false,
   });
   // Real-time: push the AI reply to the user's open chat + refresh badge
+  pushPartial(true); // final flush so the typed bubble matches the saved text
+  emitToUser(userId, "chat:stream-end", {});
   emitToUser(userId, "chat:new-message", aiMsg);
   emitToAdmins("chat:unseen-user", { userId, userName: user?.name || "A user" });
 
