@@ -100,6 +100,10 @@ export const sendUserMessage = asyncHandler(async (req, res) => {
     adminRead: false,
   });
 
+  // Real-time: push the user's own message so the socket is the single
+  // source of truth for the chat list (no more HTTP-response merge).
+  emitToUser(userId, "chat:new-message", userMsg);
+
   // 2. Auto-reply when @admin is mentioned or image is attached
   const isEscalation = displayMessage.toLowerCase().includes("@admin");
   const hasImage = !!imageUrl;
