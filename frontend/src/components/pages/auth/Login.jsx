@@ -36,15 +36,35 @@ export default function Login() {
   const handleManualLogin = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
+
+    const email = formData.email?.trim().toLowerCase();
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!formData.password) {
+      toast.error("Please enter your password");
+      return;
+    }
+
     submittingRef.current = true;
     setLoading(true);
     try {
-      const res = await api.post(`/api/users/login`, formData);
+      const res = await api.post(`/api/users/login`, { email, password: formData.password });
       if (res.data.success) {
         handleLoginResponse(res.data);
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || "Invalid Credentials");
+      toast.error(
+        error.response?.data?.error ||
+          (error.code === "ECONNABORTED"
+            ? "Request timed out. Please try again"
+            : "Something went wrong. Please try again")
+      );
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -91,6 +111,7 @@ export default function Login() {
                   type="email"
                   placeholder="john@mail.com"
                   required
+                  value={formData.email}
                   className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -105,6 +126,7 @@ export default function Login() {
                   type="password"
                   placeholder="Enter your password"
                   required
+                  value={formData.password}
                   className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />

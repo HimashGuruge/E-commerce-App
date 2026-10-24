@@ -3,6 +3,7 @@ import { FiSave, FiUser, FiMapPin, FiCreditCard, FiShoppingBag, FiUpload, FiImag
 import api from "@/utils/api";
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
+import getApiError from "@/utils/errors";
 
 export default function SellerSettings() {
   const [form, setForm] = useState({
@@ -18,6 +19,7 @@ export default function SellerSettings() {
   const [bannerUploading, setBannerUploading] = useState(false);
   const logoInputRef = useRef(null);
   const bannerInputRef = useRef(null);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const fetch = async () => {
@@ -45,7 +47,19 @@ export default function SellerSettings() {
     fetch();
   }, []);
 
-  const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
+  const update = (field, value) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    if (errors[field]) setErrors((errs) => { const next = { ...errs }; delete next[field]; return next; });
+  };
+
+  const validateForm = () => {
+    const errs = {};
+    if (form.shopName.trim().length < 2) errs.shopName = "Shop name is required";
+    if (form.shopDescription && form.shopDescription.length > 500) errs.shopDescription = "Description must be 500 characters or less";
+    if (form.ownerPhone && !/^[0-9+\-\s]{7,15}$/.test(form.ownerPhone.trim())) errs.ownerPhone = "Enter a valid phone number (7-15 digits)";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   // Upload shop logo / banner image and store the returned URL on the form
   const handleImageUpload = async (field, file) => {
@@ -72,12 +86,13 @@ export default function SellerSettings() {
   };
 
   const handleSubmit = async () => {
+    if (!validateForm()) return;
     setSaving(true);
     try {
       await api.put("/api/sellers/me", form);
       Swal.fire({ icon: "success", title: "Settings saved!", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || "Failed to save" });
+      Swal.fire({ icon: "error", title: getApiError(err, "Failed to save settings") });
     } finally {
       setSaving(false);
     }
@@ -108,11 +123,13 @@ export default function SellerSettings() {
               <label className="block text-sm font-medium text-[#3d4557] mb-1">Shop Name</label>
               <input type="text" value={form.shopName} onChange={(e) => update("shopName", e.target.value)}
                 className="w-full px-4 py-2.5 border border-shopborder rounded-xl focus:border-shopprimary focus:ring-2 focus:ring-shopprimary/25 outline-none" />
+              {errors.shopName && <p className="text-[11px] text-red-600 mt-1">{errors.shopName}</p>}
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-[#3d4557] mb-1">Description</label>
               <textarea value={form.shopDescription} onChange={(e) => update("shopDescription", e.target.value)}
                 rows={3} className="w-full px-4 py-2.5 border border-shopborder rounded-xl focus:border-shopprimary focus:ring-2 focus:ring-shopprimary/25 outline-none resize-none" />
+              {errors.shopDescription && <p className="text-[11px] text-red-600 mt-1">{errors.shopDescription}</p>}
             </div>
             {/* Shop Logo */}
             <div className="md:col-span-2">
@@ -241,6 +258,7 @@ export default function SellerSettings() {
               <label className="block text-sm font-medium text-[#3d4557] mb-1">Phone</label>
               <input type="tel" value={form.ownerPhone} onChange={(e) => update("ownerPhone", e.target.value)}
                 className="w-full px-4 py-2.5 border border-shopborder rounded-xl focus:border-shopprimary focus:ring-2 focus:ring-shopprimary/25 outline-none" />
+              {errors.ownerPhone && <p className="text-[11px] text-red-600 mt-1">{errors.ownerPhone}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-[#3d4557] mb-1">NIC</label>

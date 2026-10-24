@@ -9,39 +9,9 @@ import Notification from "../models/Notification.js";
 import Message from "../models/Message.js";
 import logger from "../utils/logger.js";
 import { emitToUser, emitToAdmins } from "../services/socketService.js";
-import { productUpload } from "../middleware/uploadMiddleware.js";
 import { recalcParentStock } from "./productVariantController.js";
+import { deleteProductImages, deleteReplacedImages } from "../services/storageService.js";
 import { notifyAdminsOfSellerEvent, createSellerAlert } from "./notificationController.js";
-
-export const onUpload = asyncHandler(async (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ success: false, message: "No files uploaded" });
-  }
-
-  const uploadedUrls = req.files.map(file => `/uploads/${file.filename}`);
-  
-  const productId = req.params.productId;
-  
-  // Get existing product and add new images
-  const product = await Product.findById(productId);
-  if (!product) {
-    return res.status(404).json({ success: false, message: "Product not found" });
-  }
-
-  const currentImages = product.images || [];
-  const newImages = [...currentImages, ...uploadedUrls];
-
-  await Product.findByIdAndUpdate(productId, { images: newImages }, { new: true });
-
-  logger.info(`Product images uploaded: ${uploadedUrls.length} images for product ${productId}`);
-  
-  res.json({
-    success: true,
-    urls: uploadedUrls,
-    totalImages: newImages.length,
-    message: "Product images uploaded successfully"
-  });
-});
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -323,6 +293,16 @@ export const updateProduct = asyncHandler(async (req, res) => {
     new: true,
     runValidators: true
   });
+
+  // Images removed from the list are also deleted from Supabase Storage
+  if (productData.images) {
+    try {
+      await deleteReplacedImages(product, updated);
+    } catch (err) {
+      logger.warn("Supabase storage cleanup failed while updating product:", err);
+    }
+  }
+
   let finalUpdated = updated;
   if (product.isVariantParent) {
     await recalcParentStock(updated._id);
@@ -351,9 +331,18 @@ export const deleteProduct = asyncHandler(async (req, res) => {
         sellerId: product.seller,
       };
     await Product.findByIdAndDelete(req.params.id);
-    if (product.isVariantParent && product.variants?.length > 0) {
+    let variantDocs = [];
+    if (product.variants?.length > 0) {
       const Variant = mongoose.model("Variant");
+      variantDocs = await Variant.find({ _id: { $in: product.variants } });
       await Variant.deleteMany({ _id: { $in: product.variants } });
+    }
+
+    // Also remove the product's images from Supabase Storage
+    try {
+      await deleteProductImages({ products: [product], variants: variantDocs });
+    } catch (err) {
+      logger.warn("Supabase storage cleanup failed for deleted product:", err);
     }
 
     // Admin rejecting a pending (unapproved) product = the Pending Approvals
@@ -422,11 +411,20 @@ export const deleteProductsBulk = asyncHandler(async (req, res) => {
     await Product.deleteMany({ _id: { $in: toDelete.map((p) => p._id) } });
 
     // Cascade child variants for parent products (same as single delete).
-    const parents = toDelete.filter((p) => p.isVariantParent && p.variants?.length > 0);
+    const parents = toDelete.filter((p) => p.variants?.length > 0);
+    let variantDocs = [];
     if (parents.length > 0) {
       const Variant = mongoose.model("Variant");
       const variantIds = parents.flatMap((p) => p.variants);
+      variantDocs = await Variant.find({ _id: { $in: variantIds } });
       await Variant.deleteMany({ _id: { $in: variantIds } });
+    }
+
+    // Also remove the deleted products' images from Supabase Storage
+    try {
+      await deleteProductImages({ products: toDelete, variants: variantDocs });
+    } catch (err) {
+      logger.warn("Supabase storage cleanup failed for bulk-deleted products:", err);
     }
 
     for (const p of rejections) {

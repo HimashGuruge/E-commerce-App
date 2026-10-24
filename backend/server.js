@@ -187,29 +187,7 @@ app.use("/api/slider", sliderRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/coupons", couponRouter);
 
-// Serve uploaded files publicly (local storage only)
-if (process.env.STORAGE !== 'supabase') {
-  app.use('/uploads', express.static('public/uploads'));
-  // Also serve at /public/uploads for backward compatibility with old MongoDB URLs
-  app.use('/public/uploads', express.static('public/uploads'));
-
-  // Return transparent pixel for missing images instead of HTML 404 (prevents CORB)
-  const transparentPixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-  app.use(['/uploads/*', '/public/uploads/*'], (req, res) => {
-    res.type('gif').send(transparentPixel);
-  });
-}
-
 app.use((err, req, res, next) => {
-  // Multer file-size limit -> clear 413 instead of a generic 500
-  if (err && err.name === "MulterError" && err.code === "LIMIT_FILE_SIZE") {
-    const maxMb = (parseInt(process.env.MAX_UPLOAD_MB, 10) || 15);
-    logger.warn(`Upload rejected: file exceeds ${maxMb} MB`);
-    return res.status(413).json({
-      success: false,
-      error: `File too large — max upload size is ${maxMb} MB`,
-    });
-  }
   // Controllers set res.status(...) before throwing, so that code wins over err.status
   const status = res.statusCode >= 400 ? res.statusCode : err.status || 500;
   logger.error(err.stack);

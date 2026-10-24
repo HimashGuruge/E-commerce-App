@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { FiShoppingCart, FiSearch, FiChevronLeft, FiChevronRight, FiUser, FiPhone, FiMail, FiTruck, FiCheckCircle, FiClock } from "react-icons/fi";
 import Swal from "sweetalert2";
+import toast from "react-hot-toast";
+import getApiError from "@/utils/errors";
 import api from "@/utils/api";
 
 const statusColors = {
@@ -70,10 +72,10 @@ export default function SellerOrders() {
         Swal.fire({ toast: true, position: "top-end", timer: 2000, showConfirmButton: false, icon: "success", title: labels[nextStatus] });
         await fetchOrders();
       } else {
-        alert(data.error || "Update failed");
+        toast.error(getApiError({ response: { data } }, "Update failed"));
       }
     } catch (err) {
-      alert(err.response?.data?.error || "Update failed");
+      toast.error(getApiError(err, "Update failed"));
     } finally {
       setUpdatingId(null);
     }

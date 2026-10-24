@@ -9,26 +9,16 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-const useCloud = process.env.STORAGE === 'supabase';
-
-// Resolve file path: local filesystem or Supabase URL
-const resolveFilePath = async (file, type = 'media') => {
-  if (useCloud) {
-    return await uploadToSupabase(file, type);
-  }
-  return `/uploads/${file.filename}`;
-};
+// All uploads go to Supabase Storage; the public URL is stored in MongoDB.
+const resolveFilePath = (file, type) => uploadToSupabase(file, type);
 
 // Helper to create a success response with uploaded file URL
 const handleUploadSuccess = (req, res, filePath) => {
-  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
-  const publicUrl = useCloud ? filePath : `${BACKEND_URL}${filePath}`;
-  
-  logger.info(`File uploaded successfully: ${publicUrl}`);
-  
+  logger.info(`File uploaded successfully: ${filePath}`);
+
   res.json({
     success: true,
-    url: publicUrl,
+    url: filePath,
     filename: filePath,
     message: 'File uploaded successfully'
   });
@@ -52,21 +42,21 @@ router.post('/profile', authMiddleware, profileUpload, async (req, res) => {
   if (!req.file) {
     return handleUploadError(req, res);
   }
-  
+
   try {
     const filePath = await resolveFilePath(req.file, 'profiles');
     const userId = req.user._id;
-    
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profileImage: filePath },
       { new: true }
     );
-    
+
     if (!updatedUser) {
       return handleUploadError(req, res, 'User not found');
     }
-    
+
     return handleUploadSuccess(req, res, filePath);
   } catch (err) {
     logger.error('Failed to update user profile:', err);
@@ -81,7 +71,7 @@ router.post('/profile', authMiddleware, profileUpload, async (req, res) => {
  */
 router.post('/settings', authMiddleware, settingsUpload, async (req, res) => {
   const allowedTypes = ['logo'];
-  
+
   if (!allowedTypes.includes(req.body.type)) {
     return handleUploadError(req, res, 'Invalid upload type');
   }
@@ -96,7 +86,7 @@ router.post('/settings', authMiddleware, settingsUpload, async (req, res) => {
     if (!config) {
       config = await SiteConfig.create({});
     }
-    
+
     // Update based on type
     if (req.body.type === 'logo' && req.file) {
       const filePath = await resolveFilePath(req.file, 'settings');
@@ -105,9 +95,9 @@ router.post('/settings', authMiddleware, settingsUpload, async (req, res) => {
       const filePath = await resolveFilePath(req.file, 'settings');
       config.iconLetter = filePath;
     }
-    
+
     await config.save();
-    
+
     return handleUploadSuccess(req, res, config.logo);
   } catch (error) {
     logger.error('Settings upload failed:', error);
@@ -117,15 +107,10 @@ router.post('/settings', authMiddleware, settingsUpload, async (req, res) => {
 
 /**
  * @route   POST /api/upload/media
- * @desc    Upload general media (products, categories, ads, etc.) - public endpoint
+ * @desc    Upload general media (products, categories, ads, etc.)
  * @access  Public
  */
 router.post('/media', singleUpload, async (req, res) => {
-  // Rename 'images' to 'file' for backward compatibility with product upload
-  if (!req.file && req.body.images?.[0]) {
-    req.file = req.body.images[0];
-  }
-
   if (!req.file) {
     return handleUploadError(req, res);
   }
@@ -150,7 +135,7 @@ router.post('/category', singleUpload, async (req, res) => {
   }
 
   try {
-    const filePath = await resolveFilePath(req.file, 'categories');
+    const filePath = await resolveFilePath(req.file, 'category');
     return handleUploadSuccess(req, res, filePath);
   } catch (error) {
     logger.error('Category image upload failed:', error);
@@ -169,7 +154,7 @@ router.post('/documents', authMiddleware, singleUpload, async (req, res) => {
   }
 
   try {
-    const filePath = await resolveFilePath(req.file, 'documents');
+    const filePath = await resolveFilePath(req.file, 'document');
     return handleUploadSuccess(req, res, filePath);
   } catch (error) {
     logger.error('Document upload failed:', error);
@@ -178,7 +163,7 @@ router.post('/documents', authMiddleware, singleUpload, async (req, res) => {
 });
 
 /**
- * @route   POST /api/products/:productId/images
+ * @route   POST /api/upload/products/:productId/images
  * @desc    Upload product images (requires auth)
  * @access  Private
  */
@@ -188,7 +173,7 @@ router.post('/products/:productId/images', authMiddleware, productUpload, async 
   }
 
   const productId = req.params.productId;
-  
+
   // Verify product exists and user has permission
   const product = await Product.findById(productId);
   if (!product) {
@@ -201,17 +186,17 @@ router.post('/products/:productId/images', authMiddleware, productUpload, async 
 
   try {
     const uploadedUrls = await Promise.all(
-      req.files.map(file => resolveFilePath(file, 'products'))
+      req.files.map(file => resolveFilePath(file, 'product'))
     );
-    
+
     // Add new images to existing images array
     const currentImages = product.images || [];
     const newImages = [...currentImages, ...uploadedUrls];
-    
+
     await Product.findByIdAndUpdate(productId, { images: newImages }, { new: true });
 
     logger.info(`Product images uploaded: ${uploadedUrls.length} images for product ${productId}`);
-    
+
     res.json({
       success: true,
       urls: uploadedUrls,
@@ -225,13 +210,13 @@ router.post('/products/:productId/images', authMiddleware, productUpload, async 
 });
 
 /**
- * @route   DELETE /api/products/:productId/images
+ * @route   DELETE /api/upload/products/:productId/images
  * @desc    Delete product images (requires auth)
  * @access  Private/Admin only
  */
 router.delete('/products/:productId/images', authMiddleware, async (req, res) => {
   const productId = req.params.productId;
-  
+
   // Verify product exists and user has permission
   const product = await Product.findById(productId);
   if (!product) {
@@ -246,14 +231,21 @@ router.delete('/products/:productId/images', authMiddleware, async (req, res) =>
 
   try {
     let updatedImages = [...(product.images || [])];
-    
+
     // Remove specified images from array
     const filteredUrls = updatedImages.filter(url => !imageUrlsToDelete.includes(url));
-    
+
     await Product.findByIdAndUpdate(productId, { images: filteredUrls }, { new: true });
 
+    // Also remove the deleted images from Supabase Storage
+    try {
+      await deleteFromSupabase(imageUrlsToDelete);
+    } catch (err) {
+      logger.warn(`Supabase storage cleanup failed for ${productId}:`, err);
+    }
+
     logger.info(`Product images deleted: ${imageUrlsToDelete.length} images for product ${productId}`);
-    
+
     res.json({
       success: true,
       remainingImages: filteredUrls.length,
@@ -264,12 +256,5 @@ router.delete('/products/:productId/images', authMiddleware, async (req, res) =>
     handleUploadError(req, res, error);
   }
 });
-
-/**
- * @route   GET /uploads/*
- * @desc    Serve uploaded files publicly
- * @access  Public
- */
-router.use('/serve', express.static('public/uploads'));
 
 export default router;

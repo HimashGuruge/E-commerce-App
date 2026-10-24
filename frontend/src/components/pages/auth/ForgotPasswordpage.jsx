@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from "@/utils/api";
 import toast from 'react-hot-toast';
+import getApiError from "@/utils/errors";
 import { ArrowLeft, Loader2, Send, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -11,6 +12,14 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Please enter your email.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -22,7 +31,7 @@ export default function ForgotPassword() {
       }
     } catch (error) {
       const status = error.response?.status;
-      const message = error.response?.data?.message || "Failed to send email";
+      const message = getApiError(error, "Failed to send email");
 
       if (status === 429) {
         toast.error(message);

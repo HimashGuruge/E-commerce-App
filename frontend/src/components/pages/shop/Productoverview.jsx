@@ -35,6 +35,7 @@ import {
   FiEyeOff,
   FiMapPin,
   FiStar,
+  FiShoppingBag,
   FiPlus,
   FiInfo,
 } from "react-icons/fi";
@@ -149,6 +150,7 @@ export default function ProductOverview() {
   const [qaTotalPages, setQaTotalPages] = useState(0);
   const [showQaModal, setShowQaModal] = useState(false);
   const [questionText, setQuestionText] = useState("");
+  const [emptyQuestionError, setEmptyQuestionError] = useState(false);
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
   const [answeringQuestionId, setAnsweringQuestionId] = useState(null);
   const [answerText, setAnswerText] = useState("");
@@ -197,7 +199,10 @@ export default function ProductOverview() {
       Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to ask a question' });
       return;
     }
-    if (!questionText.trim()) return;
+    if (!questionText.trim()) {
+      setEmptyQuestionError(true);
+      return;
+    }
     setSubmittingQuestion(true);
     try {
       const { data } = await api.post("/api/questions", { productId, question: questionText.trim() });
@@ -640,7 +645,30 @@ export default function ProductOverview() {
       Swal.fire({ icon: "info", title: "Login Required", text: "Please login to chat with this seller", timer: 3200, timerProgressBar: true, showConfirmButton: false });
       return;
     }
-    if (!product?.seller?._id) return;
+    if (!product?.seller?._id) {
+      // Marketplace product (no seller): open the support chat and escalate to a
+      // REAL admin — "@admin" flag makes the backend alert admins for a manual
+      // reply instead of answering with the AI bot.
+      const productName = (data?.productName || product?.name || "").trim();
+      const msg = productName
+        ? `@admin Hi, I have a question about the product "${productName}".`
+        : "@admin Hi, I have a question about a product.";
+      window.dispatchEvent(new CustomEvent("trigger-chatbot-message", { detail: { message: msg } }));
+      return;
+    }
+    // This is the seller's OWN product: a seller cannot chat with themselves.
+    // Point them to where incoming buyer messages actually land.
+    if (String(userId) === String(product.seller._id)) {
+      Swal.fire({
+        icon: "info",
+        title: "Your product",
+        text: "This is your own product, so there is no buyer to chat with here. Incoming buyer messages about this product will arrive in your Seller Dashboard → Messages.",
+        timer: 4500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+      return;
+    }
     setSellerChatOpen(true);
   };
 
@@ -1502,13 +1530,17 @@ export default function ProductOverview() {
                   <div className="flex items-center gap-2">
                     {data.sellerShopLogo ? (
                       <img src={data.sellerShopLogo} alt={data.sellerShopName || "Seller"} className="w-7 h-7 bg-gray-100 rounded-full object-cover" />
-                    ) : (
+                    ) : data.sellerShopName ? (
                       <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center">
                         <FiUser className="text-gray-500 w-3.5 h-3.5" />
                       </div>
+                    ) : (
+                      <div className="w-7 h-7 bg-brand-50 rounded-full flex items-center justify-center">
+                        <FiShoppingBag className="text-brand-600 w-3.5 h-3.5" />
+                      </div>
                     )}
                     <span className="text-xs text-gray-700">
-                      Sold by <span className="text-brand-600 font-medium">{data.sellerShopName || data.brand || 'Store'}</span>
+                      Sold by <span className="text-brand-600 font-medium">{data.sellerShopName || (data.brand && data.brand !== "Unbranded" ? data.brand : "Our Marketplace")}</span>
                     </span>
                   </div>
                   <button
@@ -2082,11 +2114,12 @@ export default function ProductOverview() {
                 </div>
                 <textarea
                   value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
+                  onChange={(e) => { setQuestionText(e.target.value); setEmptyQuestionError(false); }}
                   placeholder="Type your question about this product..."
                   className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-brand-500 resize-none"
                   rows={4}
                 />
+                {emptyQuestionError && <p className="mt-2 text-xs text-red-600">Please type your question first.</p>}
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={() => setShowQaModal(false)}
@@ -2096,7 +2129,7 @@ export default function ProductOverview() {
                   </button>
                   <button
                     onClick={askQuestion}
-                    disabled={submittingQuestion || !questionText.trim()}
+                    disabled={submittingQuestion}
                     className="flex-1 bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 text-white py-2 rounded-lg text-sm font-medium transition"
                   >
                     {submittingQuestion ? 'Submitting...' : 'Submit Question'}

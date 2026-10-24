@@ -11,7 +11,6 @@ import {
   getSellerStats,
   productFindById,
   updateProduct,
-  onUpload,
   adminApproveProduct,
   approveProductsBulk,
   adminGetPendingApprovals,
@@ -60,9 +59,6 @@ router.delete("/:id", sellerOrAdmin, deleteProduct);
 // Must be registered before PUT /:id/approve, otherwise "bulk" is captured as :id.
 router.put("/bulk/approve", adminOnly, approveProductsBulk);
 router.put("/:id/approve", adminOnly, adminApproveProduct);
-
-// Product image upload endpoint
-router.post("/:productId/images", authMiddleware, onUpload);
 
 // Variant routes (parent-child product system)
 router.post("/parent", sellerOrAdmin, createParentProduct);

@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
 import path from 'path'
+import mongoose from 'mongoose'
+import logger from '../utils/logger.js'
 
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY
@@ -89,21 +91,103 @@ export const uploadToBucket = (file, bucket) => {
   })
 }
 
-export const deleteFromSupabase = (url) => {
-  if (!isConfigured || !supabase) return notConfigured()
-  return new Promise(async (resolve, reject) => {
-    try {
-      const path = url.split('/object/public/')[1]
-      if (!path) return resolve()
-      const [bucket, ...rest] = path.split('/')
-      const filePath = rest.join('/')
-      const { error } = await supabase.storage.from(bucket).remove([filePath])
-      if (error) return reject(error)
-      resolve()
-    } catch (err) {
-      reject(err.message || err)
+const supabaseProject = () => {
+  try {
+    return new URL(supabaseUrl).host
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * True when `value` is a public URL from this Supabase project.
+ * Only those are deleted from Storage — foreign URLs are skipped so a
+ * typo or a pasted third-party image can never cause a wrong deletion.
+ */
+export const isOwnSupabaseUrl = (value) => {
+  if (typeof value !== 'string' || !value.startsWith('http')) return false
+  let u
+  try {
+    u = new URL(value)
+  } catch {
+    return false
+  }
+  const host = u.host
+  const project = supabaseProject()
+  if (host !== project && !(host === 'supabase.co' || host.endsWith('.supabase.co'))) {
+    return false
+  }
+  return u.pathname.includes('/storage/v1/object/')
+}
+
+/**
+ * Delete one or more objects from Supabase Storage by their public URL(s).
+ * Accepts a URL string or array. Non-owned URLs are skipped quietly.
+ * Missing files are not treated as errors (idempotent delete).
+ */
+export const deleteFromSupabase = async (urls) => {
+  const list = Array.isArray(urls) ? urls : [urls]
+  const jobs = []
+  const byBucket = new Map()
+
+  for (const url of list) {
+    if (!isOwnSupabaseUrl(url)) continue
+    const rel = url.split('/object/public/')[1]
+    if (!rel) continue
+    const [bucket, ...rest] = rel.split('/')
+    const filePath = rest.join('/')
+    if (!bucket || !filePath) continue
+    if (!byBucket.has(bucket)) byBucket.set(bucket, [])
+    byBucket.get(bucket).push(filePath)
+    jobs.push({ bucket, filePath })
+  }
+
+  const results = Promise.allSettled(
+    [...byBucket.entries()].map(([bucket, files]) =>
+      supabase.storage.from(bucket).remove(files)
+    )
+  )
+
+  const failed = []
+  for (const [i, r] of results.entries()) {
+    if (r.status === 'rejected' || r.value?.error) {
+      const bucket = [...byBucket.keys()][i]
+      const files = byBucket.get(bucket)
+      logger.warn(`Supabase delete failed for bucket "${bucket}": ${r.reason?.message || r.value?.error?.message || 'unknown'}`)
+      failed.push(...files.map((f) => `${bucket}/${f}`))
     }
-  })
+  }
+
+  const deleted = jobs.length - failed.length
+  return { deleted, failed }
+}
+
+/**
+ * Delete every Supabase image stored in Product `images` arrays for the
+ * given product and/or variant ids. Used when products/variants are
+ * deleted, or when a product's image list is replaced.
+ */
+export const deleteProductImages = async ({ products = [], variants = [] }) => {
+  const urls = new Set()
+  for (const doc of [...products, ...variants]) {
+    for (const u of doc?.images || []) {
+      if (isOwnSupabaseUrl(u)) urls.add(u)
+    }
+  }
+  if (urls.size === 0) return { deleted: 0, failed: [] }
+  return deleteFromSupabase([...urls])
+}
+
+/**
+ * Compare old vs new product (and optionally variant) documents and delete
+ * the Supabase images that are present only in the old ones.
+ */
+export const deleteReplacedImages = async (oldDoc, newDoc) => {
+  const removed = (oldDoc?.images || []).filter(
+    (u) => isOwnSupabaseUrl(u) && !(newDoc?.images || []).includes(u)
+  )
+  if (removed.length === 0) return { deleted: 0, failed: [] }
+  return deleteFromSupabase(removed)
 }
 
 export const listBucket = (bucket, folder = '') => {

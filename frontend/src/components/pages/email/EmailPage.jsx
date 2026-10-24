@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import EmailSidebar from "./EmailSidebar.jsx";
 import EmailTopBar from "./EmailTopBar.jsx";
 import EmailList from "./EmailList.jsx";
@@ -628,13 +628,6 @@ export default function EmailPage() {
           onToggleMinimized={toggleMinimized}
         />
       )}
-
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: { fontSize: "13px", borderRadius: "8px", padding: "10px 16px" },
-        }}
-      />
     </div>
   );
 }

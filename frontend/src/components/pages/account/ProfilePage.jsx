@@ -4,6 +4,7 @@ import { User, Mail, Phone, MapPin, Edit, Camera, Loader2, LogOut, PlusCircle, T
 import Swal from "sweetalert2";
 import api from "@/utils/api";
 import uploadToMedia from "@/components/utils/Mediaupload";
+import getApiError from "@/utils/errors";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const [editForm, setEditForm] = useState({
     name: "", lastname: "", email: "", phone: "", address: "", profileImage: "",
   });
+  const [editErrors, setEditErrors] = useState({});
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "", newPassword: "", confirmPassword: "",
@@ -93,7 +95,19 @@ export default function ProfilePage() {
     }
   };
 
+  const validatePhone = (phone) => {
+    if (!phone || !phone.trim()) return null;
+    return /^[0-9+\- ]{7,15}$/.test(phone.trim()) ? null : "Enter a valid phone number (7-15 digits)";
+  };
+
   const handleSaveProfile = async () => {
+    const errors = {};
+    if (!editForm.name.trim()) errors.name = "First name is required";
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email.trim())) errors.email = "Enter a valid email address";
+    const phoneErr = validatePhone(editForm.phone);
+    if (phoneErr) errors.phone = phoneErr;
+    setEditErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     try {
       setLoading(true);
       const res = await api.put(`/api/users/me`, editForm);
@@ -103,14 +117,21 @@ export default function ProfilePage() {
         setEditing(false);
       }
     } catch (_err) {
-      Swal.fire({ icon: "error", title: "Update Failed", text: _err.response?.data?.message });
+      Swal.fire({ icon: "error", title: "Update Failed", text: getApiError(_err, "Failed to save") });
     } finally {
       setLoading(false);
     }
   };
 
+  const [addressPhoneError, setAddressPhoneError] = useState("");
+
   const handleSaveAddress = async (e) => {
     e.preventDefault();
+    const phoneErr = validatePhone(addressForm.phone);
+    if (phoneErr) {
+      setAddressPhoneError(phoneErr);
+      return;
+    }
     try {
       if (editingAddress) {
         await api.put(`/api/addresses/${editingAddress._id}`, addressForm);
@@ -121,7 +142,7 @@ export default function ProfilePage() {
       fetchAddresses();
       Swal.fire({ icon: "success", title: editingAddress ? "Address Updated!" : "Address Added!", timer: 1500, showConfirmButton: false });
     } catch (_err) {
-      Swal.fire({ icon: "error", title: "Failed to save address" });
+      Swal.fire({ icon: "error", title: "Failed to save address", text: getApiError(_err, "Failed to save") });
     }
   };
 
@@ -236,10 +257,11 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                     {editing ? (
-                      <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
+                      <input value={editForm.name} onChange={(e) => { setEditForm({ ...editForm, name: e.target.value }); setEditErrors((prev) => ({ ...prev, name: undefined })); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
                     ) : (
                       <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">{user.name || "Not set"}</p>
                     )}
+                    {editing && editErrors.name && <p className="mt-1 text-xs text-red-600">{editErrors.name}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
@@ -252,14 +274,16 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">{user.email}</p>
+                    {editing && editErrors.email && <p className="mt-1 text-xs text-red-600">{editErrors.email}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                     {editing ? (
-                      <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
+                      <input value={editForm.phone} onChange={(e) => { setEditForm({ ...editForm, phone: e.target.value }); setEditErrors((prev) => ({ ...prev, phone: undefined })); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-blue-500 outline-none" />
                     ) : (
                       <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">{user.phone || "Not set"}</p>
                     )}
+                    {editing && editErrors.phone && <p className="mt-1 text-xs text-red-600">{editErrors.phone}</p>}
                   </div>
                 </div>
               </div>
@@ -353,7 +377,8 @@ export default function ProfilePage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <input required placeholder="Name" value={addressForm.name} onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
-                <input required placeholder="Phone" value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
+                <input required placeholder="Phone" value={addressForm.phone} onChange={(e) => { setAddressForm({ ...addressForm, phone: e.target.value }); setAddressPhoneError(""); }} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
+                {addressPhoneError && <p className="col-span-2 text-xs text-red-600 -mt-2">{addressPhoneError}</p>}
                 <input required placeholder="Address Line 1" value={addressForm.addressLine1} onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
                 <input placeholder="Address Line 2" value={addressForm.addressLine2} onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
                 <input required placeholder="City" value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />

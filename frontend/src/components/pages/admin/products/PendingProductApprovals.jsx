@@ -9,7 +9,7 @@ import {
   FiTag,
   FiBox,
 } from "react-icons/fi";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 
 export default function PendingProductApprovals() {
@@ -167,8 +167,6 @@ export default function PendingProductApprovals() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 min-h-screen bg-slate-50">
-      <Toaster position="top-center" />
-
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900">

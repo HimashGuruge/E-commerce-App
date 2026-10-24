@@ -28,6 +28,30 @@
   --color-shopred: #dc5454;
 }
 
+/* Seller chat panel entrance: fades the backdrop, slides in from the
+   bottom on mobile and from the right on desktop. */
+@keyframes cp-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cp-slide-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes cp-slide-left {
+  from { transform: translateX(28px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-cp-fade { animation: cp-fade 0.18s ease-out both; }
+.animate-cp-slide { animation: cp-slide-up 0.28s cubic-bezier(0.32, 0.72, 0.24, 1) both; }
+@media (min-width: 640px) {
+  .animate-cp-slide { animation-name: cp-slide-left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-cp-fade,
+  .animate-cp-slide { animation: none; }
+}
+
 :root {
   --input-bg: #ffffff;
   --input-text: #0f172a;

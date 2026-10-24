@@ -25,15 +25,20 @@ export const Loginuser = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email: email.toLowerCase().trim() });
 
-  if (!user || !user.password) {
+  if (!user) {
     res.status(401);
-    throw new Error("Invalid credentials");
+    throw new Error("No account found with this email");
+  }
+
+  if (!user.password) {
+    res.status(401);
+    throw new Error("This account uses Google sign-in. Please sign in with Google");
   }
 
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
     res.status(401);
-    throw new Error("Invalid credentials");
+    throw new Error("Invalid password. Please try again");
   }
 
   if (user.status !== "active") {

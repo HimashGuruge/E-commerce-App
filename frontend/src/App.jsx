@@ -1,9 +1,11 @@
 import usePublicSettings from "@/hooks/usePublicSettings";
 import { injectFont, injectNavbar, injectTheme } from "@/utils/color";
 import { destroySocket, initSocket, onSocketEvent } from "@/utils/socket";
+import { Toaster } from "react-hot-toast";
 import React, { useEffect } from "react";
 import CategoryPage from "./components/pages/shop/CategoryPage.jsx";
 import Homepage from "./components/pages/shop/Homepage.jsx";
+import AiChatBot from "@/components/shared/AiChatBot.jsx";
 import ProductOverview from "./components/pages/shop/Productoverview.jsx";
 
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -100,7 +102,17 @@ function AppLayout() {
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
         <ScrollToTop />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: { fontSize: "14px" },
+            success: { duration: 3000 },
+            error: { duration: 4000 },
+          }}
+        />
         {!isDashboard && <Navbar />}
+        {/* AI chat widget — hidden on dashboards (kept on all shop/account pages) */}
+        {!location.pathname.startsWith("/seller/dashboard") && <AiChatBot />}
         <div className={`flex-1 ${!isDashboard ? "pt-14 lg:pt-[100px]" : ""}`}>
           <Routes>
             <Route

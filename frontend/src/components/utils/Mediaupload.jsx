@@ -4,6 +4,13 @@ import api from '@/utils/api'
 export const MAX_UPLOAD_MB = 15
 export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
+// Uploads stream a (potentially large) file to the server, which then pushes
+// it to Supabase Storage. That is far slower than a normal API call, so the
+// shared 20 s axios timeout would abort legitimate large-image uploads.
+// Give uploads their own generous timeout (5 min = ~5x headroom for a 15 MB
+// file on a slow connection).
+export const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
+
 function formatMB(bytes) {
   return Math.round((bytes / 1048576) * 10) / 10
 }
@@ -36,6 +43,7 @@ export default async function uploadToMedia(file, type = "media", options = {}) 
   formData.append("type", getBackendType(type))
   const res = await api.post("/api/upload/media", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: UPLOAD_TIMEOUT_MS,
   })
   return res.data?.url
 }

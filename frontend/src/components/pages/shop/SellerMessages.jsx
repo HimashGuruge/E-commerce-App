@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { FiMessageCircle, FiSend, FiUser, FiClock, FiArrowLeft } from "react-icons/fi";
 import api from "@/utils/api";
+import toast from "react-hot-toast";
+import getApiError from "@/utils/errors";
 import { onSocketEvent } from "@/utils/socket";
 
 export default function SellerMessages() {
@@ -59,7 +61,7 @@ export default function SellerMessages() {
           await dispatchBadge();
         }
       } catch (err) {
-        console.error("Mark read error:", err);
+        toast.error(getApiError(err, "Could not mark messages as read. Try again."));
       }
     },
     [visibleUnreadIds, fetchMessages, dispatchBadge]
@@ -169,7 +171,7 @@ export default function SellerMessages() {
         await fetchMessages();
       }
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to send message");
+      toast.error(getApiError(err, "Failed to send message"));
     } finally {
       setSending(false);
     }
