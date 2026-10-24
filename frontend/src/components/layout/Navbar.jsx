@@ -615,6 +615,7 @@ export default function Navbar() {
             >
               {/* Header with close button and user info */}
               <div className="sticky top-0 bg-white border-b border-slate-100 p-4 flex justify-between items-center">
+                {user && (
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-brand-100 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
                     {profileImgSrc !== DEFAULT_IMAGE ? (
@@ -635,13 +636,14 @@ export default function Navbar() {
                   </div>
                 <div>
                   <p className="font-bold text-slate-800">
-                    {user?.name || "Guest"}
+                    {user?.name}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {user?.email || "Welcome!"}
+                    {user?.email}
                   </p>
                 </div>
                 </div>
+                )}
                 <button
                   onClick={() => setMenuOpen(false)}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-all active:scale-95"
