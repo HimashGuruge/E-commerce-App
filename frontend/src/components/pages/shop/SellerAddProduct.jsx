@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
+import getApiError from "@/utils/errors";
 import QuillEditor from "@/components/shared/QuillEditor.jsx";
 
 const Colors = {
@@ -501,6 +502,10 @@ const handleEditCategory = async (cat) => {
       Swal.fire({ icon: "warning", title: "Validation Error", text: "Product name is required" });
       return false;
     }
+    if (formData.productName.trim().length > 200) {
+      Swal.fire({ icon: "warning", title: "Validation Error", text: "Product name must be 200 characters or fewer" });
+      return false;
+    }
     if (!formData.category.trim()) {
       Swal.fire({ icon: "warning", title: "Validation Error", text: "Category is required" });
       return false;
@@ -688,8 +693,7 @@ const handleEditCategory = async (cat) => {
 
     } catch (err) {
       console.error("Upload failed:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to upload product";
-      Swal.fire({ icon: "error", title: "Upload Failed", text: errorMsg });
+      Swal.fire({ icon: "error", title: "Upload Failed", text: getApiError(err, "Failed to save product") });
     } finally {
       setUploading(false);
       setProgress(0);
@@ -788,7 +792,7 @@ const handleEditCategory = async (cat) => {
       
     } catch (err) {
       console.error("Update failed:", err);
-      Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.message || err.message });
+      Swal.fire({ icon: "error", title: "Update Failed", text: getApiError(err, "Failed to save product") });
     } finally {
       setUploading(false);
       setProgress(0);

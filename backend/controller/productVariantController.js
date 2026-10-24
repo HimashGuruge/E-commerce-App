@@ -4,6 +4,7 @@ import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
 import Seller from "../models/Seller.js";
 import logger from "../utils/logger.js";
+import { deleteProductImages, deleteReplacedImages } from "../services/storageService.js";
 
 // Recompute a parent product's total stock from its variants
 export const recalcParentStock = async (parentProductId) => {
@@ -192,6 +193,7 @@ export const getVariantBySku = asyncHandler(async (req, res) => {
 });
 
 export const updateVariant = asyncHandler(async (req, res) => {
+  const oldVariant = await Variant.findById(req.params.variantId);
   const variant = await Variant.findByIdAndUpdate(req.params.variantId, req.body, {
     new: true,
     runValidators: true,
@@ -199,6 +201,14 @@ export const updateVariant = asyncHandler(async (req, res) => {
   if (!variant) {
     res.status(404);
     throw new Error("Variant not found");
+  }
+  // Images removed from the variant are also deleted from Supabase Storage
+  if (Array.isArray(req.body.images)) {
+    try {
+      await deleteReplacedImages(oldVariant, variant);
+    } catch (err) {
+      logger.warn("Supabase storage cleanup failed while updating variant:", err);
+    }
   }
   const total = await recalcParentStock(variant.parentProduct);
   res.json({ success: true, variant, totalStock: total ?? undefined });
@@ -228,6 +238,11 @@ export const deleteVariant = asyncHandler(async (req, res) => {
   await Product.findByIdAndUpdate(variant.parentProduct, {
     $pull: { variants: variant._id },
   });
+  try {
+    await deleteProductImages({ variants: [variant] });
+  } catch (err) {
+    logger.warn("Supabase storage cleanup failed for deleted variant:", err);
+  }
   const total = await recalcParentStock(variant.parentProduct);
   res.json({ success: true, message: "Variant deleted", totalStock: total ?? undefined });
 });

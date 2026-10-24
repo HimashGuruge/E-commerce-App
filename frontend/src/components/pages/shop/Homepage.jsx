@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import api from "@/utils/api";
-import AiChatBot from "@/components/shared/AiChatBot.jsx";
 import PrivacyPolicy from "@/components/pages/info/PrivacyPolicy.jsx";
 import TermsOfFService from "@/components/pages/info/TermsOfFService.jsx";
 import Shippinginfopage from "@/components/pages/info/ShippingInfoPage.jsx";
@@ -128,8 +127,6 @@ export default function Homepage() {
         </Routes>
 
       </div>
-      {/* Hide the AI chat widget on the seller dashboard */}
-      {!location.pathname.startsWith("/seller/dashboard") && <AiChatBot />}
     </div>
   );
 }

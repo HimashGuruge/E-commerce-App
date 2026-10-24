@@ -28,7 +28,7 @@ import {
   FiGrid,
   FiList,
 } from "react-icons/fi";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 
 const STATUS_OPTIONS = [
@@ -446,8 +446,6 @@ export default function SellerOrdersFull() {
 
   return (
     <div className="min-h-screen bg-[#f7f8fc] p-4 md:p-6 pb-20 lg:pb-6 font-sans text-shoptext">
-      <Toaster position="top-center" />
-
       <div className="max-w-7xl mx-auto mb-6 sm:mb-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>

@@ -1,5 +1,6 @@
 import api from "@/utils/api";
 import React, { useEffect, useState, useMemo } from "react";
+import getApiError from "@/utils/errors";
 import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { clearCart } from "@/components/utils/Cart";
@@ -250,6 +251,10 @@ export default function Payment() {
   // ==================== ✅ STRIPE PAYMENT WITH FLAG ====================
   const handleCardPayment = async () => {
     if (!orderedata) return;
+    if (items.length === 0) {
+      Swal.fire({ icon: "warning", title: "Your cart is empty" });
+      return;
+    }
     setLoading(true);
     try {
       const shippingAddressWithName = {
@@ -282,9 +287,7 @@ export default function Payment() {
       setLoading(false);
       Swal.fire({
         title: "Error",
-        text:
-          err.response?.data?.message ||
-          "Could not initiate Stripe payment. Please try again.",
+        text: getApiError(err, "Could not initiate Stripe payment. Please try again."),
         icon: "error",
       });
     }
@@ -292,6 +295,11 @@ export default function Payment() {
 
   // ==================== COD PAYMENT ====================
   const handleCOD = async () => {
+    if (!orderedata) return;
+    if (items.length === 0) {
+      Swal.fire({ icon: "warning", title: "Your cart is empty" });
+      return;
+    }
     const couponDiscount = orderedata?.coupon?.discountAmount || 0;
     const hasCoupon = !!orderedata?.coupon && couponDiscount > 0;
 
@@ -535,9 +543,7 @@ export default function Payment() {
       setLoading(false);
       Swal.fire({
         title: "Order Failed",
-        text:
-          err.response?.data?.message ||
-          "Something went wrong. Please try again.",
+        text: getApiError(err, "Something went wrong. Please try again."),
         icon: "error",
         confirmButtonColor: "#10b981",
       });

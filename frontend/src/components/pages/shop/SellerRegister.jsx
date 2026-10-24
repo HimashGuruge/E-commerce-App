@@ -36,6 +36,8 @@ export default function SellerRegister() {
     registrationNumber: "",
     agreeTerms: false,
   });
+  const [stepErrors, setStepErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -45,25 +47,39 @@ export default function SellerRegister() {
     }
   }, [navigate]);
 
-  const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
+  const update = (field, value) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    if (stepErrors[field]) {
+      setStepErrors((errs) => {
+        const next = { ...errs };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   const validateStep = () => {
+    const errs = {};
     switch (currentStep) {
-      case 0:
-        return true;
       case 1:
-        return form.shopName.trim().length > 0;
+        if (!form.shopName.trim()) errs.shopName = "Shop name is required";
+        break;
       case 2:
-        return form.ownerName.trim().length > 0 && form.ownerPhone.trim().length > 0;
-      case 3:
-        return true;
+        if (!form.ownerName.trim()) errs.ownerName = "Full name is required";
+        if (!form.ownerPhone.trim()) errs.ownerPhone = "Phone number is required";
+        break;
       case 4:
-        return form.bankName.trim().length > 0 && form.bankAccountNo.trim().length > 0;
+        if (!form.bankName.trim()) errs.bankName = "Bank name is required";
+        if (!form.bankAccountNo.trim()) errs.bankAccountNo = "Account number is required";
+        break;
       case 5:
-        return form.agreeTerms;
+        if (!form.agreeTerms) errs.agreeTerms = "You must agree to the terms to submit";
+        break;
       default:
-        return true;
+        break;
     }
+    setStepErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async () => {
@@ -155,6 +171,7 @@ export default function SellerRegister() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all"
                 placeholder="e.g. TechZone Store"
               />
+              {showErrors && stepErrors.shopName && <p className="text-[11px] text-red-600 mt-1">{stepErrors.shopName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Shop Description</label>
@@ -194,6 +211,7 @@ export default function SellerRegister() {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all"
                   placeholder="As shown on your ID"
                 />
+                {showErrors && stepErrors.ownerName && <p className="text-[11px] text-red-600 mt-1">{stepErrors.ownerName}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label>
@@ -204,6 +222,7 @@ export default function SellerRegister() {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all"
                   placeholder="0712 345 678"
                 />
+                {showErrors && stepErrors.ownerPhone && <p className="text-[11px] text-red-600 mt-1">{stepErrors.ownerPhone}</p>}
               </div>
             </div>
             <div>
@@ -272,6 +291,7 @@ export default function SellerRegister() {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all"
                   placeholder="e.g. Bank of Ceylon"
                 />
+                {showErrors && stepErrors.bankName && <p className="text-[11px] text-red-600 mt-1">{stepErrors.bankName}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Branch</label>
@@ -387,16 +407,29 @@ export default function SellerRegister() {
             </button>
             {currentStep < steps.length - 1 ? (
               <button
-                disabled={!validateStep()}
-                onClick={() => setCurrentStep((s) => s + 1)}
-                className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold"
+                onClick={() => {
+                  if (validateStep()) {
+                    setShowErrors(false);
+                    setCurrentStep((s) => s + 1);
+                  } else {
+                    setShowErrors(true);
+                  }
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all font-bold"
               >
                 Next <FiChevronRight className="w-5 h-5" />
               </button>
             ) : (
               <button
-                disabled={!validateStep() || loading}
-                onClick={handleSubmit}
+                disabled={loading}
+                onClick={() => {
+                  if (validateStep()) {
+                    setShowErrors(false);
+                    handleSubmit();
+                  } else {
+                    setShowErrors(true);
+                  }
+                }}
                 className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold"
               >
                 {loading ? "Submitting..." : "Submit Application"}

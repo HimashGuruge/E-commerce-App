@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import getApiError from "@/utils/errors";
 import { FiPackage, FiCheckCircle, FiXCircle, FiAlertTriangle, FiPhone, FiMail, FiCalendar } from "react-icons/fi";
 
 export default function ReturnRequestPage() {
@@ -49,6 +50,9 @@ export default function ReturnRequestPage() {
       Swal.fire({ icon: "warning", title: "Missing Info", text: "Please provide more details about your return" });
       return;
     }
+    if (formData.reasonText.length > 500 || formData.notes.length > 1000) {
+      return;
+    }
 
     try {
       const payload = {
@@ -78,7 +82,7 @@ export default function ReturnRequestPage() {
       }
     } catch (err) {
       console.error("Failed to submit return:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to submit return request" });
+      Swal.fire({ icon: "error", title: "Error", text: getApiError(err, "Failed to submit return request") });
     }
   };
 
@@ -188,6 +192,7 @@ export default function ReturnRequestPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
                 rows={3}
               />
+              {formData.reasonText.length > 500 && <p className="mt-2 text-xs text-red-600">Please keep your reason under 500 characters.</p>}
             </div>
           )}
 
@@ -227,6 +232,7 @@ export default function ReturnRequestPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
               rows={3}
             />
+            {formData.notes.length > 1000 && <p className="mt-2 text-xs text-red-600">Please keep additional notes under 1000 characters.</p>}
           </div>
 
           {/* Submit Button */}
