@@ -18,6 +18,12 @@ import {
   Wifi,
   Sun,
   Moon,
+  Store,
+  Heart,
+  HelpCircle,
+  Truck,
+  RotateCcw,
+  UserPlus,
 } from "lucide-react";
 import NotificationWidget from "@/components/utils/NotificationWidget.jsx";
 import { getCartWithTotals } from "@/components/utils/Cart.jsx";
@@ -740,7 +746,47 @@ export default function Navbar() {
                       }}
                     />
 
-                    {/* Admin Dashboard */}
+                    {/* Seller Center / Admin Dashboard */}
+                    {isSeller && (
+                      <MobileNavLink
+                        to="/seller/dashboard"
+                        label={
+                          <div className="flex items-center gap-3">
+                            <Store size={18} className="text-slate-500" />
+                            <span>Seller Center</span>
+                          </div>
+                        }
+                        active={location.pathname === "/seller/dashboard"}
+                        onClick={() => setMenuOpen(false)}
+                      />
+                    )}
+                    {isAdmin && (
+                      <MobileNavLink
+                        to="/admin/dashboard"
+                        label={
+                          <div className="flex items-center gap-3">
+                            <Briefcase size={18} className="text-slate-500" />
+                            <span>Dashboard</span>
+                          </div>
+                        }
+                        active={location.pathname === "/admin/dashboard"}
+                        onClick={() => setMenuOpen(false)}
+                      />
+                    )}
+
+                    {/* My Wishlist */}
+                    <MobileNavLink
+                      to="/wishlist"
+                      label={
+                        <div className="flex items-center gap-3">
+                          <Heart size={18} className="text-slate-500" />
+                          <span>My Wishlist</span>
+                        </div>
+                      }
+                      active={location.pathname === "/wishlist"}
+                      onClick={() => setMenuOpen(false)}
+                    />
+
                     {/* Profile Section - Enhanced */}
                     <Link
                       to={`/profile?userId=${userId}`}
@@ -796,6 +842,55 @@ export default function Navbar() {
                     </button>
                   </>
                 )}
+
+                {/* Help Section (all users, matches desktop top bar) */}
+                <div className="h-[1px] bg-slate-100 my-2" />
+                {!user && (
+                  <MobileNavLink
+                    to="/become-seller"
+                    label={
+                      <div className="flex items-center gap-3">
+                        <UserPlus size={18} className="text-slate-500" />
+                        <span>Become a Seller</span>
+                      </div>
+                    }
+                    active={location.pathname === "/become-seller"}
+                    onClick={() => setMenuOpen(false)}
+                  />
+                )}
+                <MobileNavLink
+                  to="/help"
+                  label={
+                    <div className="flex items-center gap-3">
+                      <HelpCircle size={18} className="text-slate-500" />
+                      <span className="font-semibold">Help Center</span>
+                    </div>
+                  }
+                  active={location.pathname === "/help"}
+                  onClick={() => setMenuOpen(false)}
+                />
+                <MobileNavLink
+                  to="/shipping"
+                  label={
+                    <div className="flex items-center gap-3">
+                      <Truck size={18} className="text-slate-500" />
+                      <span>Shipping & Delivery</span>
+                    </div>
+                  }
+                  active={location.pathname === "/shipping"}
+                  onClick={() => setMenuOpen(false)}
+                />
+                <MobileNavLink
+                  to="/returns"
+                  label={
+                    <div className="flex items-center gap-3">
+                      <RotateCcw size={18} className="text-slate-500" />
+                      <span>Returns & Refunds</span>
+                    </div>
+                  }
+                  active={location.pathname === "/returns"}
+                  onClick={() => setMenuOpen(false)}
+                />
               </div>
 
               {/* Swipe Hint */}
