@@ -105,7 +105,7 @@ cp .env.example .env      # Windows: copy .env.example .env
 Set `VITE_BACKEND_URL` in `frontend/.env` (default `http://localhost:4000`).
 
 ```bash
-npm run dev               # Start on http://localhost:5173 (Vite)
+npm run dev               # Start on http://localhost:3001 (Vite)
 ```
 
 ### Useful scripts
