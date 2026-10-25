@@ -1,5 +1,6 @@
 import asyncHandler from "express-async-handler";
 import Announcement from "../models/Announcement.js";
+import { normalizeAnnouncementStyle } from "../utils/announcementStyle.js";
 
 export const createAnnouncement = asyncHandler(async (req, res) => {
   const { text } = req.body;
@@ -7,6 +8,8 @@ export const createAnnouncement = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Announcement text is required");
   }
+  // Keep only known, validated styling keys — never store raw client data.
+  req.body.style = normalizeAnnouncementStyle(req.body.style);
   const announcement = await Announcement.create(req.body);
   res.status(201).json({ success: true, announcement });
 });
@@ -19,6 +22,9 @@ export const getAnnouncements = asyncHandler(async (req, res) => {
 });
 
 export const updateAnnouncement = asyncHandler(async (req, res) => {
+  if (req.body.style !== undefined) {
+    req.body.style = normalizeAnnouncementStyle(req.body.style);
+  }
   const announcement = await Announcement.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });

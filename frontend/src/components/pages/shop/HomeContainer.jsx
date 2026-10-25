@@ -7,6 +7,13 @@ import React, {
 } from "react";
 import { motion } from "framer-motion";
 import api from "@/utils/api";
+import { getCachedSettings } from "@/utils/siteSettings";
+import { injectBarFont } from "@/utils/color";
+import {
+  announcementItemStyle,
+  announcementTextColor,
+  barBackgroundStyle,
+} from "@/utils/announcementStyle";
 import { Link } from "react-router-dom";
 
 import {
@@ -173,11 +180,41 @@ export default function HomeContainer() {
   const [categories, setCategories] = useState([]);
   const [features, setFeatures] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [announcementSettings, setAnnouncementSettings] = useState({
+  // Initialize from cached settings synchronously so the saved color renders
+  // on the very first paint (no orange -> black flash on refresh).
+  const cachedAnn = getCachedSettings()?.announcement;
+  const announcementDefaults = {
     speed: 12,
     bgColor: "#F85606",
     textColor: "#ffffff",
+    fontFamily: "",
+    fontUrl: "",
+    gradient: { enabled: false },
+    bgOpacity: 100,
+    padding: 8,
+    borderColor: "#ffffff",
+    borderWidth: 0,
+    borderRadius: 0,
+  };
+  const readAnnouncementSettings = (ann) => ({
+    speed: ann?.speed ?? 12,
+    bgColor: ann?.bgColor || "#F85606",
+    textColor: ann?.textColor || "#ffffff",
+    fontFamily: ann?.fontFamily || "",
+    fontUrl: ann?.fontUrl || "",
+    gradient:
+      ann?.gradient && typeof ann.gradient === "object"
+        ? { ...announcementDefaults.gradient, ...ann.gradient }
+        : { ...announcementDefaults.gradient },
+    bgOpacity: ann?.bgOpacity ?? 100,
+    padding: ann?.padding ?? 8,
+    borderColor: ann?.borderColor || "#ffffff",
+    borderWidth: ann?.borderWidth ?? 0,
+    borderRadius: ann?.borderRadius ?? 0,
   });
+  const [announcementSettings, setAnnouncementSettings] = useState(
+    cachedAnn ? readAnnouncementSettings(cachedAnn) : { ...announcementDefaults, gradient: { ...announcementDefaults.gradient } }
+  );
   const [visibleCount, setVisibleCount] = useState(12);
   const [loading, setLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -365,14 +402,19 @@ export default function HomeContainer() {
   };
 
   useEffect(() => {
+    // Seed from cached public settings right away so the first paint uses
+    // the saved color (no orange -> saved-color flash).
+    import("@/utils/siteSettings").then(({ getPublicSettings }) =>
+      getPublicSettings().then((s) => {
+        if (s?.announcement) {
+          setAnnouncementSettings(readAnnouncementSettings(s.announcement));
+        }
+      }).catch(() => {})
+    );
     const handler = (e) => {
       const s = e.detail;
       if (s?.announcement) {
-        setAnnouncementSettings({
-          speed: s.announcement.speed ?? 12,
-          bgColor: s.announcement.bgColor || "#F85606",
-          textColor: s.announcement.textColor || "#ffffff",
-        });
+        setAnnouncementSettings(readAnnouncementSettings(s.announcement));
       }
     };
     window.addEventListener("settingsUpdated", handler);
@@ -382,6 +424,11 @@ export default function HomeContainer() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Load the announcement bar font (only used by the bar, not the whole site).
+  useEffect(() => {
+    injectBarFont(announcementSettings.fontUrl || "");
+  }, [announcementSettings.fontUrl]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -463,10 +510,7 @@ export default function HomeContainer() {
       </div>
 
       {announcements.length > 0 && (
-        <div
-          className="overflow-hidden leading-normal relative"
-          style={{ backgroundColor: announcementSettings.bgColor }}
-        >
+        <div className="relative leading-normal overflow-hidden" style={barBackgroundStyle(announcementSettings)}>
           <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.08)_50%,transparent_100%)]"></div>
           <style>{`
             @keyframes announce-scroll {
@@ -480,18 +524,33 @@ export default function HomeContainer() {
               animation-play-state: paused;
             }
           `}</style>
-          <div className="relative w-full overflow-hidden py-2">
+          <div className="relative w-full overflow-hidden">
             <div className="announce-track flex w-max whitespace-nowrap">
               <div className="flex shrink-0 items-center gap-12 px-8">
                 {announcements
                   .filter((a) => a.status === "active")
                   .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                  .map((item) => (
-                    <span key={item._id} className="flex items-center gap-2.5 shrink-0 text-lg font-semibold" style={{ color: announcementSettings.textColor }}>
-                      <IconByName name={item.icon} size={15} className="shrink-0" style={{ color: announcementSettings.textColor, opacity: 0.7 }} />
-                      {item.text}
+                  .map((item) => {
+                    const itemColor = announcementTextColor(item.style, announcementSettings);
+                    return (
+                      <span key={item._id} className="flex items-center gap-2.5 shrink-0 whitespace-nowrap" style={announcementItemStyle(item.style, announcementSettings)}>
+                        <IconByName name={item.icon} size={15} className="shrink-0" style={{ color: itemColor, opacity: 0.7 }} />
+                        {String(item.text).split(/(\s+)/).map((word, i) =>
+                          /^[A-Z][A-Z0-9_-]{3,}$/.test(word) ? (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 rounded-md text-xl font-black bg-white/20 ring-1 ring-current"
+                              style={{ color: itemColor }}
+                            >
+                            {word}
+                          </span>
+                        ) : (
+                          <span key={i}>{word}</span>
+                        )
+                      )}
                     </span>
-                  ))}
+                  );
+                })}
               </div>
             </div>
           </div>

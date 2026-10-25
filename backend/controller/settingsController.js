@@ -68,7 +68,24 @@ export const updateSettings = asyncHandler(async (req, res) => {
   ];
   allowed.forEach((field) => {
     if (req.body[field] !== undefined) {
-      config[field] = req.body[field];
+      // Merge sub-objects instead of replacing them, so partial saves from
+      // different admin pages don't wipe sibling fields (e.g. the new
+      // announcement background fields vs the old bar fields).
+      if (typeof req.body[field] === "object" && req.body[field] !== null && !Array.isArray(req.body[field])) {
+        const target = config[field] && typeof config[field] === "object" ? config[field] : {};
+        Object.keys(req.body[field]).forEach((key) => {
+          if (typeof req.body[field][key] === "object" && req.body[field][key] !== null && !Array.isArray(req.body[field][key])) {
+            const nested = target[key] && typeof target[key] === "object" ? target[key] : {};
+            Object.assign(nested, req.body[field][key]);
+            target[key] = nested;
+          } else {
+            target[key] = req.body[field][key];
+          }
+        });
+        config[field] = target;
+      } else {
+        config[field] = req.body[field];
+      }
     }
   });
   if (req.body.social && typeof req.body.social === "object") {

@@ -66,6 +66,18 @@ const siteConfigSchema = new mongoose.Schema(
       speed: { type: Number, default: 12 },
       bgColor: { type: String, default: "#F85606" },
       textColor: { type: String, default: "#ffffff" },
+      fontFamily: { type: String, default: "" },
+      fontUrl: { type: String, default: "" },
+      gradient: {
+        enabled: { type: Boolean, default: false },
+        from: { type: String, default: "#FF8A3D" },
+        to: { type: String, default: "#C2410C" },
+      },
+      bgOpacity: { type: Number, default: 100 },
+      padding: { type: Number, default: 8 },
+      borderColor: { type: String, default: "#ffffff" },
+      borderWidth: { type: Number, default: 0 },
+      borderRadius: { type: Number, default: 0 },
     },
     newsletter: {
       enabled: { type: Boolean, default: true },

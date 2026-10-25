@@ -115,3 +115,21 @@ export function injectFont(fontFamily, fontUrl) {
   }
   style.textContent = css;
 }
+
+// Load a font stylesheet dedicated to the announcement bar (does not touch
+// the site-wide font-stylesheet).
+export function injectBarFont(fontUrl) {
+  const id = "bar-font-stylesheet";
+  let link = document.getElementById(id);
+  if (fontUrl) {
+    if (!link) {
+      link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    link.href = fontUrl;
+  } else {
+    if (link) link.remove();
+  }
+}

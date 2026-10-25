@@ -5,7 +5,7 @@ import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-i
 
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
-import { injectTheme, injectFont, injectNavbar } from "@/utils/color";
+import { injectTheme, injectFont, injectNavbar, injectBarFont } from "@/utils/color";
 import { invalidatePublicSettings } from "@/utils/siteSettings";
 
 const SOCIAL_ICONS = {
@@ -125,6 +125,8 @@ export default function SettingsManagement() {
       speed: 12,
       bgColor: "#F85606",
       textColor: "#ffffff",
+      fontFamily: "",
+      fontUrl: "",
     },
     newsletter: {
       enabled: true,
@@ -218,6 +220,8 @@ export default function SettingsManagement() {
             speed: s.announcement?.speed ?? 12,
             bgColor: s.announcement?.bgColor || "#F85606",
             textColor: s.announcement?.textColor || "#ffffff",
+            fontFamily: s.announcement?.fontFamily || "",
+            fontUrl: s.announcement?.fontUrl || "",
           },
           newsletter: {
             enabled: s.newsletter?.enabled ?? true,
@@ -254,6 +258,11 @@ export default function SettingsManagement() {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // Load the announcement bar font so the preview (and live bar) can use it.
+  useEffect(() => {
+    injectBarFont(form.announcement?.fontUrl || "");
+  }, [form.announcement?.fontUrl]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1571,9 +1580,26 @@ export default function SettingsManagement() {
               </div>
             </div>
           </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Bar Font</label>
+            <select
+              value={form.announcement?.fontFamily || ""}
+              onChange={(e) => {
+                const preset = FONT_PRESETS.find((p) => p.family === e.target.value);
+                setForm(prev => ({ ...prev, announcement: { ...prev.announcement, fontFamily: e.target.value, fontUrl: preset?.url || "" } }));
+              }}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-white"
+            >
+              <option value="">Default (site font)</option>
+              {FONT_PRESETS.map((preset) => (
+                <option key={preset.key} value={preset.family}>{preset.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400 mt-1">Font used only for the announcement bar text</p>
+          </div>
           <div className="mt-4 p-4 rounded-xl overflow-hidden" style={{ backgroundColor: form.announcement?.bgColor || "#F85606" }}>
             <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: form.announcement?.textColor || "#ffffff", opacity: 0.6 }}>Preview</p>
-            <div className="flex items-center gap-6 whitespace-nowrap" style={{ color: form.announcement?.textColor || "#ffffff" }}>
+            <div className="flex items-center gap-6 whitespace-nowrap" style={{ color: form.announcement?.textColor || "#ffffff", fontFamily: form.announcement?.fontFamily || undefined }}>
               <span className="flex items-center gap-2 text-sm font-medium opacity-90">★ New collection out now!</span>
               <span className="flex items-center gap-2 text-sm font-medium opacity-90">⚡ Free shipping over $50</span>
               <span className="flex items-center gap-2 text-sm font-medium opacity-90">🎉 50% off select items</span>
