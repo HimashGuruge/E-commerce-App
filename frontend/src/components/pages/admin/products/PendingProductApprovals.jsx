@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 
 export default function PendingProductApprovals() {
   const [products, setProducts] = useState([]);
@@ -34,6 +35,15 @@ export default function PendingProductApprovals() {
 
   useEffect(() => {
     fetchPending();
+  }, []);
+
+  // Live update: the server sends admin:stats-changed on every product
+  // create/update/approve/reject/delete, so the list stays current with
+  // no manual refresh.
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", (data) => {
+      if (data?.type === "product") fetchPending();
+    });
   }, []);
 
   const handleApprove = async (product) => {
@@ -182,12 +192,16 @@ export default function PendingProductApprovals() {
             <FiClock size={16} />
             {products.length} waiting
           </span>
-          <button
-            onClick={fetchPending}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+          <span
+            className="flex items-center gap-1.5 text-xs text-emerald-600"
+            title="This page updates live when products change"
           >
-            Refresh
-          </button>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Live
+          </span>
         </div>
       </div>
 

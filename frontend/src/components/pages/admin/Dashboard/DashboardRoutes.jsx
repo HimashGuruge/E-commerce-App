@@ -17,6 +17,7 @@ import FeedbackManagement from "@/components/pages/admin/marketing/FeedbackManag
 import SettingsManagement from "@/components/pages/admin/marketing/SettingsManagement.jsx";
 import AdminSellerManagement from "@/components/pages/admin/marketing/AdminSellerManagement.jsx";
 import AdminSellerDetail from "@/components/pages/admin/marketing/AdminSellerDetail.jsx";
+import AdminSellerPayouts from "@/components/pages/admin/marketing/AdminSellerPayouts.jsx";
 import QuestionsManagement from "@/components/pages/admin/marketing/QuestionsManagement.jsx";
 import ReturnsManagement from "@/components/pages/admin/returns/ReturnsManagement.jsx";
 import { FiPackage, FiUsers, FiDollarSign, FiShoppingCart, FiTrendingUp, FiTrendingDown, FiArrowRight, FiClock } from "react-icons/fi";
@@ -285,6 +286,7 @@ export default function DashboardRoutes() {
       <Route path="settings" element={<SettingsManagement />} />
       <Route path="sellers" element={<AdminSellerManagement />} />
       <Route path="sellers/:sellerId" element={<AdminSellerDetail />} />
+      <Route path="payouts" element={<AdminSellerPayouts />} />
       <Route path="questions" element={<QuestionsManagement />} />
       <Route path="returns" element={<ReturnsManagement />} />
     </Routes>

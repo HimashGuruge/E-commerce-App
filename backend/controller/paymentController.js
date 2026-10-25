@@ -11,6 +11,7 @@ import { recalcParentStock } from "./productVariantController.js";
 import { emitToAdmins } from "../services/socketService.js";
 import { notifyOrderSellers, notifyOrderSellersOfNewOrder, notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
 import { resolveCoupon, recordCouponUse } from "../utils/couponService.js";
+import { computeCommissionSnapshot } from "../services/payoutService.js";
 
 // Distinct product brands covered by an order's items (for seller-stats pings)
 const orderBrands = async (order) => {
@@ -292,6 +293,9 @@ export const createStripeSession = asyncHandler(async (req, res) => {
         : undefined,
       discountTotal: couponDiscount + shippingWaived,
       couponCounted: false,
+      // Immutable per-seller commission snapshot at placement time (rate
+      // changes later never rewrite this order's history).
+      commissionSnapshot: await computeCommissionSnapshot({ items: orderItems }),
     });
 
     // Real-time: refresh admin pending-orders badge without HTTP polling
@@ -438,6 +442,9 @@ export const placeCODOrder = asyncHandler(async (req, res) => {
         : undefined,
       discountTotal: couponDiscount + shippingWaived,
       couponCounted: false,
+      // Immutable per-seller commission snapshot at placement time (rate
+      // changes later never rewrite this order's history).
+      commissionSnapshot: await computeCommissionSnapshot({ items: orderItems }),
     });
 
     // COD: order counts immediately, so finalize real stock now

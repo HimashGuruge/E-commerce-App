@@ -1,5 +1,6 @@
 import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
+import { emitToAdmins } from "../services/socketService.js";
 import Question from "../models/Question.js";
 import Product from "../models/Product.js";
 import Message from "../models/Message.js";
@@ -48,6 +49,9 @@ export const askQuestion = asyncHandler(async (req, res) => {
   });
 
   await notifyAdminsOfQuestion(questionDoc, product.name);
+
+  // Real-time: refresh the admin questions page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: questionDoc._id, type: "question" });
 
   const populated = await Question.findById(questionDoc._id)
     .populate("user", "name profileImage")
@@ -139,6 +143,9 @@ export const answerQuestion = asyncHandler(async (req, res) => {
     .populate("user", "name profileImage")
     .populate("answers.user", "name profileImage");
 
+  // Real-time: refresh the admin questions page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: question._id, type: "question" });
+
   res.json({ success: true, question: populated });
 });
 
@@ -157,6 +164,10 @@ export const deleteQuestion = asyncHandler(async (req, res) => {
   }
 
   await Question.findByIdAndDelete(req.params.id);
+
+  // Real-time: refresh the admin questions page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: question._id, type: "question" });
+
   res.json({ success: true, message: "Question deleted" });
 });
 
@@ -169,6 +180,9 @@ export const toggleQuestionStatus = asyncHandler(async (req, res) => {
 
   question.status = question.status === "active" ? "hidden" : "active";
   await question.save();
+
+  // Real-time: refresh the admin questions page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: question._id, type: "question" });
 
   res.json({ success: true, question });
 });

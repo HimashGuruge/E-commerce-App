@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
-import { Star, Trash2, CheckCircle, XCircle, Loader2, RefreshCw, MessageSquare } from "lucide-react";
+import { Star, Trash2, CheckCircle, XCircle, Loader2, MessageSquare } from "lucide-react";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 
 const FeedbackManagement = () => {
   const navigate = useNavigate();
@@ -24,6 +25,15 @@ const FeedbackManagement = () => {
 
   useEffect(() => {
     fetchFeedbacks();
+  }, []);
+
+  // Live update: the server sends admin:stats-changed on every feedback
+  // create/approve/reject/delete, so the list stays current with no
+  // manual refresh.
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", (data) => {
+      if (data?.type === "feedback") fetchFeedbacks();
+    });
   }, []);
 
   const handleApprove = async (id) => {
@@ -92,13 +102,16 @@ const FeedbackManagement = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Feedback Management</h1>
-          <button
-            onClick={fetchFeedbacks}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+          <span
+            className="flex items-center gap-1.5 text-xs text-emerald-600"
+            title="This page updates live when feedback changes"
           >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Live
+          </span>
         </div>
 
         <div className="grid grid-cols-4 gap-4 mb-6">

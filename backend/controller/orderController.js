@@ -10,6 +10,7 @@ import SiteConfig from "../models/SiteConfig.js";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
 import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
 import { resolveCoupon } from "../utils/couponService.js";
+import { ensureCODCollection, failPendingCollectionsForOrder } from "../services/payoutService.js";
 
 // Distinct product brands covered by an order's items (for seller-stats pings)
 const orderBrands = async (order) => {
@@ -111,6 +112,16 @@ export const cancelOrder = asyncHandler(async (req, res) => {
   order.cancelledBy = req.user._id;
   order.cancellationReason = req.body.reason || "Cancelled by user";
   await order.save();
+
+  // COD: pending (unverified) ledger rows for this order become failed.
+  // Verified rows are untouched — already-received money needs an explicit reversal.
+  if (order.paymentMethod === "cod") {
+    try {
+      await failPendingCollectionsForOrder(order._id);
+    } catch (codErr) {
+      logger.error(`[Payout] COD cancel hook failed for order ${order._id}:`, codErr.message);
+    }
+  }
   // Real-time: notify the buyer's open orders page instantly
   emitToUser(order.user?._id || order.user, "order:update", {
     orderId: order._id,
@@ -266,6 +277,19 @@ export const adminUpdateOrderStatus = asyncHandler(async (req, res) => {
   }
   if (req.body.courier) order.courier = req.body.courier;
   await order.save();
+
+  // COD settlement hooks: delivery creates a pending ledger row (idempotent);
+  // cancellation before verification fails any pending rows. Delivery alone
+  // never means money was received.
+  if (order.paymentMethod === "cod") {
+    try {
+      if (order.orderStatus === "delivered") await ensureCODCollection(order);
+      else if (order.orderStatus === "cancelled" && oldStatus !== "cancelled")
+        await failPendingCollectionsForOrder(order._id);
+    } catch (codErr) {
+      logger.error(`[Payout] COD ledger hook failed for order ${order._id}:`, codErr.message);
+    }
+  }
 
   // Real-time: refresh admin pending-orders badge without HTTP polling
   emitToAdmins("admin:stats-changed", { orderId: order._id });

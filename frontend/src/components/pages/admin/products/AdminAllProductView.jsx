@@ -6,7 +6,6 @@ import {
   FiEdit2,
   FiTrash2,
   FiCopy,
-  FiRefreshCw,
   FiPlus,
   FiX,
   FiChevronLeft,
@@ -17,6 +16,7 @@ import {
 import { TbPackage, TbUserOff } from "react-icons/tb";
 import Swal from "sweetalert2";
 import { AnimatePresence } from "framer-motion";
+import { onSocketEvent } from "@/utils/socket";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -39,6 +39,15 @@ export default function AdminAllProductView() {
     }
     fetchProducts();
   }, [navigate, token]);
+
+  // Live update: the server sends admin:stats-changed on every product
+  // create/update/approve/reject/delete, so the list stays current with
+  // no manual refresh.
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", (data) => {
+      if (data?.type === "product") fetchProducts();
+    });
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -196,13 +205,16 @@ export default function AdminAllProductView() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={fetchProducts}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
+            <span
+              className="flex items-center gap-1.5 text-xs text-emerald-600"
+              title="This page updates live when products change"
             >
-              <FiRefreshCw className={`w-4 h-4 text-slate-500 ${loading ? "animate-spin" : ""}`} />
-              <span className="text-sm font-medium text-slate-600">Refresh</span>
-            </button>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              Live
+            </span>
             <button
               onClick={() => navigate("/admin/dashboard/addproducts")}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-500 text-white rounded-xl hover:bg-brand-600 transition-all shadow-lg shadow-emerald-500/25"

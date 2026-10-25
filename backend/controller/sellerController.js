@@ -11,6 +11,7 @@ import { emitToAdmins, emitToUser } from "../services/socketService.js";
 import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
 import { notifyAdminsOfSellerEvent } from "./notificationController.js";
 import logger from "../utils/logger.js";
+import { ensureCODCollection } from "../services/payoutService.js";
 
 // @desc    Apply to become a seller
 // @route   POST /api/sellers/register
@@ -79,6 +80,10 @@ export const updateSellerProfile = asyncHandler(async (req, res) => {
   });
 
   const updated = await seller.save();
+
+  // Real-time: refresh the admin seller list without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
+
   res.json({ success: true, seller: updated });
 });
 
@@ -421,6 +426,15 @@ export const sellerUpdateOrderStatus = asyncHandler(async (req, res) => {
   if (req.body.courier) order.courier = String(req.body.courier).trim();
   await order.save();
 
+  // COD delivery → pending ledger row (idempotent; delivery ≠ money received)
+  if (order.paymentMethod === "cod" && order.orderStatus === "delivered") {
+    try {
+      await ensureCODCollection(order);
+    } catch (codErr) {
+      logger.error(`[Payout] COD ledger hook failed for order ${order._id}:`, codErr.message);
+    }
+  }
+
   // Real-time: refresh admin pending-orders badge without HTTP polling
   emitToAdmins("admin:stats-changed", { orderId: order._id });
 
@@ -606,6 +620,9 @@ export const adminApproveSeller = asyncHandler(async (req, res) => {
 
   await User.findByIdAndUpdate(seller.user, { role: "seller" });
 
+  // Real-time: refresh the admin seller list without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
+
   res.json({ success: true, seller });
 });
 
@@ -626,6 +643,9 @@ export const adminRejectSeller = asyncHandler(async (req, res) => {
   // still access seller-only routes (sellerOnly checks the user role).
   await User.findByIdAndUpdate(seller.user, { role: "customer" });
 
+  // Real-time: refresh the admin seller list without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
+
   res.json({ success: true, seller });
 });
 
@@ -643,6 +663,9 @@ export const adminSuspendSeller = asyncHandler(async (req, res) => {
 
   await User.findByIdAndUpdate(seller.user, { role: "customer" });
 
+  // Real-time: refresh the admin seller list without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
+
   res.json({ success: true, seller });
 });
 
@@ -655,8 +678,17 @@ export const adminSetCommission = asyncHandler(async (req, res) => {
     throw new Error("Seller not found");
   }
 
-  seller.commissionRate = req.body.commissionRate || 0;
+  const rate = Number(req.body.commissionRate);
+  if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+    res.status(400);
+    throw new Error("commissionRate must be a number between 0 and 100");
+  }
+
+  seller.commissionRate = rate;
   await seller.save();
+
+  // Real-time: refresh the admin seller list without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: seller._id, type: "seller" });
 
   res.json({ success: true, seller });
 });

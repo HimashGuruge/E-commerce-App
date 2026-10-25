@@ -5,6 +5,7 @@ import Seller from "../models/Seller.js";
 import crypto from "crypto";
 import { googleOAuthConfig, appConfig } from "../config/env.js";
 import { sendEmail, sendLoginAlert } from "../utils/mailer.js";
+import { emitToAdmins } from "../services/socketService.js";
 import logger from "../utils/logger.js";
 
 const generateToken = (user) => {
@@ -175,6 +176,10 @@ export const createNewUser = asyncHandler(async (req, res) => {
     // Public registration always creates a customer account.
     role: "customer",
   });
+
+  // Real-time: refresh the admin user list
+  emitToAdmins("admin:stats-changed", { orderId: user._id, type: "user" });
+
   res.status(201).json({
     success: true,
     token: generateToken(user),
@@ -235,6 +240,12 @@ export const updateUserInfo = asyncHandler(async (req, res) => {
   }
 
   const updatedUser = await user.save();
+
+  // Real-time: refresh the admin user list (admin edits only)
+  if (req.params.userId) {
+    emitToAdmins("admin:stats-changed", { orderId: updatedUser._id, type: "user" });
+  }
+
   res.json({
     success: true,
     user: {
@@ -313,6 +324,10 @@ export const updateUserRole = asyncHandler(async (req, res) => {
   user.role = nextRole;
   await user.save();
   const sellerSynced = await syncSellerDocForRoleChange(prevRole, user, nextRole);
+
+  // Real-time: refresh the admin user list
+  emitToAdmins("admin:stats-changed", { orderId: user._id, type: "user" });
+
   res.json({
     success: true,
     user,
@@ -341,6 +356,10 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
   }
   user.status = nextStatus;
   await user.save();
+
+  // Real-time: refresh the admin user list
+  emitToAdmins("admin:stats-changed", { orderId: user._id, type: "user" });
+
   res.json({ success: true, user });
 });
 
@@ -357,6 +376,10 @@ export const deleteUser = asyncHandler(async (req, res) => {
     throw new Error(user.isMainAdmin ? "Main Admin account is protected" : "Cannot delete this user");
   }
   await user.deleteOne();
+
+  // Real-time: refresh the admin user list
+  emitToAdmins("admin:stats-changed", { orderId: user._id, type: "user" });
+
   res.json({ success: true, message: "User deleted" });
 });
 
@@ -386,6 +409,12 @@ export const bulkUserActions = asyncHandler(async (req, res) => {
 
   if (action === "delete") {
     const result = await User.deleteMany(baseFilter);
+
+    // Real-time: refresh the admin user list
+    if (result.deletedCount > 0) {
+      emitToAdmins("admin:stats-changed", { type: "user" });
+    }
+
     return res.json({ success: true, message: `Deleted ${result.deletedCount} user(s)` });
   }
 
@@ -401,6 +430,12 @@ export const bulkUserActions = asyncHandler(async (req, res) => {
   }
 
   const result = await User.updateMany(baseFilter, { [action]: value });
+
+  // Real-time: refresh the admin user list
+  if (result.modifiedCount > 0) {
+    emitToAdmins("admin:stats-changed", { type: "user" });
+  }
+
   res.json({ success: true, message: `Updated ${result.modifiedCount} user(s)` });
 });
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Eye, EyeOff, RefreshCw, HelpCircle, MessageSquare } from "lucide-react";
+import { Trash2, Eye, EyeOff, HelpCircle, MessageSquare } from "lucide-react";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 
 export default function QuestionsManagement() {
   const navigate = useNavigate();
@@ -24,6 +25,15 @@ export default function QuestionsManagement() {
   };
 
   useEffect(() => { fetchQuestions(); }, [filter]);
+
+  // Live update: the server sends admin:stats-changed on every question
+  // ask/answer/delete/status-change, so the list stays current with no
+  // manual refresh.
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", (data) => {
+      if (data?.type === "question") fetchQuestions();
+    });
+  }, []);
 
   const handleToggleStatus = async (id, currentStatus) => {
     try {
@@ -79,14 +89,16 @@ export default function QuestionsManagement() {
           <h1 className="text-xl md:text-2xl font-bold text-slate-900">Q&A Management</h1>
           <p className="text-sm text-slate-500 mt-1">Manage customer questions across products</p>
         </div>
-        <button
-          onClick={fetchQuestions}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+        <span
+          className="flex items-center gap-1.5 text-xs text-emerald-600"
+          title="This page updates live when questions change"
         >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Live
+        </span>
       </div>
 
       {/* Stats */}

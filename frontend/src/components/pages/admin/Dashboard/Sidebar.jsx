@@ -15,6 +15,7 @@ import {
 import { TbUserShield } from "react-icons/tb";
 import { FiMessageSquare, FiHelpCircle, FiPackage, FiClock, FiTag } from "react-icons/fi";
 import { MdStore } from "react-icons/md";
+import { FiDollarSign } from "react-icons/fi";
 
 export default function Sidebar({
   user: initialUser,
@@ -692,6 +693,18 @@ export default function Sidebar({
                 {pendingSellersCount} PENDING
               </span>
             )}
+          </NavLink>
+
+          {/* Seller Payouts (COD settlement + payouts) */}
+          <NavLink
+            to="/admin/dashboard/payouts"
+            className={navItemClass}
+            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
+          >
+            <FiDollarSign size={20} className="text-brand-600" />
+            <span className="flex-1 text-sm font-medium">
+              Payouts
+            </span>
           </NavLink>
 
           {/* SITE */}

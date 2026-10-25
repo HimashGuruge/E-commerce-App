@@ -9,7 +9,6 @@ import {
   FiTrash2,
   FiEdit2,
   FiSearch,
-  FiRefreshCw,
   FiChevronLeft,
   FiChevronRight,
   FiCheckCircle,
@@ -22,6 +21,7 @@ import {
 import { FaCrown } from "react-icons/fa";
 import { TbUserShield, TbUserOff } from "react-icons/tb";
 import { motion, AnimatePresence } from "framer-motion";
+import { onSocketEvent } from "@/utils/socket";
 
 const USERS_PER_PAGE = 10;
 
@@ -57,6 +57,25 @@ export default function ControlUsersprivilege() {
       navigate("/login");
     }
   }, [navigate]);
+
+  // Live update: the server sends admin:stats-changed on every user
+  // signup, role change, status change, edit or delete, so the list
+  // stays current with no manual refresh.
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", (data) => {
+      if (data?.type === "user") {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        try {
+          if (jwtDecode(token).role !== "admin") return;
+        } catch {
+          return;
+        }
+        fetchUsers();
+        fetchUserStats();
+      }
+    });
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -281,13 +300,16 @@ export default function ControlUsersprivilege() {
             </h1>
             <p className="text-slate-500 mt-1">Manage users, roles and permissions</p>
           </div>
-          <button
-            onClick={fetchUsers}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+          <span
+            className="flex items-center gap-1.5 text-xs text-emerald-600"
+            title="This page updates live when users change"
           >
-            <FiRefreshCw className={`w-4 h-4 text-slate-500 ${loading ? "animate-spin" : ""}`} />
-            <span className="text-sm font-medium text-slate-600">Refresh</span>
-          </button>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Live
+          </span>
         </div>
 
         {/* Stats Cards */}

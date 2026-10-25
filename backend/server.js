@@ -33,6 +33,7 @@ import uploadRouter from "./routes/uploadRouter.js";
 import couponRouter from "./routes/couponRouter.js";
 import { handleStripeWebhook } from "./controller/paymentController.js";
 import { startTrackingCron, stopTrackingCron } from "./services/trackingService.js";
+import { startPayoutCron, stopPayoutCron } from "./services/payoutService.js";
 import mongoose from "mongoose";
 
 dotenv.config();
@@ -46,6 +47,7 @@ if (missingEnv.length > 0) {
 
 connectDB();
 startTrackingCron();
+startPayoutCron();
 
 const app = express();
 const server = createServer(app);
@@ -68,6 +70,7 @@ process.on("uncaughtException", (err) => {
 const shutdown = async (signal) => {
   logger.warn(`${signal} received — starting graceful shutdown`);
   stopTrackingCron();
+  stopPayoutCron();
   try {
     if (socketIo) {
       socketIo.disconnectSockets?.();

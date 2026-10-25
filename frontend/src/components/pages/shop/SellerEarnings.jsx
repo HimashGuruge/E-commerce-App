@@ -8,14 +8,19 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 export default function SellerEarnings() {
   const [data, setData] = useState(null);
+  const [payout, setPayout] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("month");
 
   useEffect(() => {
     const fetchEarnings = async () => {
       try {
-        const { data: res } = await api.get(`/api/sellers/earnings?period=${period}`);
-        if (res.success) setData(res.earnings);
+        const [earnRes, payRes] = await Promise.all([
+          api.get(`/api/sellers/earnings?period=${period}`),
+          api.get(`/api/sellers/payouts`),
+        ]);
+        if (earnRes.data.success) setData(earnRes.data.earnings);
+        if (payRes.data.success) setPayout(payRes.data.payout);
       } catch (err) {
         console.error("Earnings fetch error:", err);
       } finally {
@@ -111,6 +116,140 @@ export default function SellerEarnings() {
           )}
         </div>
       </div>
+
+      {payout && <SellerPayoutSection payout={payout} />}
+    </div>
+  );
+}
+
+// ==================== Outgoing payments (COD) ====================
+
+const fmtDate = (d) =>
+  d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+function SellerPayoutSection({ payout }) {
+  const rs = (n) => `Rs. ${(Number(n) || 0).toLocaleString()}`;
+  const hasAnything =
+    payout.pendingCollection.count > 0 ||
+    payout.verifiedNotPaid.count > 0 ||
+    payout.eligibleUnallocated.count > 0 ||
+    payout.unallocatedReversals.count > 0 ||
+    payout.duePayouts?.length > 0 ||
+    payout.paidHistory?.length > 0;
+
+  return (
+    <div className="bg-white rounded-[13px] p-6 border border-shopborder">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-shoptext">Outgoing payments (COD orders)</h3>
+          <p className="text-xs text-shopmuted mt-0.5">
+            Cash-delivered orders are paid out after the courier's cash is confirmed + 10 days.
+          </p>
+        </div>
+      </div>
+
+      {payout.commissionRate > 0 && (
+        <p className="text-xs text-shopmuted mb-4">
+          Your current commission: <b>{payout.commissionRate}%</b> (applied at each order's stored rate)
+        </p>
+      )}
+
+      {!hasAnything ? (
+        <p className="text-sm text-shopmuted">
+          No outgoing payments yet. They will appear here once a COD order you fulfilled is confirmed paid.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-[13px] border border-shopborder p-4">
+              <p className="text-xs text-shopmuted uppercase tracking-wide">Outgoing</p>
+              <p className="text-lg font-bold text-shoptext">{rs(payout.pendingCollection.expectedTotal)}</p>
+              <p className="text-xs text-shopmuted">
+                {payout.pendingCollection.count} order(s) — paid but not yet verified by the admin
+              </p>
+            </div>
+            <div className="rounded-[13px] border border-shopborder p-4">
+              <p className="text-xs text-shopmuted uppercase tracking-wide">Verified (not paid out)</p>
+              <p className="text-lg font-bold text-shoptext">{rs(payout.verifiedNotPaid.grossTotal)}</p>
+              <p className="text-xs text-shopmuted">
+                {payout.verifiedNotPaid.count} order(s)
+                {payout.verifiedNotPaid.nextDueAt && ` · earliest due ${fmtDate(payout.verifiedNotPaid.nextDueAt)}`}
+              </p>
+            </div>
+            <div className="rounded-[13px] border border-shopborder p-4">
+              <p className="text-xs text-shopmuted uppercase tracking-wide">Eligible (deducting commission)</p>
+              <p className="text-lg font-bold text-shoptext">{rs(payout.eligibleUnallocated.netTotal)}</p>
+              <p className="text-xs text-shopmuted">{payout.eligibleUnallocated.count} order(s)</p>
+            </div>
+            <div className="rounded-[13px] border border-shopborder p-4">
+              <p className="text-xs text-shopmuted uppercase tracking-wide">Return adjustments</p>
+              <p className="text-lg font-bold text-shoptext" style={{ color: payout.unallocatedReversals.amount < 0 ? "#dc2626" : undefined }}>
+                {rs(payout.unallocatedReversals.amount)}
+              </p>
+              <p className="text-xs text-shopmuted">{payout.unallocatedReversals.count} adjustment(s)</p>
+            </div>
+          </div>
+
+          {/* Upcoming payouts */}
+          {payout.duePayouts?.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-shoptext mb-2">Upcoming payouts</h4>
+              <table className="w-full text-sm">
+                <thead className="text-xs text-shopmuted">
+                  <tr>
+                    <th className="text-left pb-2">Due date</th>
+                    <th className="text-left pb-2">Gross</th>
+                    <th className="text-left pb-2">Commission</th>
+                    <th className="text-left pb-2">Deductions</th>
+                    <th className="text-right pb-2">Net to you</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payout.duePayouts.map((p) => (
+                    <tr key={p._id} className="border-t border-shopborder/60">
+                      <td className="py-2">{fmtDate(p.payoutDueAt)}</td>
+                      <td className="py-2">{rs(p.grossCollected)}</td>
+                      <td className="py-2">{rs(p.commissionAmount)}</td>
+                      <td className="py-2">{rs(p.deductions)}</td>
+                      <td className="py-2 text-right font-semibold text-shopgreen">{rs(p.netPayable)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Paid history */}
+          {payout.paidHistory?.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-shoptext mb-2">Paid out</h4>
+              <table className="w-full text-sm">
+                <thead className="text-xs text-shopmuted">
+                  <tr>
+                    <th className="text-left pb-2">Paid at</th>
+                    <th className="text-left pb-2">Gross</th>
+                    <th className="text-left pb-2">Commission</th>
+                    <th className="text-left pb-2">Deductions</th>
+                    <th className="text-right pb-2">Net paid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payout.paidHistory.map((p) => (
+                    <tr key={p._id} className="border-t border-shopborder/60">
+                      <td className="py-2">{fmtDate(p.paidAt)}</td>
+                      <td className="py-2">{rs(p.grossCollected)}</td>
+                      <td className="py-2">{rs(p.commissionAmount)}</td>
+                      <td className="py-2">{rs(p.deductions)}</td>
+                      <td className="py-2 text-right font-semibold text-shoptext">{rs(p.netPayable)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

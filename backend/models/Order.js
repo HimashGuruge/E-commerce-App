@@ -50,6 +50,19 @@ const orderSchema = new mongoose.Schema(
     discountTotal: { type: Number, default: 0 },
     // Guards the usedCount increment against webhook + client-verify races
     couponCounted: { type: Boolean, default: false },
+    // Immutable, per-seller commission snapshot taken at order placement so
+    // later rate changes never rewrite history:
+    //   [{ seller (User id), rate, amount }] — amount = seller's item total x rate/100
+    // Orders created before this feature have no snapshot; such history is
+    // backfilled lazily (see payoutService.backfillOrderSnapshot, flagged
+    // snapshotSource: "current_rate_backfill").
+    commissionSnapshot: [
+      {
+        seller: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        rate: { type: Number, default: 0 },
+        amount: { type: Number, default: 0 },
+      },
+    ],
   },
   { timestamps: true }
 );

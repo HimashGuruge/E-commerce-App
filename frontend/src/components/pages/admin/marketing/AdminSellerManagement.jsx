@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUsers, FiCheck, FiX, FiAlertCircle, FiSearch, FiRefreshCw, FiToggleLeft, FiPercent, FiEye, FiBell } from "react-icons/fi";
+import { FiUsers, FiCheck, FiX, FiAlertCircle, FiSearch, FiToggleLeft, FiPercent, FiEye, FiBell } from "react-icons/fi";
 import { MdStore, MdCheckCircle, MdCancel, MdBlock } from "react-icons/md";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -42,6 +43,15 @@ export default function AdminSellerManagement() {
   }, [filter]);
 
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
+
+  // Live update: the server sends admin:stats-changed on every seller
+  // action (register, approve, reject, suspend, commission, profile),
+  // so the list stays current with no manual refresh.
+  useEffect(() => {
+    return onSocketEvent("admin:stats-changed", (data) => {
+      if (data?.type === "seller") fetchSellers();
+    });
+  }, [fetchSellers]);
 
   const handleApprove = async (id, name) => {
     const result = await Swal.fire({
@@ -166,9 +176,16 @@ export default function AdminSellerManagement() {
           <h1 className="text-2xl font-bold text-slate-900">Seller Management</h1>
           <p className="text-sm text-slate-500 mt-1">Review and manage seller applications</p>
         </div>
-        <button onClick={fetchSellers} className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-all text-sm">
-          <FiRefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </button>
+        <span
+          className="flex items-center gap-1.5 text-xs text-emerald-600"
+          title="This page updates live when sellers change"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Live
+        </span>
       </div>
 
       {stats && (

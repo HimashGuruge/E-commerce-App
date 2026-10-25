@@ -1,6 +1,17 @@
 import express from "express";
 import authMiddleware, { adminOnly, sellerOnly } from "../middleware/authMiddleware.js";
 import {
+  adminGetCollections,
+  adminGetPayouts,
+  adminGetPayoutBoard,
+  verifyCollection,
+  createPayoutBatch,
+  markBatchPaid,
+  markBatchFailed,
+  backfillOrder,
+  getSellerPayouts,
+} from "../controller/payoutController.js";
+import {
   registerSeller,
   getMySellerProfile,
   updateSellerProfile,
@@ -41,8 +52,21 @@ router.patch("/messages/read", sellerOnly, markSellerMessagesRead);
 router.post("/messages", sellerOnly, sendSellerMessage);
 router.get("/messages/support", sellerOnly, getSupportAdmin);
 
+// Seller payout summary
+router.get("/payouts", sellerOnly, getSellerPayouts);
+
 // Public store route
 router.get("/store/:shopName", getPublicStore);
+
+// Admin payout routes
+router.get("/admin/payouts", adminOnly, adminGetPayouts);
+router.get("/admin/payouts/board", adminOnly, adminGetPayoutBoard);
+router.get("/admin/payouts/collections", adminOnly, adminGetCollections);
+router.post("/admin/payouts/collections/:id/verify", adminOnly, verifyCollection);
+router.post("/admin/payouts", adminOnly, createPayoutBatch);
+router.post("/admin/payouts/backfill/:orderId", adminOnly, backfillOrder);
+router.put("/admin/payouts/:id/mark-paid", adminOnly, markBatchPaid);
+router.put("/admin/payouts/:id/mark-failed", adminOnly, markBatchFailed);
 
 // Admin routes
 router.get("/admin/all", adminOnly, adminGetAllSellers);

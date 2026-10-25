@@ -11,6 +11,7 @@ import { recalcParentStock } from "./productVariantController.js";
 import { emitToAdmins } from "../services/socketService.js";
 import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
 import { markRemindersSubmitted, hasFullyReturnedItem } from "../services/reviewReminderService.js";
+import { createReversalForReturn } from "../services/payoutService.js";
 // After restocking returned items, sync the owning parent products' totals
 const resyncParentsForItems = async (items) => {
   const parentIds = new Set();
@@ -283,6 +284,19 @@ export const completeReturn = asyncHandler(async (req, res) => {
     }
   }
 
+  // COD ledger: record an idempotent, verifiable reversal linked to the
+  // original collection (one row per return request, guarded by a unique
+  // index). Paid payouts are never touched — the reversal is picked up by
+  // the admin in a future batch.
+  try {
+    const codOrder = await Order.findById(returnRequest.order).select("paymentMethod");
+    if (codOrder?.paymentMethod === "cod") {
+      await createReversalForReturn(returnRequest._id, returnRequest.refundAmount, req.user._id);
+    }
+  } catch (revErr) {
+    console.error(`[Payout] COD reversal failed for return ${returnRequest._id}:`, revErr.message);
+  }
+
   res.json({ success: true, returnRequest, message: "Return completed and refunded" });
 });
 
@@ -385,6 +399,9 @@ export const submitFeedback = asyncHandler(async (req, res) => {
   // Completing the review closes its reminder (reading ≠ completing).
   await markRemindersSubmitted(qualifyingOrder._id);
 
+  // Real-time: refresh the admin feedback page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: feedback._id, type: "feedback" });
+
   res.status(201).json({ success: true, feedback });
 });
 
@@ -455,6 +472,10 @@ export const updateFeedback = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Feedback not found");
   }
+
+  // Real-time: refresh the admin feedback page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: feedback._id, type: "feedback" });
+
   res.json({ success: true, feedback });
 });
 
@@ -490,6 +511,9 @@ export const adminDeleteFeedback = asyncHandler(async (req, res) => {
   const adminDeletedProduct = await Product.findById(feedback.product).select("brand").lean();
   notifyBrandStatsChanged([adminDeletedProduct?.brand]);
 
+  // Real-time: refresh the admin feedback page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: feedback._id, type: "feedback" });
+
   res.json({ success: true, message: "Feedback deleted" });
 });
 
@@ -509,6 +533,9 @@ export const adminApproveFeedback = asyncHandler(async (req, res) => {
   // Real-time: refresh the product page's Seller Information block
   const approvedProduct = await Product.findById(feedback.product).select("brand").lean();
   notifyBrandStatsChanged([approvedProduct?.brand]);
+
+  // Real-time: refresh the admin feedback page without HTTP polling
+  emitToAdmins("admin:stats-changed", { orderId: feedback._id, type: "feedback" });
 
   res.json({ success: true, feedback });
 });

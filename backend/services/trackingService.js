@@ -3,6 +3,7 @@ import Order from "../models/Order.js";
 import Notification from "../models/Notification.js";
 import { emitToUser } from "./socketService.js";
 import { generateReviewReminders } from "./reviewReminderService.js";
+import { ensureCODCollection } from "./payoutService.js";
 
 const DOMEX_TRACK_URL = "https://www.domex.lk/track?tracking=";
 
@@ -53,6 +54,13 @@ async function processShippedOrders() {
       if (domexStatus === "delivered") {
         order.orderStatus = "delivered";
         await order.save();
+
+        // COD delivery → pending ledger row (idempotent; delivery ≠ money received)
+        try {
+          if (order.paymentMethod === "cod") await ensureCODCollection(order);
+        } catch (codErr) {
+          console.error(`[TrackingService] COD ledger failed for order ${order._id}:`, codErr.message);
+        }
 
         try {
           // Delivery detection is a transactional event: deliver it through the
@@ -106,6 +114,14 @@ async function autoDeliverStaleShipped() {
     order.orderStatus = "delivered";
     order.domexStatus = "delivered";
     await order.save();
+    // COD delivery → pending ledger row (idempotent)
+    if (order.paymentMethod === "cod") {
+      try {
+        await ensureCODCollection(order);
+      } catch (codErr) {
+        console.error(`[TrackingService] COD ledger failed for order ${order._id}:`, codErr.message);
+      }
+    }
     emitToUser(order.user, "order:update", { orderId: order._id, orderStatus: "delivered" });
   }
   console.log(`[TrackingService] Auto-delivered ${stale.length} stale shipped orders (shipped before ${cutoff.toISOString()})`);
