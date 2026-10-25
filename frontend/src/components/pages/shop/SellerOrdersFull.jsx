@@ -96,9 +96,6 @@ export default function SellerOrdersFull() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [tempSearch, setTempSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrders, setSelectedOrders] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [bulkUpdating, setBulkUpdating] = useState(false);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -115,41 +112,6 @@ export default function SellerOrdersFull() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleBulkMarkDelivered = async () => {
-    if (selectedOrders.length === 0) {
-      toast.error("Select at least one order");
-      return;
-    }
-    const result = await Swal.fire({
-      title: "Mark as Delivered?",
-      text: `${selectedOrders.length} order(s) will be marked as delivered.`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#059669",
-      confirmButtonText: "Yes, mark delivered",
-      cancelButtonText: "Cancel",
-    });
-    if (!result.isConfirmed) return;
-
-    setBulkUpdating(true);
-    let successCount = 0;
-    for (const orderId of selectedOrders) {
-      try {
-        await api.put(`/api/orders/admin/update-order-status/${orderId}`, {
-          status: "delivered",
-        });
-        successCount++;
-      } catch {
-        console.error("Failed to update", orderId);
-      }
-    }
-    toast.success(`${successCount}/${selectedOrders.length} marked as delivered`);
-    setSelectedOrders([]);
-    setSelectAll(false);
-    setBulkUpdating(false);
-    loadAllOrders();
   };
 
   const handleStatusUpdate = async (orderId, status, trackingNumber) => {
@@ -458,22 +420,6 @@ export default function SellerOrdersFull() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={handleBulkMarkDelivered}
-              disabled={selectedOrders.length === 0 || bulkUpdating}
-              className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-[#e8ebf2] active:scale-95 ${
-                selectedOrders.length > 0 && !bulkUpdating
-                  ? "bg-shopgreen text-white hover:bg-[#0f7c55]"
-                  : "bg-[#e8ebf2] text-[#a1a8b7] cursor-not-allowed"
-              }`}
-            >
-              <FiCheckCircle size={14} className={bulkUpdating ? "animate-spin" : ""} />
-              <span className="hidden xs:inline">
-                {bulkUpdating ? "Updating..." : `Deliver (${selectedOrders.length})`}
-              </span>
-              <span className="xs:hidden">{selectedOrders.length}</span>
-            </button>
-
             <div className="relative">
               <input
                 type="text"
@@ -554,22 +500,6 @@ export default function SellerOrdersFull() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#f7f8fc] sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={selectAll}
-                        onChange={() => {
-                          if (selectAll) {
-                            setSelectedOrders([]);
-                            setSelectAll(false);
-                          } else {
-                            setSelectedOrders(currentOrders.map((o) => o._id));
-                            setSelectAll(true);
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-[#d5dce9] text-shopprimary focus:ring-shopprimary cursor-pointer"
-                      />
-                    </th>
                     <th className="px-4 py-3 font-bold text-[#5b6577]">#</th>
                     <th className="px-4 py-3 font-bold text-[#5b6577]">Customer</th>
                     <th className="px-4 py-3 font-bold text-[#5b6577]">Date</th>
@@ -582,32 +512,17 @@ export default function SellerOrdersFull() {
                   {currentOrders.map((order) => (
                     <tr
                       key={order._id}
-                      onClick={() => {
-                        setSelectedOrders((prev) =>
-                          prev.includes(order._id)
-                            ? prev.filter((id) => id !== order._id)
-                            : [...prev, order._id]
-                        );
-                        setSelectAll(false);
-                      }}
-                      className={`transition-colors cursor-pointer ${
+                      className={`transition-colors ${
                         isNewOrder(order)
-                          ? "bg-[#fff6e3] hover:bg-[#fdeec9] border-l-4 border-l-[#d99a2b]"
-                          : selectedOrders.includes(order._id)
-                            ? "bg-[#eef2ff] hover:bg-[#e0e7ff]"
-                            : "hover:bg-[#f5f6fc]"
+                          ? "bg-[#fff6e3] hover:bg-[#fdeec9]"
+                          : "hover:bg-[#f5f6fc]"
                       }`}
                     >
-                      <td className={`px-4 py-3 ${isNewOrder(order) ? "border-l-4 border-l-[#d99a2b]" : ""}`}>
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order._id)}
-                          onChange={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 rounded border-[#d5dce9] text-shopprimary focus:ring-shopprimary pointer-events-auto cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-shopprimary font-bold">
+                      <td
+                        className={`px-4 py-3 font-mono text-shopprimary font-bold ${
+                          isNewOrder(order) ? "border-l-4 border-l-[#d99a2b]" : ""
+                        }`}
+                      >
                         <span className="inline-flex items-center gap-1.5">
                           #{order.orderId || order._id.slice(-6)}
                           {isNewOrder(order) && (
@@ -623,10 +538,7 @@ export default function SellerOrdersFull() {
                       <td className="px-4 py-3 text-shopmuted">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </td>
-                      <td
-                        className="px-4 py-3"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <td className="px-4 py-3">
                         <div className="flex flex-col gap-1">
                           <select
                             value={order.orderStatus}

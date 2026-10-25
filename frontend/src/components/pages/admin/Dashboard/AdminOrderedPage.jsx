@@ -92,9 +92,7 @@ export default function AdminOrderedPage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [tempSearch, setTempSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrders, setSelectedOrders] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [bulkUpdating, setBulkUpdating] = useState(false);
+
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -111,41 +109,6 @@ export default function AdminOrderedPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleBulkMarkDelivered = async () => {
-    if (selectedOrders.length === 0) {
-      toast.error("Select at least one order");
-      return;
-    }
-    const result = await Swal.fire({
-      title: "Mark as Delivered?",
-      text: `${selectedOrders.length} order(s) will be marked as delivered.`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#059669",
-      confirmButtonText: "Yes, mark delivered",
-      cancelButtonText: "Cancel",
-    });
-    if (!result.isConfirmed) return;
-
-    setBulkUpdating(true);
-    let successCount = 0;
-    for (const orderId of selectedOrders) {
-      try {
-        await api.put(`/api/orders/admin/update-order-status/${orderId}`, {
-          status: "delivered",
-        });
-        successCount++;
-      } catch {
-        console.error("Failed to update", orderId);
-      }
-    }
-    toast.success(`${successCount}/${selectedOrders.length} marked as delivered`);
-    setSelectedOrders([]);
-    setSelectAll(false);
-    setBulkUpdating(false);
-    loadAllOrders();
   };
 
   const handleStatusUpdate = async (orderId, status, trackingNumber) => {
@@ -468,22 +431,6 @@ export default function AdminOrderedPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={handleBulkMarkDelivered}
-              disabled={selectedOrders.length === 0 || bulkUpdating}
-              className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-200 active:scale-95 ${
-                selectedOrders.length > 0 && !bulkUpdating
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
-              }`}
-            >
-              <FiCheckCircle size={14} className={bulkUpdating ? "animate-spin" : ""} />
-              <span className="hidden xs:inline">
-                {bulkUpdating ? "Updating..." : `Deliver (${selectedOrders.length})`}
-              </span>
-              <span className="xs:hidden">{selectedOrders.length}</span>
-            </button>
-
             <div className="relative">
               <input
                 type="text"
@@ -561,22 +508,6 @@ export default function AdminOrderedPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={selectAll}
-                        onChange={() => {
-                          if (selectAll) {
-                            setSelectedOrders([]);
-                            setSelectAll(false);
-                          } else {
-                            setSelectedOrders(currentOrders.map((o) => o._id));
-                            setSelectAll(true);
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                      />
-                    </th>
                     <th className="px-4 py-3 font-bold text-slate-600">#</th>
                     <th className="px-4 py-3 font-bold text-slate-600">Customer</th>
                     <th className="px-4 py-3 font-bold text-slate-600">Date</th>
@@ -587,29 +518,7 @@ export default function AdminOrderedPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {currentOrders.map((order) => (
-                    <tr
-                      key={order._id}
-                      onClick={() => {
-                        setSelectedOrders((prev) =>
-                          prev.includes(order._id)
-                            ? prev.filter((id) => id !== order._id)
-                            : [...prev, order._id]
-                        );
-                        setSelectAll(false);
-                      }}
-                      className={`hover:bg-slate-50 cursor-pointer transition-colors ${
-                        selectedOrders.includes(order._id) ? "bg-emerald-50" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order._id)}
-                          onChange={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 pointer-events-auto cursor-pointer"
-                        />
-                      </td>
+                    <tr key={order._id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-brand-600 font-bold">
                         #{order.orderId || order._id.slice(-6)}
                       </td>
