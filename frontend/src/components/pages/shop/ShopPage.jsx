@@ -31,6 +31,7 @@ export default function ShopPage() {
     sortBy: "newest",
     minRating: 0,
     inStock: false,
+    readyToShip: false,
   });
 
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -44,6 +45,7 @@ export default function ShopPage() {
       sortBy: "newest",
       minRating: 0,
       inStock: false,
+      readyToShip: false,
     });
   };
 
@@ -154,8 +156,12 @@ export default function ShopPage() {
       );
     }
 
+    if (filters.readyToShip) {
+      filtered = filtered.filter((product) => product.status === "ready");
+    }
+
     setFilteredProducts(filtered);
-  }, [products, filters.priceRange, filters.categories, filters.minRating, filters.inStock]);
+  }, [products, filters.priceRange, filters.categories, filters.minRating, filters.inStock, filters.readyToShip]);
 
   const sortOptions = [
     { value: "newest", label: "Newest Arrivals" },

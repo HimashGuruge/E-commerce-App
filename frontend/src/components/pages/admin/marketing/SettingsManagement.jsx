@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api";
-import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, FiDroplet, FiSend, FiEye, FiEyeOff, FiTruck, FiMessageCircle, FiSmartphone, FiUser } from "react-icons/fi";
+import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, FiDroplet, FiSend, FiEye, FiEyeOff, FiTruck, FiMessageCircle, FiSmartphone, FiUser, FiSliders } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-icons/fa";
 
 import Swal from "sweetalert2";
@@ -15,6 +15,15 @@ const SOCIAL_ICONS = {
   youtube: FaYoutube,
   tiktok: FaTiktok,
 };
+
+const FILTER_SECTIONS = [
+  { key: "sort", label: "Sort By" },
+  { key: "price", label: "Price Range" },
+  { key: "rating", label: "Minimum Rating" },
+  { key: "availability", label: "Availability (In Stock Only)" },
+  { key: "readyToShip", label: "Ready to Ship" },
+  { key: "categories", label: "Categories" },
+];
 
 const SOCIAL_COLORS = {
   facebook: "text-blue-600",
@@ -37,6 +46,61 @@ const FONT_PRESETS = [
   { key: "playfair", label: "Playfair", family: "'Playfair Display', Georgia, serif", url: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" },
   { key: "merriweather", label: "Merriweather", family: "Merriweather, Georgia, serif", url: "https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" },
 ];
+
+// Small field helpers for the advanced navbar controls (module scope so
+// React keeps stable identity across renders).
+function HexField({ label, value, onSet, placeholder, fallbackHint }) {
+  const colorValue = (value && /^#[0-9a-fA-F]{6}$/.test(value)) ? value : (placeholder && /^#[0-9a-fA-F]{6}$/.test(placeholder) ? placeholder : "#000000");
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={colorValue}
+          onChange={(e) => onSet(e.target.value)}
+          className="w-10 h-10 shrink-0 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+        />
+        <input
+          type="text"
+          value={value || ""}
+          placeholder={placeholder}
+          onChange={(e) => onSet(e.target.value)}
+          className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm font-mono"
+        />
+      </div>
+      {fallbackHint && (
+        <>
+          {value !== "" && (
+            <button type="button" onClick={() => onSet("")} className="mt-1 text-xs text-brand-600 hover:text-brand-700">
+              Fallback: {fallbackHint}
+            </button>
+          )}
+          {value === "" && <p className="mt-1 text-xs text-slate-400">Empty = {fallbackHint}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function NumField({ label, value, onSet, min, max, suffix = "px" }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="number"
+          value={value ?? ""}
+          min={min}
+          max={max}
+          onChange={(e) => onSet(e.target.value === "" ? "" : Number(e.target.value))}
+          className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm"
+        />
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">{suffix}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsManagement() {
   const [loading, setLoading] = useState(true);
@@ -99,6 +163,26 @@ export default function SettingsManagement() {
     navbarBorder: "#f1f5f9",
     topbarBg: "#f5f5f5",
     topbarText: "#737373",
+    navbar: {
+      height: 60,
+      logoSize: 36,
+      brandTextSize: 20,
+      brandTextColor: "",
+      searchBg: "#ffffff",
+      searchBorder: "#e2e8f0",
+      searchText: "#0f172a",
+      searchBtnBg: "",
+      searchBtnText: "#ffffff",
+      cartColor: "",
+      loginColor: "",
+      signupBtnBg: "",
+      signupBtnText: "#ffffff",
+      letterSize: 18,
+      letterColor: "#ffffff",
+      logoBg: "#f97316",
+      sellerLinkEnabled: true,
+      sellerLinkColor: "",
+    },
     shipping: {
       courierName: "Domex",
       standardName: "Domex Standard",
@@ -120,6 +204,14 @@ export default function SettingsManagement() {
       shippingCostText: "Return shipping cost is borne by the customer.",
       exchangesAllowed: false,
       processDescription: "Contact our support team through the chat. An agent will guide you through the return process.",
+    },
+    filterPanel: {
+      sort: true,
+      price: true,
+      rating: true,
+      availability: true,
+      readyToShip: true,
+      categories: true,
     },
     announcement: {
       speed: 12,
@@ -187,6 +279,26 @@ export default function SettingsManagement() {
           navbarBorder: s.navbarBorder || "#f1f5f9",
           topbarBg: s.topbarBg || "#f5f5f5",
           topbarText: s.topbarText || "#737373",
+          navbar: {
+            height: s.navbar?.height ?? 60,
+            logoSize: s.navbar?.logoSize ?? 36,
+            brandTextSize: s.navbar?.brandTextSize ?? 20,
+            brandTextColor: s.navbar?.brandTextColor || "",
+            searchBg: s.navbar?.searchBg || "#ffffff",
+            searchBorder: s.navbar?.searchBorder || "#e2e8f0",
+            searchText: s.navbar?.searchText || "#0f172a",
+            searchBtnBg: s.navbar?.searchBtnBg || "",
+            searchBtnText: s.navbar?.searchBtnText || "#ffffff",
+            cartColor: s.navbar?.cartColor || "",
+            loginColor: s.navbar?.loginColor || "",
+            signupBtnBg: s.navbar?.signupBtnBg || "",
+            signupBtnText: s.navbar?.signupBtnText || "#ffffff",
+            letterSize: s.navbar?.letterSize ?? 18,
+            letterColor: s.navbar?.letterColor || "#ffffff",
+            logoBg: s.navbar?.logoBg || "#f97316",
+            sellerLinkEnabled: s.navbar?.sellerLinkEnabled ?? true,
+            sellerLinkColor: s.navbar?.sellerLinkColor || "",
+          },
           shipping: {
             courierName: s.shipping?.courierName || "Domex",
             standardName: s.shipping?.standardName || "Domex Standard",
@@ -208,6 +320,14 @@ export default function SettingsManagement() {
             shippingCostText: s.returnPolicy?.shippingCostText || "",
             exchangesAllowed: s.returnPolicy?.exchangesAllowed ?? false,
             processDescription: s.returnPolicy?.processDescription || "",
+          },
+          filterPanel: {
+            sort: s.filterPanel?.sort ?? true,
+            price: s.filterPanel?.price ?? true,
+            rating: s.filterPanel?.rating ?? true,
+            availability: s.filterPanel?.availability ?? true,
+            readyToShip: s.filterPanel?.readyToShip ?? true,
+            categories: s.filterPanel?.categories ?? true,
           },
           social: {
             facebook: s.social?.facebook || "",
@@ -272,6 +392,10 @@ export default function SettingsManagement() {
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
+  };
+
+  const setNavbarField = (key, value) => {
+    setForm((prev) => ({ ...prev, navbar: { ...prev.navbar, [key]: value } }));
   };
 
   const fileInputRef = useRef(null);
@@ -355,6 +479,7 @@ export default function SettingsManagement() {
         navbarBorder: form.navbarBorder,
         topbarBg: form.topbarBg,
         topbarText: form.topbarText,
+        navbar: form.navbar,
         social: form.social,
         shipping: form.shipping,
         returnPolicy: form.returnPolicy,
@@ -387,7 +512,7 @@ export default function SettingsManagement() {
       if (res.data?.success) {
         if (payload.primaryColor) injectTheme(payload.primaryColor);
         if (payload.fontFamily) injectFont(payload.fontFamily, payload.fontUrl || form.fontUrl);
-        if (payload.navbarBg || payload.navbarText || payload.navbarBorder || payload.topbarBg || payload.topbarText) {
+        if (payload.navbarBg || payload.navbarText || payload.navbarBorder || payload.topbarBg || payload.topbarText || payload.navbar) {
           injectNavbar({ ...form, ...payload });
         }
         const color = payload.chatWidgetColor || payload.primaryColor || form.chatWidgetColor || form.primaryColor || "#F85606";
@@ -585,11 +710,11 @@ export default function SettingsManagement() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <FiHash className="w-5 h-5 text-brand-500" />
-              Navbar Colors
+              Navbar
             </h2>
             <button
               type="button"
-              onClick={() => handleSectionSave("Navbar Colors", { navbarBg: form.navbarBg, navbarText: form.navbarText, navbarBorder: form.navbarBorder, topbarBg: form.topbarBg, topbarText: form.topbarText })}
+              onClick={() => handleSectionSave("Navbar Colors", { navbarBg: form.navbarBg, navbarText: form.navbarText, navbarBorder: form.navbarBorder, topbarBg: form.topbarBg, topbarText: form.topbarText, navbar: form.navbar })}
               disabled={savingSection === "Navbar Colors"}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 rounded-lg transition"
             >
@@ -603,6 +728,30 @@ export default function SettingsManagement() {
           <p className="text-xs text-slate-500 mb-4">
             Customize the main navigation bar and top promo bar colors.
           </p>
+
+          <div className="flex items-center gap-3 mb-4">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.navbar?.sellerLinkEnabled ?? true}
+                onChange={(e) => setNavbarField("sellerLinkEnabled", e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+            </label>
+            <span className="text-sm font-medium text-slate-700">Show "Become a Seller" link in top bar (for logged-out visitors)</span>
+          </div>
+          {form.navbar?.sellerLinkEnabled !== false && (
+            <div className="mb-4">
+              <HexField
+                label="Become a Seller Link Color"
+                value={form.navbar.sellerLinkColor}
+                onSet={(v) => setNavbarField("sellerLinkColor", v)}
+                placeholder={form.navbarText || "#475569"}
+                fallbackHint="Navbar Text color"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Navbar Background</label>
@@ -698,24 +847,92 @@ export default function SettingsManagement() {
             </div>
           </div>
 
+          {/* Sizes */}
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Sizes</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <NumField label="Nav Height (desktop)" value={form.navbar.height} onSet={(v) => setNavbarField("height", v)} min={40} max={120} />
+            <NumField label="Logo Size" value={form.navbar.logoSize} onSet={(v) => setNavbarField("logoSize", v)} min={20} max={96} />
+            <NumField label="Brand Text Size" value={form.navbar.brandTextSize} onSet={(v) => setNavbarField("brandTextSize", v)} min={12} max={36} />
+          </div>
+
+          {/* Logo */}
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Logo (Letter Mode)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <NumField label="Logo Letter Size" value={form.navbar.letterSize} onSet={(v) => setNavbarField("letterSize", v)} min={8} max={72} />
+            <HexField label="Logo Letter Color" value={form.navbar.letterColor} onSet={(v) => setNavbarField("letterColor", v)} placeholder="#ffffff" />
+            <HexField label="Logo Box Background" value={form.navbar.logoBg} onSet={(v) => setNavbarField("logoBg", v)} placeholder="#f97316" />
+          </div>
+
+          {/* Brand + Search */}
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Brand &amp; Search</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <HexField label="Brand Text Color" value={form.navbar.brandTextColor} onSet={(v) => setNavbarField("brandTextColor", v)} placeholder="#F85606" fallbackHint="brand color" />
+            <HexField label="Search Input Background" value={form.navbar.searchBg} onSet={(v) => setNavbarField("searchBg", v)} placeholder="#ffffff" />
+            <HexField label="Search Input Border" value={form.navbar.searchBorder} onSet={(v) => setNavbarField("searchBorder", v)} placeholder="#e2e8f0" />
+            <HexField label="Search Input Text" value={form.navbar.searchText} onSet={(v) => setNavbarField("searchText", v)} placeholder="#0f172a" />
+            <HexField label="Search Button Background" value={form.navbar.searchBtnBg} onSet={(v) => setNavbarField("searchBtnBg", v)} placeholder="#F85606" fallbackHint="brand color" />
+            <HexField label="Search Button Text" value={form.navbar.searchBtnText} onSet={(v) => setNavbarField("searchBtnText", v)} placeholder="#ffffff" />
+          </div>
+
+          {/* Cart + Auth Buttons */}
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Cart &amp; Auth Buttons</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <HexField label="Cart Icon Color" value={form.navbar.cartColor} onSet={(v) => setNavbarField("cartColor", v)} placeholder="#475569" fallbackHint="navbar text" />
+            <HexField label="Login Link Color" value={form.navbar.loginColor} onSet={(v) => setNavbarField("loginColor", v)} placeholder="#475569" fallbackHint="navbar text" />
+            <HexField label="Sign Up Button Background" value={form.navbar.signupBtnBg} onSet={(v) => setNavbarField("signupBtnBg", v)} placeholder="#d94804" fallbackHint="brand dark" />
+            <HexField label="Sign Up Button Text" value={form.navbar.signupBtnText} onSet={(v) => setNavbarField("signupBtnText", v)} placeholder="#ffffff" />
+          </div>
+
           {/* Navbar Live Preview */}
           <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Live Preview</p>
-            <div className="rounded-lg overflow-hidden border" style={{ borderColor: form.navbarBorder }}>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Live Preview (desktop)</p>
+            <div className="rounded-lg overflow-hidden border bg-white" style={{ borderColor: form.navbarBorder }}>
               <div className="px-4 py-2 text-xs font-medium flex items-center gap-4" style={{ backgroundColor: form.topbarBg, color: form.topbarText }}>
                 <span>📢 Free shipping over Rs. 10,000</span>
-                <span className="ml-auto">Help  |  Track Order</span>
+                <span className="ml-auto">Help | Track Order</span>
               </div>
-              <div className="px-4 py-3 flex items-center gap-4" style={{ backgroundColor: form.navbarBg, color: form.navbarText }}>
-                <span className="font-bold text-base" style={{ color: form.primaryColor }}>BRAND</span>
-                <span className="text-xs opacity-70">Home</span>
-                <span className="text-xs opacity-70">Shop</span>
-                <span className="text-xs opacity-70">Categories</span>
-                <div className="ml-auto flex items-center gap-3 text-xs">
-                  <span>🔍</span>
-                  <span>🛒</span>
-                  <span>👤</span>
+              <div className="px-4 flex items-center gap-3" style={{ backgroundColor: form.navbarBg, color: form.navbarText, height: `${form.navbar.height || 60}px` }}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="rounded-[12px] flex items-center justify-center font-bold overflow-hidden"
+                    style={{ width: `${form.navbar.logoSize || 36}px`, height: `${form.navbar.logoSize || 36}px`, backgroundColor: form.navbar.logoBg, color: form.navbar.letterColor, fontSize: `${form.navbar.letterSize || 18}px` }}
+                  >
+                    <span>{(form.iconLetter && form.iconLetter !== "M") ? form.iconLetter : ((form.brandName || "M").trim().charAt(0) || "M").toUpperCase()}</span>
+                  </div>
+                  <span
+                    className="font-black tracking-[-0.5px]"
+                    style={{ fontSize: `${form.navbar.brandTextSize || 20}px`, color: form.navbar.brandTextColor || form.primaryColor }}
+                  >
+                    BRAND
+                  </span>
                 </div>
+                <div
+                  className="flex-1 flex items-center max-w-md ml-2"
+                >
+                  <input
+                    type="text"
+                    readOnly
+                    placeholder="Search"
+                    className="flex-1 min-w-0 text-xs px-4 py-2 border rounded-l-lg outline-none"
+                    style={{ backgroundColor: form.navbar.searchBg, borderColor: form.navbar.searchBorder, color: form.navbar.searchText }}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="px-5 py-2 text-xs font-semibold rounded-r-lg"
+                    style={{ backgroundColor: form.navbar.searchBtnBg || form.primaryColor, color: form.navbar.searchBtnText || "#ffffff" }}
+                  >
+                    SEARCH
+                  </button>
+                </div>
+                <span style={{ color: form.navbar.cartColor || form.navbarText }}>🛒</span>
+                <span className="text-xs font-semibold" style={{ color: form.navbar.loginColor || form.navbarText }}>Login</span>
+                <span
+                  className="text-xs font-bold px-3 py-1.5 rounded-xl"
+                  style={{ backgroundColor: form.navbar.signupBtnBg || "var(--color-brand-600)", color: form.navbar.signupBtnText || "#ffffff" }}
+                >
+                  Sign Up
+                </span>
               </div>
             </div>
           </div>
@@ -2090,6 +2307,47 @@ export default function SettingsManagement() {
                 placeholder="Return shipping cost is borne by the customer."
               />
             </div>
+          </div>
+        </div>
+
+        {/* Filter Panel (Shop / Home) */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FiSliders className="w-5 h-5 text-brand-500" />
+              Filter Panel (Shop &amp; Home)
+            </h2>
+            <button
+              type="button"
+              onClick={() => handleSectionSave("Filter Panel", { filterPanel: form.filterPanel })}
+              disabled={savingSection === "Filter Panel"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 rounded-lg transition"
+            >
+              {savingSection === "Filter Panel" ? (
+                <><div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> Saving</>
+              ) : (
+                <><FiSave className="w-3.5 h-3.5" /> Save</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Show or hide each filter section in the left-hand panel on the Shop and Home product pages.
+          </p>
+          <div className="space-y-4">
+            {FILTER_SECTIONS.map((section) => (
+              <div key={section.key} className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.filterPanel?.[section.key] ?? true}
+                    onChange={(e) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, [section.key]: e.target.checked } }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
+                <span className="text-sm font-medium text-slate-700">{section.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 

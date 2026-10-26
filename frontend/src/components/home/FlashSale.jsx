@@ -7,14 +7,49 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-    const fetchFlashSaleProducts = async () => {
+  useEffect(() => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
+
+        // 1. Admin-managed flash sale list
+        let adminProducts = null;
+        try {
+          const res = await api.get("/api/flashsale");
+          const items = res.data?.flashSale || [];
+          const valid = items
+            .filter((i) => i.product)
+            .map((i) => {
+              const p = i.product;
+              const charged = p.price;
+              const listPrice =
+                p.originalPrice != null && Number(p.originalPrice) !== Number(charged)
+                  ? p.originalPrice
+                  : null;
+              return {
+                ...p,
+                price: listPrice != null ? listPrice : charged,
+                originalPrice: listPrice,
+                sellingPrice: charged,
+                productName: p.name,
+                productId: p._id.toString(),
+              };
+            });
+          if (valid.length > 0) adminProducts = valid;
+        } catch (err) {
+          console.error("Error fetching admin flash sale items:", err);
+        }
+
+        if (adminProducts) {
+          setProducts(adminProducts);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fallback: auto-pick discounted low-price products
         const response = await api.get(`/api/products?limit=${limit}&sortBy=sellingPrice-asc`);
 
         let fetchedProducts = [];
-
         if (response.data?.success && response.data.products) {
           fetchedProducts = response.data.products;
         } else if (Array.isArray(response.data)) {
@@ -26,7 +61,6 @@ useEffect(() => {
         const flashProducts = fetchedProducts.filter(
           (p) => p.price && (p.sellingPrice || p.price)
         );
-
         setProducts(flashProducts);
       } catch (error) {
         console.error("Error fetching flash sale products:", error);
@@ -36,7 +70,7 @@ useEffect(() => {
       }
     };
 
-    fetchFlashSaleProducts();
+    fetchProducts();
   }, [limit]);
 
   if (loading) {
@@ -106,7 +140,7 @@ useEffect(() => {
                 <div className="common-img fs-card-img img-w100p w-[200px]">
                   <img
                     src={firstImage || "https://img.lazcdn.com/static/lk/p/default-product.jpg"}
-                    alt={product.productName}
+                    alt={product.productName || product.name}
                     className="w-[200px] h-[200px] object-cover rounded-lg"
                     loading="lazy"
                     onError={(e) => {
@@ -116,7 +150,7 @@ useEffect(() => {
                 </div>
                 <div className="fs-card-text p-2">
                   <p className="fs-card-title two-line-clamp text-xs mb-2 font-medium text-slate-700">
-                    {product.productName}
+                    {product.productName || product.name}
                   </p>
                   <div className="fs-card-price flex items-baseline gap-1">
                     <span className="currency text-xs text-slate-500">Rs.</span>

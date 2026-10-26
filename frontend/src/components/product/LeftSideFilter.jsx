@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Filter, Search, X, ChevronDown, ChevronUp, Star, Package } from "lucide-react";
+import { Filter, Search, X, ChevronDown, ChevronUp, Star, Package, Truck } from "lucide-react";
+import usePublicSettings from "@/hooks/usePublicSettings";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
@@ -18,12 +19,16 @@ const LeftSideFilter = ({
   currentCategoryId = null,
   ratingCounts,
 }) => {
+  const { settings } = usePublicSettings();
+  const panel = settings?.filterPanel;
+  const isSectionEnabled = (key) => panel?.[key] ?? true;
   const [expandedSections, setExpandedSections] = useState({
     sort: true,
     price: true,
     categories: true,
     rating: true,
     stock: true,
+    readyToShip: true,
   });
 
   const [localPrice, setLocalPrice] = useState({ min: "", max: "" });
@@ -69,6 +74,7 @@ const LeftSideFilter = ({
       categories: [],
       sortBy: "newest",
       minRating: 0,
+      readyToShip: false,
       inStock: false,
     });
     setLocalPrice({ min: "", max: "" });
@@ -76,7 +82,7 @@ const LeftSideFilter = ({
   };
 
   const isPriceActive = filters.priceRange[1] > 0;
-  const hasActiveFilters = filters.categories.length > 0 || isPriceActive || filters.minRating > 0 || filters.inStock || filters.sortBy !== "newest";
+  const hasActiveFilters = filters.categories.length > 0 || isPriceActive || filters.minRating > 0 || filters.inStock || filters.readyToShip || filters.sortBy !== "newest";
 
   const filteredCategories = categories.filter((cat) => {
     const matchesSearch = cat.name.toLowerCase().includes(categorySearch.toLowerCase());
@@ -117,6 +123,7 @@ const LeftSideFilter = ({
         )}
 
         {/* Sort By */}
+        {isSectionEnabled("sort") && (
         <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("sort")} className="w-full flex justify-between items-center mb-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Sort By</h4>
@@ -137,9 +144,10 @@ const LeftSideFilter = ({
               ))}
             </div>
           )}
-        </div>
+        </div>)}
 
         {/* Price Range */}
+        {isSectionEnabled("price") && (
         <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("price")} className="w-full flex justify-between items-center mb-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Price Range (LKR)</h4>
@@ -168,9 +176,10 @@ const LeftSideFilter = ({
               )}
             </div>
           )}
-        </div>
+        </div>)}
 
         {/* Rating */}
+        {isSectionEnabled("rating") && (
         <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("rating")} className="w-full flex justify-between items-center mb-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Minimum Rating</h4>
@@ -181,16 +190,30 @@ const LeftSideFilter = ({
               {RATINGS.map((stars) => {
                 const selected = filters.minRating === stars;
                 const count = ratingCounts?.[stars] || 0;
+                const label = stars === 5 ? "5 stars" : stars === 1 ? "1 star & up" : `${stars} stars & up`;
                 return (
                   <button key={stars} onClick={() => setFilters((prev) => ({ ...prev, minRating: selected ? 0 : stars }))}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                    aria-pressed={selected}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                       selected
-                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <Star size={14} fill="currentColor" className="shrink-0 text-amber-400" />
-                    <span>{stars} &amp; up</span>
+                    {selected ? (
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-blue-600">
+                        <span className="h-2 w-2 rounded-full bg-blue-600" />
+                      </span>
+                    ) : (
+                      <span className="h-4 w-4 shrink-0 rounded-full border border-slate-300 dark:border-slate-600" />
+                    )}
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} size={14} fill="currentColor"
+                          className={star <= stars ? "text-amber-400" : "text-slate-300 dark:text-slate-600"} />
+                      ))}
+                    </span>
+                    <span>{label}</span>
                     {count > 0 && (
                       <span className="ml-auto text-xs font-medium tabular-nums text-slate-400 dark:text-slate-500">{count}</span>
                     )}
@@ -206,9 +229,10 @@ const LeftSideFilter = ({
               )}
             </div>
           )}
-        </div>
+        </div>)}
 
         {/* In Stock Toggle */}
+        {isSectionEnabled("availability") && (
         <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
           <button onClick={() => toggleSection("stock")} className="w-full flex justify-between items-center mb-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Availability</h4>
@@ -226,9 +250,32 @@ const LeftSideFilter = ({
               <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">In Stock Only</span>
             </label>
           )}
-        </div>
+        </div>)}
+
+        {/* Ready to Ship */}
+        {isSectionEnabled("readyToShip") && (
+          <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+            <button onClick={() => toggleSection("readyToShip")} className="w-full flex justify-between items-center mb-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Ready to Ship</h4>
+              {expandedSections.readyToShip ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {expandedSections.readyToShip && (
+              <label className="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <div className="relative">
+                  <input type="checkbox" checked={filters.readyToShip} onChange={(e) => setFilters((prev) => ({ ...prev, readyToShip: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-slate-500 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </div>
+                <Truck size={15} className="text-slate-400 dark:text-slate-500" />
+                <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Ready to Ship</span>
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Categories */}
+        {isSectionEnabled("categories") && (
         <div className="mb-6">
           <button onClick={() => toggleSection("categories")} className="w-full flex justify-between items-center mb-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Categories</h4>
@@ -262,7 +309,7 @@ const LeftSideFilter = ({
               </div>
             </div>
           )}
-        </div>
+        </div>)}
 
         {/* Active Filters Summary */}
         {hasActiveFilters && (
@@ -285,6 +332,12 @@ const LeftSideFilter = ({
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
                   In Stock
                   <button onClick={() => setFilters((prev) => ({ ...prev, inStock: false }))} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
+                </span>
+              )}
+              {filters.readyToShip && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 rounded-md">
+                  Ready to Ship
+                  <button onClick={() => setFilters((prev) => ({ ...prev, readyToShip: false }))} className="ml-1 text-slate-400 dark:text-slate-500 hover:text-red-500"><X size={12} /></button>
                 </span>
               )}
               {filters.sortBy !== "newest" && (

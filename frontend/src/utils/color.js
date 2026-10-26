@@ -72,17 +72,73 @@ export function injectTheme(primaryColor) {
   style.textContent = css;
 }
 
+// Resolve the advanced navbar style object to concrete values.
+// Empty strings mean "use fallback" (brand color / navbar text color).
+export function resolveNavbarStyle(settings) {
+  const n = settings && typeof settings.navbar === "object" ? settings.navbar : {};
+  const num = (v, fallback) => {
+    const parsed = Number(v);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : fallback;
+  };
+  return {
+    height: num(n.height, 60),
+    logoSize: num(n.logoSize, 36),
+    brandTextSize: num(n.brandTextSize, 20),
+    brandText: n.brandTextColor || "",
+    searchBg: n.searchBg || "#ffffff",
+    searchBorder: n.searchBorder || "#e2e8f0",
+    searchText: n.searchText || "#0f172a",
+    searchBtnBg: n.searchBtnBg || "",
+    searchBtnText: n.searchBtnText || "#ffffff",
+    cart: n.cartColor || "",
+    login: n.loginColor || "",
+    signupBg: n.signupBtnBg || "",
+    signupText: n.signupBtnText || "#ffffff",
+    letterSize: num(n.letterSize, 18),
+    letterColor: n.letterColor || "#ffffff",
+    logoBg: n.logoBg || "#f97316",
+  };
+}
+
 export function injectNavbar(navbarSettings) {
-  const css = `
+  const nav = resolveNavbarStyle(navbarSettings);
+  const mobileVars = `
 :root {
   --navbar-bg: ${navbarSettings.navbarBg || "#ffffff"};
   --navbar-text: ${navbarSettings.navbarText || "#475569"};
   --navbar-border: ${navbarSettings.navbarBorder || "#f1f5f9"};
   --topbar-bg: ${navbarSettings.topbarBg || "#f5f5f5"};
   --topbar-text: ${navbarSettings.topbarText || "#737373"};
+  --navbar-height: 56px;
+  --navbar-pad: 8px;
+  --navbar-logo: ${Math.min(nav.logoSize, 8 * 4)}px;
+  --navbar-brand-size: ${Math.min(nav.brandTextSize, 18)}px;
+  --navbar-brand: ${nav.brandText};
+  --navbar-search-bg: ${nav.searchBg};
+  --navbar-search-border: ${nav.searchBorder};
+  --navbar-search-text: ${nav.searchText};
+  --navbar-search-btn: ${nav.searchBtnBg || "var(--color-brand-500)"};
+  --navbar-search-btn-text: ${nav.searchBtnText};
+  --navbar-cart: ${nav.cart};
+  --navbar-login: ${nav.login};
+  --navbar-signup: ${nav.signupBg || "var(--color-brand-600)"};
+  --navbar-signup-text: ${nav.signupText};
+  --navbar-letter: ${Math.min(nav.letterSize, 24)}px;
+  --navbar-letter-color: ${nav.letterColor};
+  --navbar-logo-bg: ${nav.logoBg};
 }
 .navbar-text-base { color: var(--navbar-text); }
+@media (min-width: 1024px) {
+  :root {
+    --navbar-height: ${nav.height}px;
+    --navbar-pad: 10px;
+    --navbar-logo: ${nav.logoSize}px;
+    --navbar-brand-size: ${nav.brandTextSize}px;
+    --navbar-letter: ${nav.letterSize}px;
+  }
+}
 `;
+  const css = mobileVars;
   let style = document.getElementById("navbar-variables");
   if (!style) {
     style = document.createElement("style");

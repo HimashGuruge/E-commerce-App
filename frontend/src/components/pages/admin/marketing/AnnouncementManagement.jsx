@@ -819,8 +819,7 @@ export default function AnnouncementManagement() {
           }
         >
           <div className={previewMode === "mobile" ? "max-w-[375px] mx-auto" : ""}>
-            <div className="relative overflow-hidden" style={barStyleObj}>
-              <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.08)_50%,transparent_100%)] pointer-events-none"></div>
+            <div className="relative leading-[0] text-[0] overflow-hidden" style={barStyleObj}>
               <style>{`
                 @keyframes annPrevScroll {
                   0% { transform: translateX(100vw); }

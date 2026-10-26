@@ -228,6 +228,7 @@ export default function HomeContainer() {
     sortBy: "newest",
     minRating: 0,
     inStock: false,
+    readyToShip: false,
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
@@ -281,6 +282,10 @@ export default function HomeContainer() {
         );
       }
 
+      if (currentFilters.readyToShip) {
+        filtered = filtered.filter((product) => product.status === "ready");
+      }
+
       const priceField = "sellingPrice";
       switch (currentFilters.sortBy) {
         case "price-low":
@@ -313,9 +318,10 @@ export default function HomeContainer() {
     if (filters.priceRange[1] > 0) count++;
     if (filters.minRating > 0) count++;
     if (filters.inStock) count++;
+    if (filters.readyToShip) count++;
     if (filters.sortBy !== "newest") count++;
     return count;
-  }, [filters.priceRange[1], filters.categories.length, filters.minRating, filters.inStock, filters.sortBy]);
+  }, [filters.priceRange[1], filters.categories.length, filters.minRating, filters.inStock, filters.readyToShip, filters.sortBy]);
 
   const ratingCounts = useMemo(() => {
     const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -510,8 +516,7 @@ export default function HomeContainer() {
       </div>
 
       {announcements.length > 0 && (
-        <div className="relative leading-normal overflow-hidden" style={barBackgroundStyle(announcementSettings)}>
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.08)_50%,transparent_100%)]"></div>
+        <div className="relative -mt-px leading-[0] text-[0] overflow-hidden" style={barBackgroundStyle(announcementSettings)}>
           <style>{`
             @keyframes announce-scroll {
               0% { transform: translateX(100vw); }
@@ -657,6 +662,7 @@ export default function HomeContainer() {
                             sortBy: "newest",
                             minRating: 0,
                             inStock: false,
+                            readyToShip: false,
                           })
                         }
                         className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-900 border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors"

@@ -9,6 +9,7 @@ import {
   Mail,
 } from "lucide-react";
 import api from "@/utils/api";
+import { getCachedSettings } from "@/utils/siteSettings";
 
 const ScrollToTopLink = ({ to, children, className }) => (
   <Link
@@ -23,7 +24,11 @@ const ScrollToTopLink = ({ to, children, className }) => (
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const [footerCategories, setFooterCategories] = useState([]);
-  const [footerSettings, setFooterSettings] = useState({
+  // Initialize from the synchronously-available localStorage cache (hydrated
+  // at module load) so the first paint already shows the saved colors and
+  // the default-only state never flashes on refresh.
+  const [footerSettings, setFooterSettings] = useState(() => {
+    const base = {
     footerCompanyName: "BrandName Inc.",
     footerSupportEmail: "support@brand.com",
     footerDescription: "",
@@ -49,6 +54,27 @@ const Footer = () => {
       placeholder: "Enter your email",
       buttonLabel: "Subscribe",
     },
+    };
+    const cached = getCachedSettings();
+    if (!cached) return base;
+    return {
+      ...base,
+      footerCompanyName: cached.footerCompanyName || base.footerCompanyName,
+      footerSupportEmail: cached.footerSupportEmail || base.footerSupportEmail,
+      footerDescription: cached.footerDescription || "",
+      footerAddress: cached.footerAddress || base.footerAddress,
+      footerPhone: cached.footerPhone || base.footerPhone,
+      footerBg: cached.footerBg || "#0f172a",
+      footerTextColor: cached.footerTextColor || "#cbd5e1",
+      footerHeadingColor: cached.footerHeadingColor || "#ffffff",
+      footerLinkHoverColor: cached.footerLinkHoverColor || "#ffffff",
+      footerFontSize: cached.footerFontSize || "0.875rem",
+      footerFontFamily: cached.footerFontFamily || "",
+      footerLogo: cached.footerLogo || "",
+      socialEnabled: cached.socialEnabled || base.socialEnabled,
+      social: cached.social || {},
+      newsletter: cached.newsletter || base.newsletter,
+    };
   });
 
   useEffect(() => {

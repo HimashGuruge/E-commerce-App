@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import SiteConfig from "../models/SiteConfig.js";
 import { sendEmail } from "../utils/mailer.js";
 import { emitToAll } from "../services/socketService.js";
+import { normalizeNavbarStyle } from "../utils/navbarStyle.js";
 
 const getFirstConfig = async () => {
   let config = await SiteConfig.findOne();
@@ -39,12 +40,19 @@ export const getPublicSettings = asyncHandler(async (req, res) => {
       socialEnabled: config.socialEnabled,
       metaTitle: config.metaTitle,
       metaDescription: config.metaDescription,
+      navbarBg: config.navbarBg,
+      navbarText: config.navbarText,
+      navbarBorder: config.navbarBorder,
+      topbarBg: config.topbarBg,
+      topbarText: config.topbarText,
+      navbar: normalizeNavbarStyle(config.navbar),
       shipping: config.shipping,
       returnPolicy: config.returnPolicy,
       announcement: config.announcement,
       newsletter: config.newsletter,
       appPromo: config.appPromo,
       sellerDefaults: config.sellerDefaults,
+      filterPanel: config.filterPanel,
     },
   });
 });
@@ -64,7 +72,7 @@ export const updateSettings = asyncHandler(async (req, res) => {
     "metaTitle", "metaDescription", "social",
     "emailFromName", "emailFromAddress", "emailProvider", "smtpHost", "smtpPort", "smtpUser", "smtpPass",
     "gmailEmail", "gmailClientId", "gmailClientSecret", "gmailRefreshToken",
-    "navbarBg", "navbarText", "navbarBorder", "topbarBg", "topbarText", "shipping", "returnPolicy", "announcement", "newsletter", "appPromo", "sellerDefaults",
+    "navbarBg", "navbarText", "navbarBorder", "topbarBg", "topbarText", "navbar", "shipping", "returnPolicy", "announcement", "newsletter", "appPromo", "sellerDefaults", "filterPanel",
   ];
   allowed.forEach((field) => {
     if (req.body[field] !== undefined) {
@@ -95,6 +103,8 @@ export const updateSettings = asyncHandler(async (req, res) => {
       }
     });
   }
+  // Whitelist + clamp the navbar style before storing (never keep raw client data).
+  config.navbar = normalizeNavbarStyle(config.navbar);
   await config.save();
   // Real-time: tell all clients the theme changed so they can refetch public settings
   emitToAll("settings:updated", {});

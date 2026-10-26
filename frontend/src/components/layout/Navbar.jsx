@@ -320,11 +320,15 @@ export default function Navbar() {
             <Link to="/seller/dashboard" className="px-4 py-2 navbar-text-base hover:text-brand-600 transition-colors font-semibold">
                🏪 Seller Center
             </Link>
-          ) : (
-            <Link to="/become-seller" className="px-4 py-2 text-slate-600 hover:text-brand-600 transition-colors">
+          ) : (settings?.navbar?.sellerLinkEnabled !== false && (
+            <Link
+              to="/become-seller"
+              className={`px-4 py-2 transition-colors ${settings?.navbar?.sellerLinkColor ? "" : "navbar-text-base"} hover:text-brand-600`}
+              style={settings?.navbar?.sellerLinkColor ? { color: settings.navbar.sellerLinkColor } : undefined}
+            >
                Become a Seller
              </Link>
-          )}
+          ))}
           <div
             className="relative px-4 py-2 hover:text-brand-600 cursor-pointer"
             onMouseEnter={() => setShowHelpMenu(true)}
@@ -409,10 +413,10 @@ export default function Navbar() {
 
       {/* Main Navbar with Search */}
       <nav
-        className="fixed top-0 lg:top-[40px] left-0 w-full z-50 backdrop-blur-md py-2 lg:py-[10px] border-b h-14 lg:h-[60px]"
-        style={{ backgroundColor: 'var(--navbar-bg)', borderBottomColor: 'var(--navbar-border)' }}
+        className="fixed top-0 lg:top-[40px] left-0 w-full z-50 backdrop-blur-md py-2"
+        style={{ backgroundColor: 'var(--navbar-bg)', height: 'var(--navbar-height, 60px)', paddingTop: 'var(--navbar-pad, 8px)', paddingBottom: 'var(--navbar-pad, 8px)' }}
       >
-        <div className="max-w-[1400px] mx-auto px-2 lg:px-6 flex justify-between items-center gap-2 lg:gap-6">
+        <div className="max-w-[1400px] mx-auto px-2 lg:px-6 flex items-center gap-2 lg:gap-6 h-full">
           {/* Logo */}
           <Link
             to="/"
@@ -420,15 +424,18 @@ export default function Navbar() {
             onClick={scrollToTop}
             aria-label="Go to homepage"
           >
-            <div className={`w-8 h-8 lg:w-9 lg:h-9 rounded-[12px] flex items-center justify-center font-bold text-lg lg:text-xl shadow-md overflow-hidden ${settings?.logo ? "bg-white border border-slate-200" : "bg-brand-500 shadow-brand-300 group-hover:rotate-6 transition-transform text-white"}`}>
+            <div
+              className="rounded-[12px] flex items-center justify-center font-bold shadow-md overflow-hidden group-hover:rotate-6 transition-transform"
+              style={{ width: 'var(--navbar-logo, 32px)', height: 'var(--navbar-logo, 32px)', backgroundColor: 'var(--navbar-logo-bg, var(--color-brand-500))', color: 'var(--navbar-letter-color, #ffffff)', fontSize: 'var(--navbar-letter, 18px)' }}
+            >
               {settings?.logo ? (
                 <img src={settings.logo} alt={settings.brandName || "Logo"} className="w-full h-full object-cover" />
               ) : (
                 (settings?.iconLetter && settings.iconLetter !== "M") ? settings.iconLetter : ((settings?.brandName || "M").trim().charAt(0) || "M").toUpperCase()
               )}
             </div>
-            <span className="text-lg lg:text-xl font-black tracking-[-0.5px] navbar-text-base hidden lg:block">
-              <span className="text-brand-500">{settings?.brandName || "MYBRAND"}</span>
+            <span className="font-black tracking-[-0.5px] hidden lg:block" style={{ fontSize: 'var(--navbar-brand-size, 20px)', color: 'var(--navbar-brand, var(--color-brand-500))' }}>
+              {settings?.brandName || "MYBRAND"}
             </span>
           </Link>
 
@@ -443,15 +450,17 @@ export default function Navbar() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
                     placeholder="Search"
-                    className="w-full text-xs lg:text-sm px-2 lg:px-5 py-1 lg:py-3 border border-slate-200 rounded-l-lg focus:outline-none focus:border-brand-500 bg-white text-slate-900 placeholder:text-slate-400"
+                    className="w-full text-xs lg:text-sm px-2 lg:px-5 py-1 lg:py-3 border rounded-l-lg focus:outline-none focus:border-brand-500 placeholder:text-slate-400"
+                    style={{ backgroundColor: 'var(--navbar-search-bg, #ffffff)', borderColor: 'var(--navbar-search-border, #e2e8f0)', color: 'var(--navbar-search-text, #0f172a)' }}
                   />
                 </div>
                   <button
                     type="submit"
-                    className="px-3 lg:px-6 py-1 lg:py-3 bg-brand-500 text-white font-semibold text-xs lg:text-sm rounded-r-lg hover:bg-brand-600 transition-colors"
+                    className="px-3 lg:px-6 py-1 lg:py-3 font-semibold text-xs lg:text-sm rounded-r-lg hover:opacity-90 transition-colors"
+                    style={{ backgroundColor: 'var(--navbar-search-btn, var(--color-brand-500))', color: 'var(--navbar-search-btn-text, #ffffff)' }}
                   >
                     <span className="hidden lg:inline">SEARCH</span>
-                    <span className="lg:hidden"><Search size={15} style={{ fill: "white" }} /></span>
+                    <span className="lg:hidden"><Search size={15} style={{ fill: 'var(--navbar-search-btn-text, #ffffff)' }} /></span>
                   </button>
               </div>
               
@@ -503,7 +512,8 @@ export default function Navbar() {
           {/* Cart Icon */}
           <Link
             to="/viewcart"
-            className="relative p-1 lg:p-2 navbar-text-base hover:text-brand-500 transition-colors"
+            className="relative p-1 lg:p-2 transition-colors"
+            style={{ color: 'var(--navbar-cart, var(--navbar-text))' }}
             aria-label="Shopping cart"
           >
             <ShoppingCart size={22} />
@@ -564,14 +574,16 @@ export default function Navbar() {
             <div className="hidden lg:flex items-center gap-2">
               <Link
                 to="/login"
-                className="text-sm font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 transition-colors"
+                className="text-sm font-semibold px-3 py-2 transition-colors hover:opacity-80"
+                style={{ color: 'var(--navbar-login, var(--navbar-text))' }}
                 aria-label="Login"
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all shadow-md active:scale-95"
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95"
+                style={{ backgroundColor: 'var(--navbar-signup, var(--color-brand-600))', color: 'var(--navbar-signup-text, #ffffff)' }}
                 aria-label="Sign up"
               >
                 Sign Up
@@ -845,7 +857,7 @@ export default function Navbar() {
 
                 {/* Help Section (all users, matches desktop top bar) */}
                 <div className="h-[1px] bg-slate-100 my-2" />
-                {!user && (
+                {!user && settings?.navbar?.sellerLinkEnabled !== false && (
                   <MobileNavLink
                     to="/become-seller"
                     label={

@@ -4,12 +4,14 @@ import ManageServices from "../Dashboard/ManageServices";
 import AdsManagement from "./AdsManagement";
 import AnnouncementManagement from "./AnnouncementManagement";
 import TrendingManagement from "./TrendingManagement";
+import FlashSaleManagement from "./FlashSaleManagement";
 
 const TABS = [
   { id: "features", label: "Features" },
   { id: "services", label: "Services" },
   { id: "ads", label: "Ads" },
   { id: "announcements", label: "Announcements" },
+  { id: "flash-sale", label: "Flash Sale" },
   { id: "trending", label: "Trending" },
 ];
 
@@ -44,6 +46,7 @@ export default function HomeMarketing() {
         {activeTab === "services" && <ManageServices />}
         {activeTab === "ads" && <AdsManagement />}
         {activeTab === "announcements" && <AnnouncementManagement />}
+        {activeTab === "flash-sale" && <FlashSaleManagement />}
         {activeTab === "trending" && <TrendingManagement />}
       </div>
     </div>
