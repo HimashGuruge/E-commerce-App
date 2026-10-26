@@ -209,3 +209,23 @@ export function injectFsFont(fontUrl) {
     link.remove();
   }
 }
+
+// Load a font stylesheet dedicated to the shop "All Products" header.
+// Kept separate from the flash sale font so both can render on the same page.
+export function injectShopHeaderFont(fontUrl) {
+  const id = "shop-header-font-stylesheet";
+  let link = document.getElementById(id);
+  if (fontUrl) {
+    if (!link) {
+      link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = fontUrl;
+      document.head.appendChild(link);
+    } else {
+      link.href = fontUrl;
+    }
+  } else if (link) {
+    link.remove();
+  }
+}

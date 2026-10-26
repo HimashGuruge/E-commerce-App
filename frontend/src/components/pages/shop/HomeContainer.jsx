@@ -15,6 +15,8 @@ import {
   barBackgroundStyle,
 } from "@/utils/announcementStyle";
 import { Link } from "react-router-dom";
+import usePublicSettings from "@/hooks/usePublicSettings";
+import { injectShopHeaderFont } from "@/utils/color";
 
 import {
   Loader2,
@@ -231,6 +233,15 @@ export default function HomeContainer() {
     readyToShip: false,
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Admin-controlled shop header style (badge, title, count, fonts).
+  const { settings: publicSettings } = usePublicSettings();
+  const shopHeader = publicSettings?.shopHeader || {};
+
+  // Load the shop header title font (does not touch the site-wide font).
+  useEffect(() => {
+    injectShopHeaderFont(shopHeader.fontUrl || "");
+  }, [shopHeader.fontUrl]);
 
   // Category ID to Name Map
   const categoryIdToNameMap = useMemo(() => {
@@ -624,13 +635,33 @@ export default function HomeContainer() {
               <div className="px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
                 <main>
                   <header className="text-center mb-6 lg:mb-8">
-                    <div className="inline-block px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100">
-                      Handpicked Styles
+                    <div
+                      className="inline-block px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100"
+                      style={{
+                        ...(shopHeader.badgeColor ? { color: shopHeader.badgeColor } : {}),
+                        ...(shopHeader.badgeBg ? { backgroundColor: shopHeader.badgeBg } : {}),
+                        ...(shopHeader.badgeBorder ? { borderColor: shopHeader.badgeBorder } : {}),
+                      }}
+                    >
+                      {shopHeader.badgeText || "Handpicked Styles"}
                     </div>
-                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-2">
-                      All Products
+                    <h2
+                      className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-2"
+                      style={{
+                        ...(shopHeader.titleColor ? { color: shopHeader.titleColor } : {}),
+                        ...(shopHeader.fontFamily ? { fontFamily: shopHeader.fontFamily } : {}),
+                        ...(shopHeader.titleFontSize ? { fontSize: `${shopHeader.titleFontSize}px` } : {}),
+                      }}
+                    >
+                      {shopHeader.title || "All Products"}
                     </h2>
-              <p className="text-sm text-slate-500">
+                    <p
+                      className="text-sm text-slate-500"
+                      style={{
+                        ...(shopHeader.countColor ? { color: shopHeader.countColor } : {}),
+                        ...(shopHeader.countFontSize ? { fontSize: `${shopHeader.countFontSize}px` } : {}),
+                      }}
+                    >
                       {filteredProducts.length} products found
                     </p>
                   </header>

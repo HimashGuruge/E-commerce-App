@@ -222,6 +222,19 @@ export default function SettingsManagement() {
         fontSize: 0,
       },
     },
+    shopHeader: {
+      badgeText: "",
+      badgeColor: "",
+      badgeBg: "",
+      badgeBorder: "",
+      title: "",
+      titleColor: "",
+      fontFamily: "",
+      fontUrl: "",
+      titleFontSize: 0,
+      countColor: "",
+      countFontSize: 0,
+    },
     announcement: {
       speed: 12,
       bgColor: "#F85606",
@@ -345,6 +358,19 @@ export default function SettingsManagement() {
               borderColor: s.filterPanel?.sortBox?.borderColor || "",
               fontSize: s.filterPanel?.sortBox?.fontSize || 0,
             },
+          },
+          shopHeader: {
+            badgeText: s.shopHeader?.badgeText || "",
+            badgeColor: s.shopHeader?.badgeColor || "",
+            badgeBg: s.shopHeader?.badgeBg || "",
+            badgeBorder: s.shopHeader?.badgeBorder || "",
+            title: s.shopHeader?.title || "",
+            titleColor: s.shopHeader?.titleColor || "",
+            fontFamily: s.shopHeader?.fontFamily || "",
+            fontUrl: s.shopHeader?.fontUrl || "",
+            titleFontSize: s.shopHeader?.titleFontSize || 0,
+            countColor: s.shopHeader?.countColor || "",
+            countFontSize: s.shopHeader?.countFontSize || 0,
           },
           social: {
             facebook: s.social?.facebook || "",
@@ -2443,6 +2469,120 @@ export default function SettingsManagement() {
                   );
                 })()}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Shop "All Products" Header */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FiSliders className="w-5 h-5 text-brand-500" />
+              Shop Header ("All Products")
+            </h2>
+            <button
+              type="button"
+              onClick={() => handleSectionSave("Shop Header", { shopHeader: form.shopHeader })}
+              disabled={savingSection === "Shop Header"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 rounded-lg transition"
+            >
+              {savingSection === "Shop Header" ? (
+                <><div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> Saving</>
+              ) : (
+                <><FiSave className="w-3.5 h-3.5" /> Save</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Style the header at the top of the Shop / Home product grid. Leave any field empty to keep the default look.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Badge text</label>
+              <input
+                type="text"
+                value={form.shopHeader?.badgeText || ""}
+                onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, badgeText: e.target.value } }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                placeholder="Handpicked Styles"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Title text</label>
+              <input
+                type="text"
+                value={form.shopHeader?.title || ""}
+                onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, title: e.target.value } }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                placeholder="All Products"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Title font</label>
+              <select
+                value={FONT_PRESETS.some((p) => p.family === form.shopHeader?.fontFamily) ? form.shopHeader?.fontFamily : ""}
+                onChange={(e) => {
+                  const preset = FONT_PRESETS.find((p) => p.family === e.target.value) || FONT_PRESETS[0];
+                  setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, fontFamily: preset.family, fontUrl: preset.url } }));
+                }}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+              >
+                {FONT_PRESETS.map((p) => (
+                  <option key={p.label} value={p.family}>{p.label === "Inter" ? "Default (Inter)" : p.label}</option>
+                ))}
+              </select>
+            </div>
+            <NumField label="Title font size (0 = default)" min={0} max={60} value={form.shopHeader?.titleFontSize || 0} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, titleFontSize: Math.max(0, Math.min(60, parseInt(v) || 0)) } }))} />
+            <NumField label="Count font size (0 = default)" min={0} max={30} value={form.shopHeader?.countFontSize || 0} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, countFontSize: Math.max(0, Math.min(30, parseInt(v) || 0)) } }))} />
+            <HexField label="Badge text color" placeholder="#94a3b8" fallbackHint="default grey" value={form.shopHeader?.badgeColor || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, badgeColor: v } }))} />
+            <HexField label="Badge background" placeholder="#f8fafc" fallbackHint="default light" value={form.shopHeader?.badgeBg || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, badgeBg: v } }))} />
+            <HexField label="Badge border" placeholder="#f1f5f9" fallbackHint="default light border" value={form.shopHeader?.badgeBorder || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, badgeBorder: v } }))} />
+            <HexField label="Title color" placeholder="#0f172a" fallbackHint="default near-black" value={form.shopHeader?.titleColor || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, titleColor: v } }))} />
+            <HexField label="Count text color" placeholder="#64748b" fallbackHint="default grey" value={form.shopHeader?.countColor || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, countColor: v } }))} />
+          </div>
+
+          {/* Live preview */}
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <p className="text-sm font-semibold text-slate-700 mb-2">Live preview</p>
+            <div className="max-w-xs">
+              {(() => {
+                const sh = form.shopHeader || {};
+                const titleSize = sh.titleFontSize ? { fontSize: `${sh.titleFontSize}px` } : {};
+                const countSize = sh.countFontSize ? { fontSize: `${sh.countFontSize}px` } : {};
+                const badgeStyle = {
+                  ...(sh.badgeColor ? { color: sh.badgeColor } : {}),
+                  ...(sh.badgeBg ? { backgroundColor: sh.badgeBg } : {}),
+                  ...(sh.badgeBorder ? { borderColor: sh.badgeBorder } : {}),
+                };
+                const titleStyle = {
+                  ...(sh.titleColor ? { color: sh.titleColor } : {}),
+                  ...(sh.fontFamily ? { fontFamily: sh.fontFamily } : {}),
+                  ...titleSize,
+                };
+                const countStyle = {
+                  ...(sh.countColor ? { color: sh.countColor } : {}),
+                  ...countSize,
+                };
+                return (
+                  <div className="text-center py-4">
+                    <div
+                      className="inline-block px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100"
+                      style={badgeStyle}
+                    >
+                      {sh.badgeText || "Handpicked Styles"}
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2" style={titleStyle}>
+                      {sh.title || "All Products"}
+                    </h2>
+                    <p className="text-sm text-slate-500" style={countStyle}>4 products found</p>
+                  </div>
+                );
+              })()}
+              <p className="mt-2 text-[11px] text-slate-400">
+                {form.shopHeader?.fontUrl
+                  ? "Font loads when the page opens (first paint may show the fallback font briefly)."
+                  : ""}
+              </p>
             </div>
           </div>
         </div>

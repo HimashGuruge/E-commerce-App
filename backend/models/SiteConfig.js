@@ -162,6 +162,19 @@ const siteConfigSchema = new mongoose.Schema(
         buttonColor: { type: String, default: "" },
         buttonBorderColor: { type: String, default: "" },
       },
+      shopHeader: {
+        badgeText: { type: String, default: "Handpicked Styles" },
+        badgeColor: { type: String, default: "" },
+        badgeBg: { type: String, default: "" },
+        badgeBorder: { type: String, default: "" },
+        title: { type: String, default: "All Products" },
+        titleColor: { type: String, default: "" },
+        fontFamily: { type: String, default: "" },
+        fontUrl: { type: String, default: "" },
+        titleFontSize: { type: Number, default: 0 },
+        countColor: { type: String, default: "" },
+        countFontSize: { type: Number, default: 0 },
+      },
   },
   { timestamps: true }
 );
