@@ -109,10 +109,30 @@ Edit `backend/.env` and set at least:
 - `MONGO_URI` — MongoDB connection string
 - `JWT_SECRET` — a long random string
 
-Optional: `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` for live payments, SMTP/Google keys, and `ADMIN_EMAIL` + `ADMIN_PASSWORD` for seeding the admin.
+### Creating the admin account
+
+The admin (Main Admin) account is created by the seeding script `backend/seed.js`
+(it is kept out of the public repo, so it may not exist in a fresh clone —
+keep a local copy of `seed.js` if you need it).
+
+1. In `backend/.env` set both values:
+   - `ADMIN_EMAIL` — the admin login email (default `admin@example.com`)
+   - `ADMIN_PASSWORD` — the admin login password
+   With `ADMIN_PASSWORD` empty, seeding skips admin creation.
+2. Run the seeder once:
+
+   ```bash
+   node seed.js
+   ```
+
+   It creates the admin user (with `role: admin` and `isMainAdmin: true`) plus
+   the default trending terms. It is safe to re-run — existing users are
+   skipped. The script is idempotent: it never changes an admin's password
+   after it has been created.
+
+3. Log in through the app as that admin to use the admin panel.
 
 ```bash
-node seed.js              # Seed the database (admin + demo products)
 npm start                 # Start API on http://localhost:4000 (nodemon)
 ```
 
@@ -136,7 +156,7 @@ npm run dev               # Start on http://localhost:3001 (Vite)
 - `npm start` — run with nodemon
 - `npm run dev` — run with node --watch
 - `npm test` — run Jest tests
-- `node seed.js` — seed demo data
+- `node seed.js` — create the admin account (see "Creating the admin account"; this script is local-only and not in the public repo)
 
 **Frontend** (`frontend/`):
 - `npm run dev` — Vite dev server
