@@ -1,5 +1,9 @@
 # Real-Time E-Commerce Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-A5D4FC?logo=vercel)](https://e-commerce-app-frontend-rouge.vercel.app/)
+
+> **Live demo:** https://e-commerce-app-frontend-rouge.vercel.app/
+
 A full-stack, working e-commerce website. Customers can browse products, add to cart, place orders and pay. Sellers can manage their own products and shops. An admin can manage users, categories, products, orders, banners, ads and site settings. Real-time features (chat, notifications, order status) are powered by Socket.IO.
 
 ## What the project does
