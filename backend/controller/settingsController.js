@@ -53,6 +53,7 @@ export const getPublicSettings = asyncHandler(async (req, res) => {
       appPromo: config.appPromo,
       sellerDefaults: config.sellerDefaults,
       filterPanel: config.filterPanel,
+      flashSale: config.flashSale,
     },
   });
 });
@@ -72,7 +73,7 @@ export const updateSettings = asyncHandler(async (req, res) => {
     "metaTitle", "metaDescription", "social",
     "emailFromName", "emailFromAddress", "emailProvider", "smtpHost", "smtpPort", "smtpUser", "smtpPass",
     "gmailEmail", "gmailClientId", "gmailClientSecret", "gmailRefreshToken",
-    "navbarBg", "navbarText", "navbarBorder", "topbarBg", "topbarText", "navbar", "shipping", "returnPolicy", "announcement", "newsletter", "appPromo", "sellerDefaults", "filterPanel",
+    "navbarBg", "navbarText", "navbarBorder", "topbarBg", "topbarText", "navbar", "shipping", "returnPolicy", "announcement", "newsletter", "appPromo", "sellerDefaults", "filterPanel", "flashSale",
   ];
   allowed.forEach((field) => {
     if (req.body[field] !== undefined) {

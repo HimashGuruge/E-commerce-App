@@ -21,6 +21,7 @@ const LeftSideFilter = ({
 }) => {
   const { settings } = usePublicSettings();
   const panel = settings?.filterPanel;
+  const sortBox = panel?.sortBox;
   const isSectionEnabled = (key) => panel?.[key] ?? true;
   const [expandedSections, setExpandedSections] = useState({
     sort: true,
@@ -84,6 +85,20 @@ const LeftSideFilter = ({
   const isPriceActive = filters.priceRange[1] > 0;
   const hasActiveFilters = filters.categories.length > 0 || isPriceActive || filters.minRating > 0 || filters.inStock || filters.readyToShip || filters.sortBy !== "newest";
 
+  // Admin-customizable Sort By box styles (empty = keep the default look).
+  const sortBoxStyle = sortBox?.borderColor ? { borderColor: sortBox.borderColor } : {};
+  const headingStyle = sortBox?.headingColor ? { color: sortBox.headingColor } : {};
+  const optionFontStyle = sortBox?.fontSize ? { fontSize: `${sortBox.fontSize}px` } : {};
+  const activeOptionStyle = {
+    ...(sortBox?.activeBgColor ? { backgroundColor: sortBox.activeBgColor } : {}),
+    ...(sortBox?.activeColor ? { color: sortBox.activeColor } : {}),
+    ...optionFontStyle,
+  };
+  const idleOptionStyle = {
+    ...(sortBox?.optionColor ? { color: sortBox.optionColor } : {}),
+    ...optionFontStyle,
+  };
+
   const filteredCategories = categories.filter((cat) => {
     const matchesSearch = cat.name.toLowerCase().includes(categorySearch.toLowerCase());
     const isNotCurrentCategory = currentCategoryId ? cat._id !== currentCategoryId : true;
@@ -124,15 +139,16 @@ const LeftSideFilter = ({
 
         {/* Sort By */}
         {isSectionEnabled("sort") && (
-        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6" style={sortBoxStyle}>
           <button onClick={() => toggleSection("sort")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Sort By</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white" style={{ ...headingStyle, ...optionFontStyle }}>Sort By</h4>
             {expandedSections.sort ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {expandedSections.sort && (
             <div className="space-y-1">
               {SORT_OPTIONS.map((opt) => (
                 <button key={opt.value} onClick={() => setFilters((prev) => ({ ...prev, sortBy: opt.value }))}
+                    style={filters.sortBy === opt.value ? activeOptionStyle : idleOptionStyle}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
                       filters.sortBy === opt.value
                         ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold"

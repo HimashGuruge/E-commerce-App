@@ -2,10 +2,19 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/utils/api";
 import { Loader2, Sparkles } from "lucide-react";
+import usePublicSettings from "@/hooks/usePublicSettings";
+import { injectFsFont } from "@/utils/color";
 
 export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
+  const { settings } = usePublicSettings();
+  const fsSettings = settings?.flashSale || {};
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Load the admin-picked header font (does not touch the site-wide font).
+  useEffect(() => {
+    injectFsFont(fsSettings.fontUrl || "");
+  }, [fsSettings.fontUrl]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -73,6 +82,18 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
     fetchProducts();
   }, [limit]);
 
+  const headerTitle = fsSettings.title || title;
+  const headerColor = fsSettings.color || "#f57224";
+  const headerStyle = {
+    color: headerColor,
+    ...(fsSettings.fontFamily ? { fontFamily: fsSettings.fontFamily } : {}),
+    ...(fsSettings.fontSize ? { fontSize: `${fsSettings.fontSize}px` } : {}),
+  };
+  const buttonStyle = {
+    ...(fsSettings.buttonBorderColor ? { borderColor: fsSettings.buttonBorderColor } : { borderColor: headerColor }),
+    ...(fsSettings.buttonColor ? { color: fsSettings.buttonColor } : { color: headerColor }),
+  };
+
   if (loading) {
     return (
       <div className="py-8 flex items-center justify-center">
@@ -91,17 +112,21 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
         style={{ backgroundColor: "#fff" }}
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-brand-500" />
-          <div className="fs-status-text font-black uppercase tracking-wider" style={{ color: "#f57224" }}>
-            {title}
+          {fsSettings.emoji ? (
+            <span className="text-base leading-none">{fsSettings.emoji}</span>
+          ) : (
+            <Sparkles className="w-5 h-5 text-brand-500" style={{ color: headerColor }} />
+          )}
+          <div className="fs-status-text font-black uppercase tracking-wider" style={headerStyle}>
+            {headerTitle}
           </div>
         </div>
         <Link
           to="/shop?sort=discount"
           className="pc-custom-link shopMoreBtn text-center text-xs font-black uppercase"
-          style={{ borderColor: "#f57224", color: "#f57224" }}
+          style={buttonStyle}
         >
-          SHOP ALL PRODUCTS
+          {fsSettings.buttonText || "Shop All Products"}
         </Link>
       </div>
 

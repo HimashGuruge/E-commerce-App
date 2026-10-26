@@ -2,7 +2,50 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api";
 import getApiError from "@/utils/errors";
 import toast from "react-hot-toast";
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiSearch } from "react-icons/fi";
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiSearch, FiSave } from "react-icons/fi";
+import { invalidatePublicSettings } from "@/utils/siteSettings";
+
+const FONT_PRESETS = [
+  { family: "", url: "", label: "Default (site font)" },
+  { family: "Inter, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap", label: "Inter" },
+  { family: "system-ui, -apple-system, sans-serif", url: "", label: "System" },
+  { family: "Roboto, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap", label: "Roboto" },
+  { family: "Poppins, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap", label: "Poppins" },
+  { family: "'Open Sans', system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap", label: "Open Sans" },
+  { family: "Lato, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap", label: "Lato" },
+  { family: "Montserrat, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap", label: "Montserrat" },
+  { family: "Nunito, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap", label: "Nunito" },
+  { family: "Raleway, system-ui, sans-serif", url: "https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap", label: "Raleway" },
+  { family: "'Playfair Display', Georgia, serif", url: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap", label: "Playfair Display" },
+];
+
+// Color picker + hex text box. Empty value = "keep default".
+function HexField({ label, value, onSet, placeholder }) {
+  const colorValue =
+    value && /^#[0-9a-fA-F]{6}$/.test(value)
+      ? value
+      : (placeholder && /^#[0-9a-fA-F]{6}$/.test(placeholder) ? placeholder : "#000000");
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={colorValue}
+          onChange={(e) => onSet(e.target.value)}
+          className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer bg-transparent p-1"
+        />
+        <input
+          type="text"
+          value={value || ""}
+          placeholder={placeholder || "empty = default"}
+          onChange={(e) => onSet(e.target.value)}
+          className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function FlashSaleManagement() {
   const [items, setItems] = useState([]);
@@ -15,6 +58,18 @@ export default function FlashSaleManagement() {
   const [selectedId, setSelectedId] = useState(null);
   const [orderStr, setOrderStr] = useState("0");
   const debounceRef = useRef(null);
+  const [header, setHeader] = useState({
+    title: "",
+    emoji: "",
+    color: "",
+    fontFamily: "",
+    fontUrl: "",
+    fontSize: 0,
+    buttonText: "",
+    buttonColor: "",
+    buttonBorderColor: "",
+  });
+  const [savingHeader, setSavingHeader] = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -28,8 +83,46 @@ export default function FlashSaleManagement() {
     }
   };
 
+  const loadHeader = async () => {
+    try {
+      const res = await api.get("/api/settings");
+      const fs = res.data?.settings?.flashSale || {};
+      setHeader({
+        title: fs.title || "",
+        emoji: fs.emoji || "",
+        color: fs.color || "",
+        fontFamily: fs.fontFamily || "",
+        fontUrl: fs.fontUrl || "",
+        fontSize: fs.fontSize || 0,
+        buttonText: fs.buttonText || "",
+        buttonColor: fs.buttonColor || "",
+        buttonBorderColor: fs.buttonBorderColor || "",
+      });
+    } catch (err) {
+      console.error("Failed to load flash sale header settings:", err);
+    }
+  };
+
+  const handleSaveHeader = async () => {
+    setSavingHeader(true);
+    try {
+      const res = await api.put("/api/settings", { flashSale: header });
+      if (res.data?.success) {
+        toast.success("Flash sale header style saved");
+        invalidatePublicSettings();
+        const s = res.data.settings || {};
+        window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: s }));
+      }
+    } catch (err) {
+      toast.error(getApiError(err, "Failed to save header style"));
+    } finally {
+      setSavingHeader(false);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    loadHeader();
   }, []);
 
   const searchProducts = async (query) => {
@@ -165,6 +258,146 @@ export default function FlashSaleManagement() {
             <FiPlus size={18} />
             Add Product
           </button>
+        </div>
+      </div>
+
+      {/* Header style card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Flash Sale Header Style</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Set the title, emoji, font, size and colors of the "On Sale Now" header on the homepage. Leave any field empty to keep the default.</p>
+          </div>
+          <button
+            onClick={handleSaveHeader}
+            disabled={savingHeader}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <FiSave size={16} />
+            {savingHeader ? "Saving..." : "Save Style"}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Title text</label>
+            <input
+              type="text"
+              value={header.title}
+              placeholder="On Sale Now"
+              onChange={(e) => setHeader((h) => ({ ...h, title: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Emoji (optional)</label>
+            <input
+              type="text"
+              value={header.emoji}
+              placeholder="🔥"
+              onChange={(e) => setHeader((h) => ({ ...h, emoji: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Title font</label>
+            <select
+              value={FONT_PRESETS.some((p) => p.family === header.fontFamily) ? header.fontFamily : ""}
+              onChange={(e) => {
+                const preset = FONT_PRESETS.find((p) => p.family === e.target.value) || FONT_PRESETS[0];
+                setHeader((h) => ({ ...h, fontFamily: preset.family, fontUrl: preset.url }));
+              }}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+            >
+              {FONT_PRESETS.map((p) => (
+                <option key={p.label} value={p.family}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Font size (px, 0 = default)</label>
+            <input
+              type="number"
+              min={0}
+              max={40}
+              value={header.fontSize || 0}
+              onChange={(e) => setHeader((h) => ({ ...h, fontSize: Math.max(0, Math.min(40, parseInt(e.target.value) || 0)) }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+            />
+          </div>
+          <HexField
+            label="Title color"
+            placeholder="#f57224"
+            value={header.color}
+            onSet={(v) => setHeader((h) => ({ ...h, color: v }))}
+          />
+          <HexField
+            label="Button text color"
+            placeholder=""
+            value={header.buttonColor}
+            onSet={(v) => setHeader((h) => ({ ...h, buttonColor: v }))}
+          />
+          <HexField
+            label="Button border color"
+            placeholder=""
+            value={header.buttonBorderColor}
+            onSet={(v) => setHeader((h) => ({ ...h, buttonBorderColor: v }))}
+          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Button text</label>
+            <input
+              type="text"
+              value={header.buttonText}
+              placeholder="Shop All Products"
+              onChange={(e) => setHeader((h) => ({ ...h, buttonText: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Live preview */}
+        <div>
+          <p className="text-sm font-semibold text-slate-700 mb-2">Live preview</p>
+          <div className="max-w-xl">
+            {(() => {
+              const h = header;
+              const c = h.color || "#f57224";
+              const titleText = h.title || "On Sale Now";
+              const btnText = h.buttonText || "Shop All Products";
+              const fs = h.fontSize ? { fontSize: `${h.fontSize}px` } : {};
+              const headerStyle = {
+                color: c,
+                ...(h.fontFamily ? { fontFamily: h.fontFamily } : {}),
+                ...fs,
+              };
+              const buttonStyle = {
+                borderColor: h.buttonBorderColor || c,
+                color: h.buttonColor || c,
+              };
+              return (
+                <div className="bg-white border border-slate-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {h.emoji ? (
+                      <span className="text-base leading-none">{h.emoji}</span>
+                    ) : (
+                      <span style={{ color: c }}>✦</span>
+                    )}
+                    <div className="font-black uppercase tracking-wider" style={headerStyle}>
+                      {titleText}
+                    </div>
+                  </div>
+                  <span className="text-center text-xs font-black uppercase border-2 px-3 py-1.5 rounded-full" style={buttonStyle}>
+                    {btnText}
+                  </span>
+                </div>
+              );
+            })()}
+            <p className="mt-2 text-[11px] text-slate-400">
+              {header.fontUrl
+                ? "Font loads when the page opens (first paint may show the fallback font briefly)."
+                : ""}
+            </p>
+          </div>
         </div>
       </div>
 

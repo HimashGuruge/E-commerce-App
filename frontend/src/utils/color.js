@@ -189,3 +189,23 @@ export function injectBarFont(fontUrl) {
     if (link) link.remove();
   }
 }
+
+// Load a font stylesheet dedicated to the flash sale header (does not touch
+// the site-wide or announcement-bar font stylesheets).
+export function injectFsFont(fontUrl) {
+  const id = "fs-font-stylesheet";
+  let link = document.getElementById(id);
+  if (fontUrl) {
+    if (!link) {
+      link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = fontUrl;
+      document.head.appendChild(link);
+    } else {
+      link.href = fontUrl;
+    }
+  } else if (link) {
+    link.remove();
+  }
+}

@@ -106,6 +106,7 @@ export default function SettingsManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingSection, setSavingSection] = useState(null);
+  const [previewSort, setPreviewSort] = useState("newest");
   const [uploading, setUploading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -212,6 +213,14 @@ export default function SettingsManagement() {
       availability: true,
       readyToShip: true,
       categories: true,
+      sortBox: {
+        headingColor: "",
+        optionColor: "",
+        activeColor: "",
+        activeBgColor: "",
+        borderColor: "",
+        fontSize: 0,
+      },
     },
     announcement: {
       speed: 12,
@@ -328,6 +337,14 @@ export default function SettingsManagement() {
             availability: s.filterPanel?.availability ?? true,
             readyToShip: s.filterPanel?.readyToShip ?? true,
             categories: s.filterPanel?.categories ?? true,
+            sortBox: {
+              headingColor: s.filterPanel?.sortBox?.headingColor || "",
+              optionColor: s.filterPanel?.sortBox?.optionColor || "",
+              activeColor: s.filterPanel?.sortBox?.activeColor || "",
+              activeBgColor: s.filterPanel?.sortBox?.activeBgColor || "",
+              borderColor: s.filterPanel?.sortBox?.borderColor || "",
+              fontSize: s.filterPanel?.sortBox?.fontSize || 0,
+            },
           },
           social: {
             facebook: s.social?.facebook || "",
@@ -2348,6 +2365,85 @@ export default function SettingsManagement() {
                 <span className="text-sm font-medium text-slate-700">{section.label}</span>
               </div>
             ))}
+          </div>
+
+          {/* Sort By style */}
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-4">
+            <p className="text-sm font-semibold text-slate-700">Sort By box style</p>
+            <p className="text-xs text-slate-500">Leave a color empty to keep the default look.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <HexField label="Heading color" placeholder="#000000" fallbackHint="default black/white" value={form.filterPanel?.sortBox?.headingColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, headingColor: v } } }))} />
+              <HexField label="Option text color" placeholder="#475569" fallbackHint="default grey" value={form.filterPanel?.sortBox?.optionColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, optionColor: v } } }))} />
+              <HexField label="Active option bg color" placeholder="#0f172a" fallbackHint="default dark" value={form.filterPanel?.sortBox?.activeBgColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, activeBgColor: v } } }))} />
+              <HexField label="Active option text color" placeholder="#ffffff" fallbackHint="default white" value={form.filterPanel?.sortBox?.activeColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, activeColor: v } } }))} />
+              <HexField label="Border color" placeholder="#f1f5f9" fallbackHint="default light border" value={form.filterPanel?.sortBox?.borderColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, borderColor: v } } }))} />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Option font size (px, 0 = default)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={form.filterPanel?.sortBox?.fontSize || 0}
+                  onChange={(e) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, fontSize: Math.max(0, Math.min(30, parseInt(e.target.value) || 0)) } } }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Live preview */}
+            <div className="pt-2">
+              <p className="text-sm font-semibold text-slate-700 mb-2">Live preview</p>
+              <div className="max-w-xs">
+                {(() => {
+                  const sb = form.filterPanel?.sortBox || {};
+                  const fontFs = sb.fontSize ? { fontSize: `${sb.fontSize}px` } : {};
+                  const headingStyle = { ...(sb.headingColor ? { color: sb.headingColor } : {}), ...fontFs };
+                  const activeStyle = {
+                    ...(sb.activeBgColor ? { backgroundColor: sb.activeBgColor } : {}),
+                    ...(sb.activeColor ? { color: sb.activeColor } : {}),
+                    ...fontFs,
+                  };
+                  const idleStyle = { ...(sb.optionColor ? { color: sb.optionColor } : {}), ...fontFs };
+                  const options = [
+                    { value: "newest", label: "Newest First" },
+                    { value: "price-low", label: "Price: Low to High" },
+                    { value: "price-high", label: "Price: High to Low" },
+                    { value: "rating", label: "Top Rated" },
+                  ];
+                  return (
+                    <div
+                      className="border-b border-slate-100 dark:border-slate-800 pb-4"
+                      style={sb.borderColor ? { borderColor: sb.borderColor } : {}}
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white" style={headingStyle}>
+                          Sort By
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {options.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setPreviewSort(opt.value)}
+                            style={previewSort === opt.value ? activeStyle : idleStyle}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                              previewSort === opt.value
+                                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-[11px] text-slate-400">Click an option here to see the active style</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         </div>
 
