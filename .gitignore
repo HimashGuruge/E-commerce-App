@@ -2,3 +2,4 @@
 run.bat
 start-app.bat
 backend/create-demo-seller.mjs
+backend/seed.js
