@@ -65,22 +65,12 @@ const CategoryGrid = ({ categories }) => {
               className="flex-shrink-0 snap-start group w-24 md:w-28"
             >
                 <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-slate-50 flex items-center justify-center p-1 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 border border-slate-100 group-hover:border-brand-200">
-                <picture className="w-full h-full">
-                  <source
-                    srcSet={cat.image?.replace(/\.(jpg|jpeg|png)$/i, '.avif')}
-                    type="image/avif"
-                  />
-                  <source
-                    srcSet={cat.image || "https://img.lazcdn.com/static/lk/p/default-category.jpg"}
-                    type="image/webp"
-                  />
-                  <img
-                    src={cat.image || "https://img.lazcdn.com/static/lk/p/default-category.jpg"}
-                    alt={cat.name}
-                    className="w-full h-full object-cover rounded-xl"
-                    loading="lazy"
-                  />
-                </picture>
+                <img
+                  src={cat.image || "https://img.lazcdn.com/static/lk/p/default-category.jpg"}
+                  alt={cat.name}
+                  className="w-full h-full object-cover rounded-xl"
+                  loading="lazy"
+                />
               </div>
               <div className="text-center mt-2 px-1">
                 <span className="text-sm md:text-base font-semibold text-slate-700 group-hover:text-brand-600 transition-colors truncate block w-full">

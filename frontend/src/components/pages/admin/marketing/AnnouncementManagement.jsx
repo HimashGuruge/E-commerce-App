@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
 import {
@@ -147,6 +147,7 @@ function ColorField({ label, value, onChange, placeholder, emptyAllowed = true }
 
 export default function AnnouncementManagement() {
   const [announcements, setAnnouncements] = useState([]);
+  const formRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [icon, setIcon] = useState("Sparkles");
@@ -226,6 +227,9 @@ export default function AnnouncementManagement() {
     setOrder(item.order ?? 0);
     setStyle(normalizeAnnouncementStyle(item.style));
     setEditing(item);
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleDelete = async (id) => {
@@ -311,6 +315,7 @@ export default function AnnouncementManagement() {
       </div>
 
       {/* Add / Edit */}
+      <div ref={formRef} className="scroll-mt-8">
       <SectionCard title={editing ? "Edit Announcement" : "Add New Announcement"} icon={<MdCampaign size={18} />}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -377,6 +382,7 @@ export default function AnnouncementManagement() {
           </div>
         </form>
       </SectionCard>
+      </div>
 
       {/* Text Formatting */}
       <div className="mt-6">
