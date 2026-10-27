@@ -160,7 +160,7 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
               <Link
                 key={`${product._id || product.productId}-${index}`}
                 to={`/shop/productoverview/${product.productId || product._id}`}
-                className="pc-custom-link card-fs-content-body-unit hp-mod-card-hover flex-shrink-0"
+                className="pc-custom-link card-fs-content-body-unit hp-mod-card-hover flex-shrink-0 flex flex-col w-[200px]"
               >
                 <div className="common-img fs-card-img img-w100p w-[200px]">
                   <img
@@ -174,7 +174,7 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
                   />
                 </div>
                 <div className="fs-card-text p-2">
-                  <p className="fs-card-title two-line-clamp text-xs mb-2 font-medium text-slate-700">
+                  <p className="fs-card-title line-clamp-3 min-h-[50px] text-[13px] leading-snug mb-2 font-medium text-slate-700">
                     {product.productName || product.name}
                   </p>
                   <div className="fs-card-price flex items-baseline gap-1">
