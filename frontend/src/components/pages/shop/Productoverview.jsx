@@ -1479,18 +1479,20 @@ export default function ProductOverview() {
                   <h6 className="text-xs font-medium text-gray-700">Delivery Options</h6>
                   <FiInfo className="w-3 h-3 text-gray-400 cursor-help" title={`Shipping by ${shippingSettings.courierName}`} />
                 </div>
-                <div className="flex items-center justify-between bg-gray-50 rounded px-2.5 py-2 mb-3 text-[11px]">
-                  <div className="flex items-center gap-1.5">
-                    <FiMapPin className="w-3 h-3 text-gray-400" />
-                    <span className="text-gray-500">Delivery to</span>
-                    <span className="text-gray-700 font-medium">{deliveryLabel}</span>
+                <div className="bg-gray-50 rounded px-2.5 py-2 mb-3">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                      <FiMapPin className="w-3 h-3 text-gray-400" />
+                      Delivery to
+                    </span>
+                    <button
+                      onClick={handleChangeDelivery}
+                      className="text-brand-600 font-medium hover:text-brand-700 underline text-[11px]"
+                    >
+                      CHANGE
+                    </button>
                   </div>
-                  <button
-                    onClick={handleChangeDelivery}
-                    className="text-brand-600 font-medium hover:text-brand-700 underline"
-                  >
-                    CHANGE
-                  </button>
+                  <p className="text-xs font-medium text-gray-800">{deliveryLabel}</p>
                 </div>
                 <div className="space-y-1.5">
                   <label className="flex items-start gap-2.5 p-2 bg-gray-50 rounded cursor-pointer">
