@@ -24,15 +24,27 @@ const payoutStatusBadge = {
   failed: "bg-rose-100 text-rose-700",
 };
 
+const commissionStatusBadge = {
+  pending: "bg-amber-100 text-amber-700",
+  verified: "bg-green-100 text-green-700",
+  rejected: "bg-rose-100 text-rose-700",
+  cancelled: "bg-slate-100 text-slate-600",
+};
+
 const rs = (n) => `Rs. ${(Number(n) || 0).toLocaleString()}`;
 const dstr = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 
 export default function AdminSellerPayouts() {
-  const [tab, setTab] = useState("board"); // board | collections | payouts
+  const [tab, setTab] = useState("board"); // board | collections | payouts | commission
   const [loading, setLoading] = useState(true);
   const [board, setBoard] = useState([]);
   const [collections, setCollections] = useState([]);
   const [payouts, setPayouts] = useState([]);
+
+  // Commission payments (seller_pays mode)
+  const [commissionPayments, setCommissionPayments] = useState([]);
+  const [commissionLoading, setCommissionLoading] = useState(false);
+  const [commissionStatus, setCommissionStatus] = useState("");
 
   // Filters
   const [sellerFilter, setSellerFilter] = useState("");
@@ -69,6 +81,87 @@ export default function AdminSellerPayouts() {
       if (data?.type === "payout") fetchData();
     });
   }, [fetchData]);
+
+  // ---- Commission payments (seller_pays mode) ----
+  const fetchCommission = useCallback(async () => {
+    setCommissionLoading(true);
+    try {
+      const q = commissionStatus ? `?status=${commissionStatus}` : "";
+      const res = await api.get(`/api/sellers/admin/commission/payments${q}`);
+      if (res.data.success) setCommissionPayments(res.data.payments || []);
+    } catch (err) {
+      console.error("Fetch commission payments error:", err);
+      Swal.fire({ icon: "error", title: "Failed to load commission payments" });
+    } finally {
+      setCommissionLoading(false);
+    }
+  }, [commissionStatus]);
+
+  useEffect(() => {
+    if (tab === "commission") fetchCommission();
+  }, [tab, fetchCommission]);
+
+  const verifyCommission = async (p) => {
+    const res = await Swal.fire({
+      title: `Verify commission payment — ${p.sellerInfo?.shopName || "seller"}`,
+      icon: "question",
+      html: `
+        Period: <b>${dstr(p.periodFrom)} → ${dstr(p.periodTo)}</b><br/>
+        Commission due: <b>${rs(p.grossCommission)}</b> — seller paid <b>${rs(p.paidAmount)}</b><br/>
+        ${p.paymentRef ? `Ref: <b>${p.paymentRef}</b><br/>` : ""}
+        ${p.note ? `Note: <b>${p.note}</b><br/>` : ""}
+        Confirm the money actually arrived before verifying.
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Verify",
+      confirmButtonColor: "#16a34a",
+      reverseButtons: true,
+    });
+    if (!res.isConfirmed) return;
+    try {
+      await api.post(`/api/sellers/admin/commission/payments/${p._id}/verify`, {});
+      Swal.fire({ icon: "success", title: "Commission payment verified", timer: 1500, showConfirmButton: false });
+      fetchCommission();
+      // The verified total also moves the payout board.
+      fetchData();
+    } catch (err) {
+      Swal.fire({ icon: "error", title: err.response?.data?.error || err.response?.data?.message || "Failed to verify" });
+    }
+  };
+
+  const rejectCommission = async (p) => {
+    const res = await Swal.fire({
+      title: `Reject commission payment — ${p.sellerInfo?.shopName || "seller"}`,
+      html: `
+        Period: <b>${dstr(p.periodFrom)} → ${dstr(p.periodTo)}</b><br/>
+        The seller will be told the reason and can submit a new payment for this period.
+      `,
+      input: "text",
+      inputLabel: "Reason (required)",
+      inputPlaceholder: "e.g. amount received does not match",
+      showCancelButton: true,
+      confirmButtonText: "Reject",
+      confirmButtonColor: "#ef4444",
+      reverseButtons: true,
+    });
+    if (!res.isConfirmed) return;
+    try {
+      await api.post(`/api/sellers/admin/commission/payments/${p._id}/reject`, { reason: res.value });
+      Swal.fire({ icon: "success", title: "Rejected", timer: 1500, showConfirmButton: false });
+      fetchCommission();
+    } catch (err) {
+      Swal.fire({ icon: "error", title: err.response?.data?.error || err.response?.data?.message || "Failed to reject" });
+    }
+  };
+
+  const viewCommissionProof = async (p) => {
+    try {
+      const res = await api.get(`/api/sellers/admin/commission/proof/${p._id}`);
+      window.open(res.data.proof.signedUrl, "_blank", "noopener");
+    } catch (err) {
+      Swal.fire({ icon: "error", title: err.response?.data?.message || "Could not open the proof" });
+    }
+  };
 
   // ---- Verify a pending collection ----
   const verifyCollection = async (c) => {
@@ -250,6 +343,7 @@ export default function AdminSellerPayouts() {
           { id: "board", label: "Sellers", icon: <FiSearch /> },
           { id: "collections", label: "Collections", icon: <FiDollarSign /> },
           { id: "payouts", label: "Payouts", icon: <MdPayment /> },
+          { id: "commission", label: "Commission", icon: <FiCheckCircle /> },
         ].map((t) => (
           <button
             key={t.id}
@@ -481,6 +575,116 @@ export default function AdminSellerPayouts() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ======= COMMISSION (seller_pays mode) ======= */}
+      {tab === "commission" && !loading && (
+        <>
+          <div className="flex flex-wrap gap-3 items-center">
+            <select
+              value={commissionStatus}
+              onChange={(e) => setCommissionStatus(e.target.value)}
+              className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2"
+            >
+              <option value="">All statuses</option>
+              {Object.keys(commissionStatusBadge).map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <span className="text-xs text-slate-500">
+              Sellers in <b>seller_pays</b> mode remit their commission to the bank. Confirm the money arrived, then verify.
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 text-left">
+                    <th className="px-4 py-3 font-semibold">Seller</th>
+                    <th className="px-4 py-3 font-semibold">Period</th>
+                    <th className="px-4 py-3 font-semibold">Commission due</th>
+                    <th className="px-4 py-3 font-semibold">Paid</th>
+                    <th className="px-4 py-3 font-semibold">Ref / Method</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commissionLoading && (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">Loading…</td></tr>
+                  )}
+                  {!commissionLoading && commissionPayments.length === 0 && (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">No commission payments yet</td></tr>
+                  )}
+                  {commissionPayments.map((p) => (
+                    <tr key={p._id} className="border-t border-slate-100">
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        {p.sellerInfo?.shopName || p.seller}
+                        {p.sellerInfo?.commissionMode === "seller_pays" && (
+                          <span className="block text-[11px] text-slate-400">seller_pays mode</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        {dstr(p.periodFrom)} → {dstr(p.periodTo)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{rs(p.grossCommission)}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        {rs(p.paidAmount)}
+                        <span className={`block text-[11px] font-medium ${
+                          p.paidAmount > p.grossCommission ? "text-rose-500" : p.paidAmount < p.grossCommission ? "text-amber-600" : "text-green-600"
+                        }`}>
+                          {p.paidAmount > p.grossCommission ? "over-paid" : p.paidAmount < p.grossCommission ? "under-paid" : "matches"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {p.paymentRef ? (
+                          <div>
+                            <div className="font-medium">{p.paymentRef}</div>
+                            <div className="text-xs text-slate-400">{p.paymentMethod || "—"} · {dstr(p.paidAt)}</div>
+                          </div>
+                        ) : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${commissionStatusBadge[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span>
+                        {p.status === "rejected" && p.rejectReason && (
+                          <span className="block text-[11px] text-rose-600 mt-1" title={p.rejectReason}>{p.rejectReason}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {p.hasProof && (
+                          <button
+                            onClick={() => viewCommissionProof(p)}
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 inline-flex items-center gap-1"
+                            title="Open proof (short-lived link)"
+                          >
+                            <FiEye className="w-3.5 h-3.5" /> Proof
+                          </button>
+                        )}
+                        {p.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => verifyCommission(p)}
+                              className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 inline-flex items-center gap-1"
+                            >
+                              <FiCheckCircle className="w-3.5 h-3.5" /> Verify
+                            </button>
+                            <button
+                              onClick={() => rejectCommission(p)}
+                              className="text-xs px-3 py-1.5 ml-1 rounded-lg font-medium bg-rose-50 text-rose-600 hover:bg-rose-100 inline-flex items-center gap-1"
+                            >
+                              <FiX className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

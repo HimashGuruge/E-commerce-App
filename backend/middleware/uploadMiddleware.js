@@ -74,6 +74,12 @@ const UPLOAD_RULES = {
     mimes: allowedImageMimes,
     error: 'Product image must be an image file',
   },
+  proof: {
+    field: 'proof',
+    maxCount: 1,
+    mimes: [...allowedImageMimes, ...allowedPdfMimes],
+    error: 'Payment proof must be a JPG, PNG, WebP, GIF, or PDF file',
+  },
 }
 
 // Max upload size — 15 MB default, override with `MAX_UPLOAD_MB` in .env
@@ -177,3 +183,4 @@ export const profileUpload = makeUploadMiddleware(UPLOAD_RULES.profile)
 export const settingsUpload = makeUploadMiddleware(UPLOAD_RULES.settings)
 export const categoryUpload = makeUploadMiddleware(UPLOAD_RULES.category)
 export const productUpload = makeUploadMiddleware(UPLOAD_RULES.product)
+export const proofUpload = makeUploadMiddleware(UPLOAD_RULES.proof)

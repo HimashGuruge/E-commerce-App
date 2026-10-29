@@ -25,6 +25,11 @@ const sellerSchema = new mongoose.Schema(
     approvedAt: { type: Date },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     commissionRate: { type: Number, default: 0 },
+    // "deduct": commission is subtracted from each payout batch (default).
+    // "seller_pays": commission is NOT deducted from payouts; the seller
+    // remits it separately (see CommissionPayment). A mode change never
+    // reclassifies existing collection/payout rows.
+    commissionMode: { type: String, enum: ["deduct", "seller_pays"], default: "deduct" },
     totalEarnings: { type: Number, default: 0 },
     availableBalance: { type: Number, default: 0 },
     onboardingCompleted: { type: Boolean, default: false },

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Filter, Search, X, ChevronDown, ChevronUp, Star, Package, Truck } from "lucide-react";
+import { Filter, Search, X, ChevronDown, ChevronUp, Star, Package, Truck, Clock, TrendingUp, TrendingDown, CircleCheck, SlidersHorizontal } from "lucide-react";
 import usePublicSettings from "@/hooks/usePublicSettings";
 
 const SORT_OPTIONS = [
-  { value: "newest", label: "Newest First" },
-  { value: "price-low", label: "Price: Low to High" },
-  { value: "price-high", label: "Price: High to Low" },
-  { value: "rating", label: "Top Rated" },
+  { value: "newest", label: "Newest First", Icon: Clock },
+  { value: "price-low", label: "Price: Low to High", Icon: TrendingUp },
+  { value: "price-high", label: "Price: High to Low", Icon: TrendingDown },
+  { value: "rating", label: "Top Rated", Icon: Star },
 ];
 
 const RATINGS = [5, 4, 3, 2, 1];
@@ -131,33 +131,64 @@ const LeftSideFilter = ({
           </div>
         </div>
 
-        {hasActiveFilters && (
-          <button onClick={clearAllFilters} className="w-full mb-6 py-3 text-xs font-bold uppercase tracking-wider border border-red-100 dark:border-red-900/60 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/70 rounded-lg transition-colors">
-            Clear All Filters
-          </button>
-        )}
+        <button onClick={clearAllFilters} disabled={!hasActiveFilters}
+          className={`w-full mb-6 py-3 text-xs font-bold uppercase tracking-wider border border-red-100 dark:border-red-900/60 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/70 rounded-lg transition-colors ${hasActiveFilters ? "" : "invisible"}`}>
+          Clear All Filters
+        </button>
 
         {/* Sort By */}
         {isSectionEnabled("sort") && (
-        <div className="mb-6 border-b border-slate-100 dark:border-slate-800 pb-6" style={sortBoxStyle}>
-          <button onClick={() => toggleSection("sort")} className="w-full flex justify-between items-center mb-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white" style={{ ...headingStyle, ...optionFontStyle }}>Sort By</h4>
-            {expandedSections.sort ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-6" style={sortBoxStyle}>
+          <button type="button" onClick={() => toggleSection("sort")} className="mb-4 flex w-full items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50">
+                <SlidersHorizontal size={18} />
+              </div>
+              <div className="text-left">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white" style={headingStyle}>Sort By</h4>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Find products your way</p>
+              </div>
+            </div>
+            {expandedSections.sort
+              ? <ChevronUp size={18} className="text-emerald-600 dark:text-emerald-400" />
+              : <ChevronDown size={18} className="text-slate-400" />}
           </button>
           {expandedSections.sort && (
-            <div className="space-y-1">
-              {SORT_OPTIONS.map((opt) => (
-                <button key={opt.value} onClick={() => setFilters((prev) => ({ ...prev, sortBy: opt.value }))}
-                    style={filters.sortBy === opt.value ? activeOptionStyle : idleOptionStyle}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                      filters.sortBy === opt.value
-                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            <div className="space-y-2">
+              {SORT_OPTIONS.map(({ value, label, Icon }) => {
+                const active = filters.sortBy === value;
+                const iconColor = active
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : label === "Top Rated"
+                    ? "text-amber-500"
+                    : "text-slate-500 dark:text-slate-400";
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setFilters((prev) => (prev.sortBy === value ? prev : { ...prev, sortBy: value }))}
+                    aria-pressed={active}
+                    style={active ? activeOptionStyle : idleOptionStyle}
+                    className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-3 text-left transition-all duration-200 ${
+                      active
+                        ? "border-emerald-200 bg-emerald-50 hover:border-emerald-300 hover:shadow-sm dark:border-emerald-800 dark:bg-emerald-950/40"
+                        : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/70"
                     }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className={iconColor}>
+                        <Icon size={18} />
+                      </span>
+                      <span className={`text-sm ${active ? "font-semibold text-emerald-800 dark:text-emerald-300" : "font-medium text-slate-600 dark:text-slate-300"}`}>
+                        {label}
+                      </span>
+                    </span>
+                    {active && (
+                      <CircleCheck size={19} className="text-emerald-600 dark:text-emerald-400" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>)}

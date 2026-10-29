@@ -4,7 +4,7 @@ import { RxDashboard, RxExit } from "react-icons/rx";
 import {
   MdOutlineGridView, MdAddBox, MdShoppingCart, MdMessage, MdCampaign, MdSettings, MdStore, MdHome,
 } from "react-icons/md";
-import { FiBarChart2, FiExternalLink, FiBell } from "react-icons/fi";
+import { FiBarChart2, FiExternalLink, FiBell, FiDollarSign } from "react-icons/fi";
 import { TbPackages } from "react-icons/tb";
 import api from "@/utils/api";
 import { onSocketEvent } from "@/utils/socket";
@@ -15,6 +15,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
   const [pendingOrders, setPendingOrders] = useState(0);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [pendingCommission, setPendingCommission] = useState(0);
   const shopName = seller?.shopName || "My Shop";
   const initial = (shopName.trim().charAt(0) || "S").toUpperCase();
 
@@ -47,6 +48,14 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
     };
     const onAlertsChanged = (e) => setUnreadAlerts(e.detail || 0);
 
+    // Badge = pending commission submissions awaiting admin review
+    const fetchPendingCommission = async () => {
+      try {
+        const { data } = await api.get("/api/sellers/commission/payments");
+        if (data.success)
+          setPendingCommission((data.payments || []).filter((p) => p.status === "pending").length);
+      } catch {}
+    };
     // Badge = unread customer messages
     const fetchUnreadMessages = async () => {
       try {
@@ -59,6 +68,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
     fetchSeller();
     fetchPending();
     fetchAlerts();
+    fetchPendingCommission();
     fetchUnreadMessages();
     const refresh = () => fetchPending();
     const unsubAlert = onSocketEvent(["seller:alert"], fetchAlerts);
@@ -193,6 +203,12 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
           <NavLink to="/seller/dashboard/earnings" className={navItemClass} onClick={() => closeMobile?.()}>
             <FiBarChart2 size={18} />
             <span>Earnings</span>
+          </NavLink>
+
+          <NavLink to="/seller/dashboard/commission" className={navItemClass} onClick={() => closeMobile?.()}>
+            <FiDollarSign size={18} />
+            <span>Commission</span>
+            {badgePill(pendingCommission)}
           </NavLink>
 
           <NavLink to="/seller/dashboard/notifications" className={navItemClass} onClick={() => closeMobile?.()}>

@@ -267,7 +267,18 @@ export async function createPayout(sellerUserId, collectionIds, deductions, admi
 
   const all = [...positive, ...reversals];
   const gross = round2(all.reduce((s, c) => s + (c.grossCollected || 0), 0));
-  const commission = round2(all.reduce((s, c) => s + (c.commissionAmount || 0), 0));
+  // Sum of commission owed on the rows (informational / for the deduct path).
+  const commissionOwed = round2(all.reduce((s, c) => s + (c.commissionAmount || 0), 0));
+
+  // Commission mode gate:
+  //   - "deduct" (default): commission is withheld from the payout (unchanged,
+  //     byte-identical to the previous behaviour).
+  //   - "seller_pays": commission is NOT deducted here — the seller remits it
+  //     separately (see CommissionPayment). Keeping it out of the payout avoids
+  //     double-charging. commissionDeducted = 0, so netPayable = gross − ded.
+  const sellerDoc = await Seller.findOne({ user: seller }).select("commissionMode").lean();
+  const commissionDeducted = sellerDoc?.commissionMode === "seller_pays" ? 0 : commissionOwed;
+
   // Use the rate of the latest included collection (informational)
   const latest = all.filter((c) => c.grossCollected > 0).sort((a, b) => (a.receivedAt || a.updatedAt) < (b.receivedAt || b.updatedAt) ? 1 : -1)[0];
   const maxDue = all
@@ -280,9 +291,9 @@ export async function createPayout(sellerUserId, collectionIds, deductions, admi
     collections: all.map((c) => c._id),
     grossCollected: gross,
     commissionRate: latest ? Number(latest.commissionRate) || 0 : 0,
-    commissionAmount: commission,
+    commissionAmount: commissionDeducted,
     deductions: ded,
-    netPayable: round2(gross - commission - ded),
+    netPayable: round2(gross - commissionDeducted - ded),
     payoutDueAt: maxDue,
     status: "processing",
     auditLog: [
@@ -290,7 +301,10 @@ export async function createPayout(sellerUserId, collectionIds, deductions, admi
         at: new Date(),
         by: adminUser?._id,
         action: "created",
-        note: `Batch of ${positive.length} collection(s) + ${reversals.length} reversal(s)`,
+        note:
+          sellerDoc?.commissionMode === "seller_pays"
+            ? `Batch of ${positive.length} collection(s) + ${reversals.length} reversal(s); commission of ${commissionOwed} NOT deducted (seller_pays mode) — seller remits separately.`
+            : `Batch of ${positive.length} collection(s) + ${reversals.length} reversal(s)`,
       },
     ],
   });
@@ -433,16 +447,22 @@ export async function getSellerPayoutSummary(sellerUserId) {
     CODCollection.find({ seller, type: "reversal", status: "reversed", allocatedPayout: null }),
     SellerPayout.find({ seller, status: "paid" }).sort({ paidAt: -1 }).limit(25),
     SellerPayout.find({ seller, status: "eligible_for_payout" }).sort({ payoutDueAt: 1 }),
-    Seller.findOne({ user: seller }).select("commissionRate"),
+    Seller.findOne({ user: seller }).select("commissionRate commissionMode"),
   ]);
 
+  const commissionMode = sellerDoc?.commissionMode || "deduct";
   const pendingAgg = pending[0] || { count: 0, expectedTotal: 0 };
   const collectedTotal = round2(collectedRows.reduce((s, c) => s + c.grossCollected, 0));
-  const eligibleTotal = round2(eligibleRows.reduce((s, c) => s + c.grossCollected - c.commissionAmount, 0));
+  // In seller_pays mode the commission is NOT deducted from payouts, so these
+  // rows are at their full gross until the seller remits commission separately.
+  const eligibleTotal = round2(
+    eligibleRows.reduce((s, c) => s + c.grossCollected - (commissionMode === "deduct" ? c.commissionAmount : 0), 0)
+  );
   const nextDueAt = collectedRows.length ? collectedRows.map((c) => c.payoutDueAt).reduce((a, b) => (a < b ? a : b), null) : null;
 
   return {
     commissionRate: sellerDoc?.commissionRate || 0,
+    commissionMode,
     pendingCollection: { count: pendingAgg.count, expectedTotal: round2(pendingAgg.expectedTotal) },
     verifiedNotPaid: { count: collectedRows.length, grossTotal: collectedTotal, nextDueAt },
     eligibleUnallocated: { count: eligibleRows.length, netTotal: eligibleTotal },

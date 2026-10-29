@@ -16,6 +16,7 @@ import {
   X,
   ArrowLeft,
   ArrowRight,
+  Wallet,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +30,7 @@ const TYPE_CONFIG = {
   ORDER_STATUS: { icon: Truck, color: "text-blue-500", bg: "bg-blue-50", label: "Order Status" },
   admin_reply: { icon: MessageSquare, color: "text-brand-500", bg: "bg-brand-50", label: "Admin Reply" },
   REVIEW_REMINDER: { icon: Star, color: "text-yellow-500", bg: "bg-yellow-50", label: "Review Reminder" },
+  SELLER_ALERT: { icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50", label: "Commission Alert" },
 };
 const FALLBACK_TYPE = { icon: Bell, color: "text-slate-500", bg: "bg-slate-100", label: "Notification" };
 

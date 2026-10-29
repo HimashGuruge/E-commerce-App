@@ -81,26 +81,39 @@ export default function SellerEarnings() {
           </div>
           <p className="text-2xl font-bold text-shoptext">Rs. {(data?.totalRevenue || 0).toLocaleString()}</p>
         </div>
-        <div className="bg-white rounded-[13px] p-5 border border-shopborder">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-shopmuted uppercase tracking-wide">Commission</span>
-            <FiPercent className="w-4 h-4 text-[#ad6b00]" />
+        {data?.commissionMode === "seller_pays" ? (
+          <div className="bg-white rounded-[13px] p-5 border border-shopborder">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-shopmuted uppercase tracking-wide">Commission</span>
+              <FiPercent className="w-4 h-4 text-[#ad6b00]" />
+            </div>
+            <p className="text-2xl font-bold text-shoptext">{data?.commissionRate || 0}%</p>
+            <p className="text-[11px] text-shopmuted mt-1">You remit this separately — see Commission page</p>
           </div>
-          <p className="text-2xl font-bold text-shoptext">{data?.commissionRate || 0}%</p>
-        </div>
-        <div className="bg-white rounded-[13px] p-5 border border-shopborder">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-shopmuted uppercase tracking-wide">Commission Deducted</span>
-            <FiTrendingUp className="w-4 h-4 text-shopred" />
-          </div>
-          <p className="text-2xl font-bold text-shoptext">Rs. {(data?.commissionDeduction || 0).toLocaleString()}</p>
-        </div>
+        ) : (
+          <>
+            <div className="bg-white rounded-[13px] p-5 border border-shopborder">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-shopmuted uppercase tracking-wide">Commission</span>
+                <FiPercent className="w-4 h-4 text-[#ad6b00]" />
+              </div>
+              <p className="text-2xl font-bold text-shoptext">{data?.commissionRate || 0}%</p>
+            </div>
+            <div className="bg-white rounded-[13px] p-5 border border-shopborder">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-shopmuted uppercase tracking-wide">Commission Deducted</span>
+                <FiTrendingUp className="w-4 h-4 text-shopred" />
+              </div>
+              <p className="text-2xl font-bold text-shoptext">Rs. {(data?.commissionDeduction || 0).toLocaleString()}</p>
+            </div>
+          </>
+        )}
         <div className="bg-white rounded-[13px] p-5 border border-shopborder">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-shopmuted uppercase tracking-wide">Net Earnings</span>
             <FiBarChart2 className="w-4 h-4 text-shopprimary" />
           </div>
-          <p className="text-2xl font-bold text-shopgreen">Rs. {(data?.netEarnings || 0).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-shopgreen">Rs. {(data?.commissionMode === "seller_pays" ? data?.totalRevenue : data?.netEarnings || 0).toLocaleString()}</p>
         </div>
       </div>
 

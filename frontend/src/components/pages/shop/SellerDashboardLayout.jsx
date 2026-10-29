@@ -12,6 +12,7 @@ import SellerOrdersFull from "./SellerOrdersFull";
 import SellerMessages from "./SellerMessages";
 import SellerNotifications from "./SellerNotifications";
 import SellerEarnings from "./SellerEarnings";
+import SellerCommission from "./SellerCommission";
 import SellerSettings from "./SellerSettings";
 
 export default function SellerDashboardLayout() {
@@ -87,6 +88,7 @@ export default function SellerDashboardLayout() {
             <Route path="messages" element={<SellerMessages />} />
             <Route path="notifications" element={<SellerNotifications />} />
             <Route path="earnings" element={<SellerEarnings />} />
+            <Route path="commission" element={<SellerCommission />} />
             <Route path="settings" element={<SellerSettings />} />
             <Route path="*" element={<Navigate to="/seller/dashboard" replace />} />
           </Routes>

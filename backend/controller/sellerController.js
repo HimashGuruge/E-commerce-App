@@ -266,6 +266,7 @@ export const getSellerEarnings = asyncHandler(async (req, res) => {
     earnings: {
       totalRevenue,
       commissionRate: seller.commissionRate,
+      commissionMode: seller.commissionMode || "deduct",
       commissionDeduction,
       netEarnings: totalRevenue - commissionDeduction,
       availableBalance: seller.availableBalance,

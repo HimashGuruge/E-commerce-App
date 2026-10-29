@@ -135,6 +135,11 @@ const siteConfigSchema = new mongoose.Schema(
       shipOnTime: { type: Number, default: 96 },
       chatResponseLabel: { type: String, default: "not enough data" },
       },
+    commissionPayment: {
+      // Shown to sellers who remit their commission in "seller_pays" mode.
+      // Admin can free-text full instructions (bank details, IBAN, schedule).
+      instructions: { type: String, default: "" },
+    },
       filterPanel: {
         sort: { type: Boolean, default: true },
         price: { type: Boolean, default: true },
@@ -161,6 +166,9 @@ const siteConfigSchema = new mongoose.Schema(
         buttonText: { type: String, default: "Shop All Products" },
         buttonColor: { type: String, default: "" },
         buttonBorderColor: { type: String, default: "" },
+        timerEnabled: { type: Boolean, default: false },
+        timerText: { type: String, default: "Ends in" },
+        endsAt: { type: Date, default: null },
       },
       shopHeader: {
         badgeText: { type: String, default: "Handpicked Styles" },

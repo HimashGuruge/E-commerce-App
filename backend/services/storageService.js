@@ -28,6 +28,11 @@ const BUCKET_MAP = {
 
 const getBucket = (type) => BUCKET_MAP[type] || 'products'
 
+// PRIVATE bucket for seller commission payment proofs. Objects are never
+// served via a public URL — access is only through short-lived signed URLs.
+const PROOF_BUCKET = 'commission-proofs'
+const PROOF_SIGNED_URL_TTL = 600 // seconds
+
 const generateFileName = (file) => {
   const ext = path.extname(file.originalname).toLowerCase() || '.bin'
   return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}${ext}`
@@ -188,6 +193,62 @@ export const deleteReplacedImages = async (oldDoc, newDoc) => {
   )
   if (removed.length === 0) return { deleted: 0, failed: [] }
   return deleteFromSupabase(removed)
+}
+
+/**
+ * Upload a proof file to the PRIVATE "commission-proofs" bucket and return
+ * ONLY the object path (never a URL). Path shape: "<sellerId>/<timestamp>-rand<ext>".
+ * The path is what gets persisted on the CommissionPayment doc.
+ */
+export const uploadProof = async (file, ownerKey) => {
+  if (!isConfigured || !supabase) throw new Error('Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_KEY env vars.')
+  if (!file) throw new Error('No file provided')
+  if (!ownerKey) throw new Error('Owner key required for proof upload')
+
+  const ext = path.extname(file.originalname).toLowerCase() || '.bin'
+  const safeOwner = String(ownerKey).replace(/[^0-9a-f-]/g, '')
+  const fileName = `${safeOwner}/${Date.now()}-${Math.random().toString(36).substring(2, 10)}${ext}`
+
+  const { error } = await supabase.storage.from(PROOF_BUCKET).upload(fileName, file.buffer, {
+    contentType: file.mimetype,
+    upsert: false,
+  })
+  if (error) throw error
+
+  // Store only the relative path — the bucket is private.
+  return fileName
+}
+
+/**
+ * Mint a short-lived signed URL for a private proof object. Returns
+ * { signedUrl, expiresIn } (seconds). Never returns a public URL.
+ */
+export const getSignedProofUrl = async (proofPath, ttlSeconds = PROOF_SIGNED_URL_TTL) => {
+  if (!isConfigured || !supabase) throw new Error('Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_KEY env vars.')
+  if (!proofPath) throw new Error('proofPath is required')
+
+  const { data, error } = await supabase.storage
+    .from(PROOF_BUCKET)
+    .createSignedUrl(proofPath, ttlSeconds)
+  if (error) throw error
+
+  return { signedUrl: data.signedUrl, expiresIn: ttlSeconds }
+}
+
+/**
+ * Delete a proof object by its stored path (ownerKey + filename).
+ * Idempotent: a missing object is not an error.
+ */
+export const deleteProof = async (proofPath) => {
+  if (!isConfigured || !supabase) return { deleted: 0, failed: [] }
+  if (!proofPath) return { deleted: 0, failed: [] }
+
+  const { error } = await supabase.storage.from(PROOF_BUCKET).remove([proofPath])
+  if (error) {
+    logger.warn(`Supabase proof delete failed for "${proofPath}": ${error.message || error}`)
+    return { deleted: 0, failed: [proofPath] }
+  }
+  return { deleted: 1, failed: [] }
 }
 
 export const listBucket = (bucket, folder = '') => {

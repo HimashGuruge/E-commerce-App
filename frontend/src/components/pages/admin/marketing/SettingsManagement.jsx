@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api";
-import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, FiDroplet, FiSend, FiEye, FiEyeOff, FiTruck, FiMessageCircle, FiSmartphone, FiUser, FiSliders } from "react-icons/fi";
+import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, FiDroplet, FiSend, FiEye, FiEyeOff, FiTruck, FiMessageCircle, FiSmartphone, FiUser, FiSliders, FiDollarSign } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-icons/fa";
 
 import Swal from "sweetalert2";
@@ -117,6 +117,9 @@ export default function SettingsManagement() {
     logo: "",
     primaryColor: "#F85606",
     chatWidgetColor: "#F85606",
+    commissionPayment: {
+      instructions: "",
+    },
     fontFamily: "Inter, system-ui, -apple-system, sans-serif",
     fontUrl: "",
     tagline: "",
@@ -396,6 +399,9 @@ export default function SettingsManagement() {
             title: s.newsletter?.title || "Subscribe & get 10% off your first order!",
             placeholder: s.newsletter?.placeholder || "Enter your email",
             buttonLabel: s.newsletter?.buttonLabel || "Subscribe",
+          },
+          commissionPayment: {
+            instructions: s.commissionPayment?.instructions || "",
           },
           appPromo: {
             enabled: s.appPromo?.enabled ?? true,
@@ -2129,6 +2135,42 @@ export default function SettingsManagement() {
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Commission Payment (seller_pays mode) */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FiDollarSign className="w-5 h-5 text-brand-500" />
+              Commission Payment (seller_pays)
+            </h2>
+            <button
+              type="button"
+              onClick={() => handleSectionSave("Commission Payment", { commissionPayment: form.commissionPayment })}
+              disabled={savingSection === "Commission Payment"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 rounded-lg transition"
+            >
+              {savingSection === "Commission Payment" ? (
+                <><div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> Saving</>
+              ) : (
+                <><FiSave className="w-3.5 h-3.5" /> Save</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Free-text instructions shown to sellers who pay their commission separately (seller_pays mode).
+            Include bank / IBAN details, payment schedule, and how to submit proof.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Instructions</label>
+            <textarea
+              value={form.commissionPayment?.instructions || ""}
+              onChange={(e) => setForm(prev => ({ ...prev, commissionPayment: { ...prev.commissionPayment, instructions: e.target.value } }))}
+              rows={6}
+              placeholder={"e.g.\nBank transfer to: [account name], IBAN [xxxx], bank [name].\nPay weekly by Friday. Upload your transfer receipt as proof when you submit in the Seller Dashboard → Commission page."}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm resize-y"
+            />
           </div>
         </div>
 

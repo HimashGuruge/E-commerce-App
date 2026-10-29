@@ -34,6 +34,18 @@ import {
   adminGetSellerStats,
   adminGetSellerDetail,
 } from "../controller/sellerController.js";
+import {
+  getSellerCommissionBalanceC,
+  getSellerCommissionPaymentsC,
+  submitCommissionPaymentC,
+  getSellerProofUrlC,
+  cancelCommissionPaymentC,
+  adminGetCommissionPaymentsC,
+  adminGetProofUrlC,
+  adminVerifyCommissionPaymentC,
+  adminRejectCommissionPaymentC,
+} from "../controller/commissionController.js";
+import { proofUpload } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -55,6 +67,13 @@ router.get("/messages/support", sellerOnly, getSupportAdmin);
 // Seller payout summary
 router.get("/payouts", sellerOnly, getSellerPayouts);
 
+// Seller commission (seller_pays mode)
+router.get("/commission/balance", sellerOnly, getSellerCommissionBalanceC);
+router.get("/commission/payments", sellerOnly, getSellerCommissionPaymentsC);
+router.post("/commission/payments", sellerOnly, proofUpload, submitCommissionPaymentC);
+router.get("/commission/my-proof/:paymentId", sellerOnly, getSellerProofUrlC);
+router.delete("/commission/payments/:paymentId", sellerOnly, cancelCommissionPaymentC);
+
 // Public store route
 router.get("/store/:shopName", getPublicStore);
 
@@ -67,6 +86,12 @@ router.post("/admin/payouts", adminOnly, createPayoutBatch);
 router.post("/admin/payouts/backfill/:orderId", adminOnly, backfillOrder);
 router.put("/admin/payouts/:id/mark-paid", adminOnly, markBatchPaid);
 router.put("/admin/payouts/:id/mark-failed", adminOnly, markBatchFailed);
+
+// Admin commission payment verification (seller_pays mode)
+router.get("/admin/commission/payments", adminOnly, adminGetCommissionPaymentsC);
+router.get("/admin/commission/proof/:paymentId", adminOnly, adminGetProofUrlC);
+router.post("/admin/commission/payments/:paymentId/verify", adminOnly, adminVerifyCommissionPaymentC);
+router.post("/admin/commission/payments/:paymentId/reject", adminOnly, adminRejectCommissionPaymentC);
 
 // Admin routes
 router.get("/admin/all", adminOnly, adminGetAllSellers);
