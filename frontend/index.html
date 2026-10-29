@@ -14,6 +14,115 @@
         }
       })();
     </script>
+    <script>
+      /*
+       * Pre-paint theme bootstrap: applies the admin theme color before the
+       * first frame renders, so visitors (including brand-new devices) never
+       * see the hardcoded orange default from index.css.
+       *
+       * 1. Saved public settings (sitePublicSettings) are used instantly.
+       * 2. If none exist, the script blocks first paint (up to ~2.5s) while
+       *    /api/settings/public is fetched, then applies + caches the result.
+       * 3. On failure it falls back to the existing behavior (orange default,
+       *    fixed once React loads and applies the live settings).
+       *
+       * React's useLayoutEffect (App.jsx) injects the exact same values
+       * afterwards, so there is no conflict or jump.
+       */
+      (function () {
+        var LS_KEY = 'sitePublicSettings';
+
+        function shade(hex, ratio, withWhite) {
+          var n = parseInt(hex.replace('#', ''), 16);
+          var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+          r = withWhite ? r + (255 - r) * ratio : r * (1 - ratio);
+          g = withWhite ? g + (255 - g) * ratio : g * (1 - ratio);
+          b = withWhite ? b + (255 - b) * ratio : b * (1 - ratio);
+          var h = function (c) {
+            return Math.max(0, Math.min(255, Math.round(c)))
+              .toString(16).padStart(2, '0');
+          };
+          return '#' + h(r) + h(g) + h(b);
+        }
+
+        /* Same math as generateBrandShades in src/utils/color.js */
+        function buildCss(primary) {
+          return ':root{' +
+            '--color-brand:' + primary + ';' +
+            '--color-brand-dark:' + shade(primary, 0.15, false) + ';' +
+            '--color-brand-light:' + shade(primary, 0.15, true) + ';' +
+            '--color-brand-50:' + shade(primary, 0.95, true) + ';' +
+            '--color-brand-100:' + shade(primary, 0.85, true) + ';' +
+            '--color-brand-200:' + shade(primary, 0.6, true) + ';' +
+            '--color-brand-300:' + shade(primary, 0.35, true) + ';' +
+            '--color-brand-400:' + shade(primary, 0.15, true) + ';' +
+            '--color-brand-500:' + primary + ';' +
+            '--color-brand-600:' + shade(primary, 0.15, false) + ';' +
+            '--color-brand-700:' + shade(primary, 0.35, false) + ';' +
+            '--color-brand-800:' + shade(primary, 0.55, false) + ';' +
+            '--color-brand-900:' + shade(primary, 0.75, false) + ';' +
+            '}';
+        }
+
+        function applyTheme(settings) {
+          var primary = settings && settings.primaryColor;
+          if (!primary) return false;
+          let el = document.getElementById('theme-variables');
+          if (!el) {
+            el = document.createElement('style');
+            el.id = 'theme-variables';
+            document.head.appendChild(el);
+          }
+          el.textContent = buildCss(primary);
+          window.__bootTheme = primary;
+          return true;
+        }
+
+        var settings = null;
+        try {
+          var raw = localStorage.getItem(LS_KEY);
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              settings = parsed;
+            }
+          }
+        } catch (e) { /* ignore corrupt storage */ }
+
+        if (settings) {
+          applyTheme(settings);
+          return;
+        }
+
+        try {
+          /* Matches the fallback in src/utils/api.js (no .env in this project) */
+          var BASE_URL = 'http://localhost:4000';
+          var timeoutId = setTimeout(function () {
+            window.__bootThemeTimedOut = true;
+            document.documentElement.classList.remove('boot-waiting');
+          }, 2500);
+          document.documentElement.classList.add('boot-waiting');
+          fetch(BASE_URL + '/api/settings/public', { headers: { 'Content-Type': 'application/json' } })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              clearTimeout(timeoutId);
+              document.documentElement.classList.remove('boot-waiting');
+              if (data && data.success && data.settings) {
+                try { localStorage.setItem(LS_KEY, JSON.stringify(data.settings)); } catch (e) {}
+                applyTheme(data.settings);
+              }
+            })
+            .catch(function () {
+              clearTimeout(timeoutId);
+              document.documentElement.classList.remove('boot-waiting');
+            });
+        } catch (e) { /* fetch unavailable — fall back to React path */ }
+      })();
+    </script>
+    <style>
+      /* Kept minimal while the admin theme is being fetched on first visit. */
+      html.boot-waiting body { opacity: 0; }
+    </style>
   </head>
   <body>
     <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
