@@ -36,6 +36,32 @@ import { handleStripeWebhook } from "./controller/paymentController.js";
 import { startTrackingCron, stopTrackingCron } from "./services/trackingService.js";
 import { startPayoutCron, stopPayoutCron } from "./services/payoutService.js";
 import mongoose from "mongoose";
+import Address from "./models/Address.js";
+
+// One-shot migration: old Address docs used fullName/address/state/zip.
+// The Address model now stores name/addressLine1/addressLine2/city/province
+// (the fields the frontend sends). Rewrites legacy docs and drops old fields.
+const migrateAddressFields = async () => {
+  const legacy = await Address.find({
+    $or: [{ fullName: { $exists: true, $ne: null } }, { address: { $exists: true, $ne: null } }],
+  });
+  if (legacy.length === 0) return;
+  await Promise.all(
+    legacy.map((a) =>
+      Address.updateOne(
+        { _id: a._id },
+        {
+          $set: {
+            name: a.name || a.fullName || "",
+            addressLine1: a.addressLine1 || a.address || "",
+          },
+          $unset: { fullName: 1, address: 1, state: 1, zip: 1 },
+        }
+      )
+    )
+  );
+  logger.info(`Address migration: updated ${legacy.length} legacy document(s)`);
+};
 
 dotenv.config();
 
@@ -46,7 +72,7 @@ if (missingEnv.length > 0) {
   process.exit(1);
 }
 
-connectDB();
+connectDB().then(() => migrateAddressFields().catch((e) => logger.error("Address migration failed:", e)));
 startTrackingCron();
 startPayoutCron();
 
