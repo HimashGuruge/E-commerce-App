@@ -1435,7 +1435,14 @@ export default function ProductOverview() {
                     <span className="text-gray-500">Delivery to</span>
                     <span className="text-gray-700 font-medium">Western, Colombo 1-15</span>
                   </div>
-                  <button className="text-brand-600 font-medium hover:text-brand-700 underline">CHANGE</button>
+                  <button
+                    onClick={() => {
+                      navigate(localStorage.getItem("token") ? "/profile" : "/login");
+                    }}
+                    className="text-brand-600 font-medium hover:text-brand-700 underline"
+                  >
+                    CHANGE
+                  </button>
                 </div>
                 <div className="space-y-1.5">
                   <label className="flex items-start gap-2.5 p-2 bg-gray-50 rounded cursor-pointer">
