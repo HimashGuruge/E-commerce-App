@@ -569,6 +569,38 @@ export default function ProductOverview() {
     });
   };
 
+  const [deliveryAddress, setDeliveryAddress] = useState(null);
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      setDeliveryAddress(null);
+      return;
+    }
+    let active = true;
+    api
+      .get("/api/addresses")
+      .then((res) => {
+        const addresses = res.data?.addresses || res.data?.data || [];
+        const selected =
+          addresses.find((a) => a.isDefault) || addresses[0] || null;
+        if (active) setDeliveryAddress(selected);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const deliveryLabel = deliveryAddress
+    ? [
+        deliveryAddress.province,
+        deliveryAddress.city,
+        deliveryAddress.addressLine1,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "Western, Colombo 1-15";
+
   const handleChangeDelivery = async () => {
     if (!localStorage.getItem("token")) {
       navigate("/login");
@@ -1459,7 +1491,7 @@ export default function ProductOverview() {
                   <div className="flex items-center gap-1.5">
                     <FiMapPin className="w-3 h-3 text-gray-400" />
                     <span className="text-gray-500">Delivery to</span>
-                    <span className="text-gray-700 font-medium">Western, Colombo 1-15</span>
+                    <span className="text-gray-700 font-medium">{deliveryLabel}</span>
                   </div>
                   <button
                     onClick={handleChangeDelivery}
