@@ -10,6 +10,10 @@ const trendingSchema = new mongoose.Schema({
     type: String,
     default: "🔥",
   },
+  productId: {
+    type: String,
+    default: "",
+  },
   status: {
     type: String,
     enum: ["active", "inactive"],

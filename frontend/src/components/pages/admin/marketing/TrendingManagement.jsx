@@ -23,8 +23,10 @@ export default function TrendingManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: "", icon: "", status: "active", order: 0 });
+  const [formData, setFormData] = useState({ name: "", icon: "", status: "active", order: 0, productId: "" });
   const [search, setSearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [products, setProducts] = useState([]);
 
   const fetchTrending = async () => {
     setLoading(true);
@@ -42,6 +44,21 @@ export default function TrendingManagement() {
     fetchTrending();
   }, []);
 
+  useEffect(() => {
+    const q = productSearch.trim();
+    setProducts([]);
+    if (!q) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/api/products?search=${encodeURIComponent(q)}&limit=12&includeAll=true`);
+        setProducts(res.data?.products || []);
+      } catch (err) {
+        console.error("Product search failed:", err);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [productSearch]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -52,7 +69,8 @@ export default function TrendingManagement() {
         await api.post("/api/trending", formData);
       }
       setShowModal(false);
-      setFormData({ name: "", icon: "", status: "active", order: 0 });
+      setFormData({ name: "", icon: "", status: "active", order: 0, productId: "" });
+      setProductSearch("");
       setEditingId(null);
       fetchTrending();
     } catch (err) {
@@ -61,7 +79,8 @@ export default function TrendingManagement() {
   };
 
   const handleEdit = (item) => {
-    setFormData({ name: item.name, icon: item.icon || "", status: item.status || "active", order: item.order || 0 });
+    setFormData({ name: item.name, icon: item.icon || "", status: item.status || "active", order: item.order || 0, productId: item.productId || "" });
+    setProductSearch("");
     setEditingId(item._id);
     setShowModal(true);
   };
@@ -105,7 +124,7 @@ export default function TrendingManagement() {
           <p className="text-slate-500 text-sm">Manage trending search terms</p>
         </div>
         <button
-          onClick={() => { setEditingId(null); setFormData({ name: "", icon: "", status: "active", order: 0 }); setShowModal(true); }}
+          onClick={() => { setEditingId(null); setFormData({ name: "", icon: "", status: "active", order: 0, productId: "" }); setProductSearch(""); setShowModal(true); }}
           className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <FiPlus size={18} />
@@ -132,6 +151,7 @@ export default function TrendingManagement() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Term</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Icon</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Product</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Order</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -143,13 +163,14 @@ export default function TrendingManagement() {
                     <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-100 rounded animate-pulse" /></td>
                     <td className="px-4 py-3"><div className="h-6 w-6 bg-slate-100 rounded animate-pulse" /></td>
                     <td className="px-4 py-3"><div className="h-5 w-16 bg-slate-100 rounded-full animate-pulse" /></td>
+                    <td className="px-4 py-3"><div className="h-4 w-16 bg-slate-100 rounded animate-pulse" /></td>
                     <td className="px-4 py-3"><div className="h-4 w-10 bg-slate-100 rounded animate-pulse" /></td>
                     <td className="px-4 py-3"><div className="h-8 w-16 bg-slate-100 rounded ml-auto animate-pulse" /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-12 text-center text-slate-400">No trending terms found</td>
+                  <td colSpan="6" className="px-4 py-12 text-center text-slate-400">No trending terms found</td>
                 </tr>
               ) : (
                 filtered.map((item) => (
@@ -167,6 +188,13 @@ export default function TrendingManagement() {
                       >
                         {item.status || "active"}
                       </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.productId ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-50 text-brand-600">product</span>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-slate-500">{item.order || 0}</span>
@@ -240,6 +268,67 @@ export default function TrendingManagement() {
                   onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Link to a product (optional)</label>
+                {productSearch ? (
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search products…"
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    Linked terms become product cards (image + price) on the home page.
+                  </p>
+                )}
+
+                {productSearch && products.length === 0 && (
+                  <p className="text-xs text-slate-400 mt-1">No products found.</p>
+                )}
+                {products.length > 0 && (
+                  <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+                    {products.map((p) => (
+                      <button
+                        key={p._id}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, productId: prev.productId === p._id ? "" : p._id }));
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors ${
+                          formData.productId === p._id ? "bg-brand-50" : ""
+                        }`}
+                      >
+                        {p.images?.[0] ? (
+                          <img src={p.images[0]} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                        ) : (
+                          <span className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-xs shrink-0">📦</span>
+                        )}
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs font-medium text-slate-800 truncate">{p.productName || p.name}</span>
+                          <span className="block text-[11px] text-slate-400">Rs. {Number(p.sellingPrice ?? p.price ?? 0).toLocaleString()}</span>
+                        </span>
+                        {formData.productId === p._id && (
+                          <span className="text-xs font-semibold text-brand-600 shrink-0">Linked</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {formData.productId && !productSearch && (
+                  <p className="text-xs text-brand-600 mt-1">
+                    A product is linked.
+                    <button
+                      type="button"
+                      className="ml-2 text-slate-400 hover:text-red-600 underline"
+                      onClick={() => setFormData((prev) => ({ ...prev, productId: "" }))}
+                    >
+                      Unlink
+                    </button>
+                  </p>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">

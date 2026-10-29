@@ -19,14 +19,14 @@ export const addTrending = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Name is required");
   }
-  const trending = await Trending.create({ name, icon: req.body.icon, status: req.body.status || "active", order: req.body.order || 0 });
+  const trending = await Trending.create({ name, icon: req.body.icon, productId: req.body.productId || "", status: req.body.status || "active", order: req.body.order || 0 });
   res.status(201).json({ success: true, trending });
 });
 
 export const updateTrending = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, status, order, icon } = req.body;
-  const trending = await Trending.findByIdAndUpdate(id, { name, status, order, icon }, { new: true });
+  const { name, status, order, icon, productId } = req.body;
+  const trending = await Trending.findByIdAndUpdate(id, { name, status, order, icon, productId: productId ?? undefined }, { new: true });
   if (!trending) {
     res.status(404);
     throw new Error("Not found");

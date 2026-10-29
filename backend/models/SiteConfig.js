@@ -183,6 +183,14 @@ const siteConfigSchema = new mongoose.Schema(
         countColor: { type: String, default: "" },
         countFontSize: { type: Number, default: 0 },
       },
+      rightSidebar: {
+        // Home page right column widgets. `categories` is an ordered list of
+        // Category ids; empty list = fall back to the first 8 active categories.
+        categoriesEnabled: { type: Boolean, default: true },
+        trendingEnabled: { type: Boolean, default: true },
+        recentlyViewedEnabled: { type: Boolean, default: true },
+        categories: { type: [String], default: [] },
+      },
   },
   { timestamps: true }
 );

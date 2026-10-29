@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
+import usePublicSettings from "@/hooks/usePublicSettings.jsx";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed.js";
 
 const CATEGORY_COLORS = ["blue", "pink", "green", "purple", "amber", "red", "indigo", "teal"];
 
@@ -31,6 +33,15 @@ const getTrendIcon = (name) => {
   if (n.includes("skin") || n.includes("serum")) return "✨";
   return "🔥";
 };
+
+const ScrollStyle = ({ css }) => <style>{css}</style>;
+
+/* Same vertical auto-scroll pattern as the Customer Reviews feed */
+const vFeedCss = (count) => `
+  .scroll-feed { animation: scroll-down ${Math.max(count, 2) * 6}s linear infinite; }
+  .group:hover .scroll-feed { animation-play-state: paused; }
+  @keyframes scroll-down { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
+`;
 
 const SectionHeader = ({ title, icon }) => (
   <div className="mb-2">
@@ -72,24 +83,73 @@ const ReviewCard = ({ review, onProductClick }) => {
   );
 };
 
+/* Small product card shown inside the Recently Viewed auto-scroll feed */
+const MiniProductCard = ({ product, onOpen }) => {
+  if (!product) return null;
+  const name = product.productName || product.name || "";
+  const id = product.productId || product._id || "";
+  const price = product.sellingPrice ?? product.price ?? 0;
+  const image = product.images?.[0] || "";
+  return (
+    <div
+      className="px-2 py-2 border-b border-slate-50 last:border-b-0 cursor-pointer hover:bg-slate-50 transition-colors flex items-start gap-2"
+      onClick={() => id && onOpen(id)}
+    >
+      <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+        {image ? (
+          <img src={image} alt={name} loading="lazy" className="w-full h-full object-cover" />
+        ) : "📦"}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-medium text-slate-800 leading-tight line-clamp-2">{name}</div>
+        <div className="text-[11px] font-bold text-brand-600 mt-0.5">Rs. {Number(price).toLocaleString()}</div>
+      </div>
+    </div>
+  );
+};
+
 const RightSideAds = () => {
+  const navigate = useNavigate();
+  const { settings } = usePublicSettings();
+
+  const rs = settings?.rightSidebar;
+  const categoriesEnabled = rs ? rs.categoriesEnabled !== false : true;
+  const trendingEnabled = rs ? rs.trendingEnabled !== false : true;
+  const recentlyViewedEnabled = rs ? rs.recentlyViewedEnabled !== false : true;
+  const preferredCategories = rs?.categories || [];
+
   const [categories, setCategories] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [trending, setTrending] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState({});
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
+  const recentIds = useRecentlyViewed();
+  const [recentProducts, setRecentProducts] = useState([]);
+
+  /* Fetch all widgets */
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await api.get("/api/categories");
-        const cats = res.data?.categories || res.data || [];
-        setCategories(cats.slice(0, 8).map((c, i) => ({
+        const all = res.data?.categories || res.data || [];
+
+        // Admin-picked categories come first in their saved order;
+        // the rest fill up the remaining slots.
+        let ordered = all;
+        if (preferredCategories.length > 0) {
+          const picked = ordered.filter((c) => preferredCategories.includes(c._id));
+          const rest = ordered.filter((c) => !preferredCategories.includes(c._id));
+          ordered = [...picked, ...rest];
+        }
+
+        setCategories(ordered.slice(0, 8).map((c, i) => ({
           name: c.name,
           slug: c.slug || c.name.toLowerCase().replace(/\s+/g, "-"),
           icon: getCategoryIcon(c.name),
+          image: c.image || "",
           color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
         })));
       } catch (err) {
@@ -118,6 +178,19 @@ const RightSideAds = () => {
         const res = await api.get("/api/trending");
         const items = res.data?.trending || [];
         setTrending(items);
+
+        // Loading items now point to real products; fetch them.
+        const linkedForFetch = [...new Set(items.map((t) => t.productId).filter(Boolean))];
+        if (linkedForFetch.length > 0) {
+          try {
+            const pRes = await api.get(`/api/products/by-ids?ids=${linkedForFetch.join(",")}`);
+            const pmap = {};
+            (pRes.data?.products || []).forEach((p) => { pmap[p._id] = p; });
+            setTrendingProducts(pmap);
+          } catch (err) {
+            console.error("Failed to fetch trending products:", err);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch trending:", err);
         setTrending([]);
@@ -131,10 +204,22 @@ const RightSideAds = () => {
     fetchTrending();
   }, []);
 
-  const handleProductClick = (productId) => {
-    if (productId) {
-      navigate(`/shop/productoverview/${productId}`);
+  /* Recently viewed: resolve stored IDs to product data */
+  useEffect(() => {
+    if (recentlyViewedEnabled && recentIds.length > 0) {
+      api.get(`/api/products/by-ids?ids=${recentIds.join(",")}`)
+        .then((res) => {
+          const map = Object.fromEntries((res.data?.products || []).map((p) => [p._id, p]));
+          setRecentProducts(recentIds.map((id) => map[id]).filter(Boolean));
+        })
+        .catch(() => setRecentProducts([]));
+    } else {
+      setRecentProducts([]);
     }
+  }, [recentIds, recentlyViewedEnabled]);
+
+  const handleProductClick = (productId) => {
+    if (productId) navigate(`/shop/productoverview/${productId}`);
   };
 
   if (loading) {
@@ -154,8 +239,13 @@ const RightSideAds = () => {
     );
   }
 
+  const trendingCards = trending.filter((t) => t.productId && trendingProducts[t.productId]);
+  const trendingPills = trending.filter((t) => !(t.productId && trendingProducts[t.productId]));
+  const showTrendingFallback = trending.length === 0;
+
   return (
     <div className="p-3 space-y-5">
+
       {/* Customer Reviews */}
       {reviewsLoading ? (
         <div>
@@ -182,86 +272,147 @@ const RightSideAds = () => {
             <div className="h-[168px] overflow-hidden">
               <div className="scroll-feed">
                 {[...reviews, ...reviews].map((review, i) => (
-                  <ReviewCard
-                    key={`${review._id}-${i}`}
-                    review={review}
-                    onProductClick={handleProductClick}
-                  />
+                  <ReviewCard key={`${review._id}-${i}`} review={review} onProductClick={handleProductClick} />
                 ))}
               </div>
             </div>
           </div>
-          <style>{`
-            .scroll-feed {
-              animation: scroll-down ${reviews.length * 6}s linear infinite;
-            }
-            .group:hover .scroll-feed {
-              animation-play-state: paused;
-            }
-            @keyframes scroll-down {
-              0% { transform: translateY(-50%); }
-              100% { transform: translateY(0); }
-            }
-          `}</style>
+          <ScrollStyle css={vFeedCss(reviews.length)} />
         </div>
       ) : null}
 
-      {/* Shop by Category */}
-      <div>
-        <SectionHeader title="Shop by Category" icon="📦" />
-        <div className="grid grid-cols-4 gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat.name}
-              onClick={() => navigate(`/shop/category/${cat.slug}`)}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
-            >
-              <span className="text-2xl group-hover:scale-110 transition-transform">{cat.icon}</span>
-              <span className="text-[10px] text-slate-600 text-center font-medium leading-tight group-hover:text-brand-600 transition-colors">
-                {cat.name}
-              </span>
-            </button>
-          ))}
+      {/* Shop by Category (admin-controlled visibility & order) */}
+      {categoriesEnabled && (
+        <div>
+          <SectionHeader title="Shop by Category" icon="📦" />
+          <div className="grid grid-cols-4 gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.name}
+                onClick={() => navigate(`/shop/category/${cat.slug}`)}
+                className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
+              >
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    loading="lazy"
+                    className="h-8 w-8 rounded-lg object-cover group-hover:scale-110 transition-transform"
+                    onError={(e) => {
+                      e.target.outerHTML = `<span class="text-2xl group-hover:scale-110 transition-transform">${cat.icon}</span>`;
+                    }}
+                  />
+                ) : (
+                  <span className="text-2xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+                )}
+                <span className="text-[10px] text-slate-600 text-center font-medium leading-tight group-hover:text-brand-600 transition-colors">
+                  {cat.name}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Trending Now */}
-      <div>
-        <SectionHeader title="Trending Now" icon="🔥" />
-        {trendingLoading ? (
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-7 w-20 bg-slate-100 rounded-full animate-pulse"></div>
-            ))}
+      {/* Trending Now — linked terms are product cards, others stay keyword pills */}
+      {trendingEnabled && (
+        <div>
+          <SectionHeader title="Trending Now" icon="🔥" />
+          {trendingLoading ? (
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-7 w-20 bg-slate-100 rounded-full animate-pulse"></div>
+              ))}
+            </div>
+          ) : showTrendingFallback ? (
+            <div className="flex flex-wrap gap-2">
+              {["iPhone", "AirPods", "Smart Watch", "Laptop", "Headphones", "Speaker"].map((term) => (
+                <button
+                  key={term}
+                  onClick={() => navigate(`/shop?search=${encodeURIComponent(term)}`)}
+                  className="text-xs px-3 py-1.5 bg-white hover:bg-brand-500 text-slate-600 hover:text-white rounded-full transition-all duration-200 font-medium shadow-sm border border-slate-100 flex items-center gap-1"
+                >
+                  <span>{getTrendIcon(term)}</span>
+                  <span>{term}</span>
+                </button>
+              ))}
+            </div>
+          ) : trendingCards.length > 0 ? (
+            <div className="space-y-1.5">
+              {trendingCards.map((item) => {
+                const p = trendingProducts[item.productId];
+                const image = p.images?.[0] || "";
+                const price = p.sellingPrice ?? p.price ?? 0;
+                return (
+                  <button
+                    key={item._id}
+                    onClick={() => handleProductClick(p._id)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 bg-white hover:bg-slate-50 rounded-lg border border-slate-100 shadow-sm transition-colors"
+                  >
+                    <div className="w-9 h-9 shrink-0 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                      {image ? (
+                        <img src={image} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
+                      ) : "📦"}
+                    </div>
+                    <span className="text-[11px] text-slate-700 font-medium flex-1 text-left truncate">
+                      {p.productName || p.name || item.name}
+                    </span>
+                    <span className="text-[11px] font-bold text-brand-600 whitespace-nowrap">
+                      Rs. {Number(price).toLocaleString()}
+                    </span>
+                  </button>
+                );
+              })}
+              {/* keyword pills below, if any */}
+              {trendingPills.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {trendingPills.map((item) => (
+                    <button
+                      key={item._id}
+                      onClick={() => navigate(`/shop?search=${encodeURIComponent(item.name)}`)}
+                      className="text-xs px-3 py-1.5 bg-white hover:bg-brand-500 text-slate-600 hover:text-white rounded-full transition-all duration-200 font-medium shadow-sm border border-slate-100 flex items-center gap-1"
+                    >
+                      <span>{item.icon || getTrendIcon(item.name)}</span>
+                      <span>{item.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : trending.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {trendingPills.map((item) => (
+                <button
+                  key={item._id}
+                  onClick={() => navigate(`/shop?search=${encodeURIComponent(item.name)}`)}
+                  className="text-xs px-3 py-1.5 bg-white hover:bg-brand-500 text-slate-600 hover:text-white rounded-full transition-all duration-200 font-medium shadow-sm border border-slate-100 flex items-center gap-1"
+                >
+                  <span>{item.icon || getTrendIcon(item.name)}</span>
+                  <span>{item.name}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Recently Viewed (only if visitor opened products before) */}
+      {recentlyViewedEnabled && recentProducts.length > 0 && (
+        <div>
+          <SectionHeader title="Recently Viewed" icon="👁️" />
+          <div className="overflow-hidden rounded-lg border border-slate-100 group">
+            <div className="h-[168px] overflow-hidden">
+              <div className="scroll-feed">
+                {[...recentProducts, ...recentProducts].map((p, i) => (
+                  <MiniProductCard key={`${p._id}-${i}`} product={p} onOpen={handleProductClick} />
+                ))}
+              </div>
+            </div>
           </div>
-        ) : trending.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {trending.map((item) => (
-              <button
-                key={item._id}
-                onClick={() => navigate(`/shop?search=${encodeURIComponent(item.name)}`)}
-                className="text-xs px-3 py-1.5 bg-white hover:bg-brand-500 text-slate-600 hover:text-white rounded-full transition-all duration-200 font-medium shadow-sm border border-slate-100 flex items-center gap-1"
-              >
-                <span>{item.icon || getTrendIcon(item.name)}</span>
-                <span>{item.name}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {["iPhone", "AirPods", "Smart Watch", "Laptop", "Headphones", "Speaker"].map((term) => (
-              <button
-                key={term}
-                onClick={() => navigate(`/shop?search=${encodeURIComponent(term)}`)}
-                className="text-xs px-3 py-1.5 bg-white hover:bg-brand-500 text-slate-600 hover:text-white rounded-full transition-all duration-200 font-medium shadow-sm border border-slate-100 flex items-center gap-1"
-              >
-                <span>{getTrendIcon(term)}</span>
-                <span>{term}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+          <ScrollStyle css={vFeedCss(recentProducts.length)} />
+        </div>
+      )}
+
     </div>
   );
 };

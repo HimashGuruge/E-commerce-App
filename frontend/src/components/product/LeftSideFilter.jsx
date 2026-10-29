@@ -141,7 +141,7 @@ const LeftSideFilter = ({
         <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-6" style={sortBoxStyle}>
           <button type="button" onClick={() => toggleSection("sort")} className="mb-4 flex w-full items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40">
                 <SlidersHorizontal size={18} />
               </div>
               <div className="text-left">
@@ -150,7 +150,7 @@ const LeftSideFilter = ({
               </div>
             </div>
             {expandedSections.sort
-              ? <ChevronUp size={18} className="text-emerald-600 dark:text-emerald-400" />
+              ? <ChevronUp size={18} className="text-brand-500 dark:text-brand-300" />
               : <ChevronDown size={18} className="text-slate-400" />}
           </button>
           {expandedSections.sort && (
@@ -158,7 +158,7 @@ const LeftSideFilter = ({
               {SORT_OPTIONS.map(({ value, label, Icon }) => {
                 const active = filters.sortBy === value;
                 const iconColor = active
-                  ? "text-emerald-600 dark:text-emerald-400"
+                  ? "text-brand-600 dark:text-brand-300"
                   : label === "Top Rated"
                     ? "text-amber-500"
                     : "text-slate-500 dark:text-slate-400";
@@ -171,7 +171,7 @@ const LeftSideFilter = ({
                     style={active ? activeOptionStyle : idleOptionStyle}
                     className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-3 text-left transition-all duration-200 ${
                       active
-                        ? "border-emerald-200 bg-emerald-50 hover:border-emerald-300 hover:shadow-sm dark:border-emerald-800 dark:bg-emerald-950/40"
+                        ? "border-brand-200 bg-brand-50 hover:border-brand-300 hover:shadow-sm dark:border-brand-800 dark:bg-brand-900/40"
                         : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/70"
                     }`}
                   >
@@ -179,12 +179,12 @@ const LeftSideFilter = ({
                       <span className={iconColor}>
                         <Icon size={18} />
                       </span>
-                      <span className={`text-sm ${active ? "font-semibold text-emerald-800 dark:text-emerald-300" : "font-medium text-slate-600 dark:text-slate-300"}`}>
+                      <span className={`text-sm ${active ? "font-semibold text-brand-800 dark:text-brand-300" : "font-medium text-slate-600 dark:text-slate-300"}`}>
                         {label}
                       </span>
                     </span>
                     {active && (
-                      <CircleCheck size={19} className="text-emerald-600 dark:text-emerald-400" />
+                      <CircleCheck size={19} className="text-brand-600 dark:text-brand-300" />
                     )}
                   </button>
                 );

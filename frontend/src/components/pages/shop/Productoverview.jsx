@@ -3,6 +3,7 @@ import api from "@/utils/api";
 import { getPublicSettings } from "@/utils/siteSettings";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { addToCart } from "@/components/utils/Cart.jsx";
+import { recordProductView } from "@/hooks/useRecentlyViewed.js";
 import { getWishlistLocal, addToWishlistLocal, removeFromWishlistLocal, isInWishlistLocal } from "@/components/utils/Wishlist.jsx";
 import ProductRecommendations from "@/components/home/ProductRecommendations.jsx";
 import SellerChatPanel from "./SellerChatPanel.jsx";
@@ -585,6 +586,9 @@ export default function ProductOverview() {
           const { product: productData, variants: variantsData } = response.data;
           setProduct(productData);
           setVariants(variantsData || []);
+
+          // Track for the home page "Recently Viewed" widget
+          recordProductView(productData.productId || productId);
 
           // Check if in wishlist
           const wishlist = getWishlistLocal();

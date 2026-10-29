@@ -120,6 +120,13 @@ export default function SettingsManagement() {
     commissionPayment: {
       instructions: "",
     },
+    rightSidebar: {
+      categoriesEnabled: true,
+      trendingEnabled: true,
+      recentlyViewedEnabled: true,
+      categories: [],
+    },
+    allCategories: [],
     fontFamily: "Inter, system-ui, -apple-system, sans-serif",
     fontUrl: "",
     tagline: "",
@@ -403,6 +410,12 @@ export default function SettingsManagement() {
           commissionPayment: {
             instructions: s.commissionPayment?.instructions || "",
           },
+          rightSidebar: {
+            categoriesEnabled: s.rightSidebar?.categoriesEnabled ?? true,
+            trendingEnabled: s.rightSidebar?.trendingEnabled ?? true,
+            recentlyViewedEnabled: s.rightSidebar?.recentlyViewedEnabled ?? true,
+            categories: s.rightSidebar?.categories || [],
+          },
           appPromo: {
             enabled: s.appPromo?.enabled ?? true,
             title: s.appPromo?.title || "Scan with mobile",
@@ -427,6 +440,37 @@ export default function SettingsManagement() {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // All categories, used by the home right sidebar category picker.
+  useEffect(() => {
+    const loadAllCategories = async () => {
+      try {
+        const res = await api.get("/api/categories");
+        const cats = res.data?.categories || res.data || [];
+        setForm((prev) => ({ ...prev, allCategories: cats }));
+      } catch (err) {
+        console.error("Failed to load categories for sidebar picker:", err);
+      }
+    };
+    loadAllCategories();
+  }, []);
+
+  const setRightSidebarField = (key, value) => {
+    setForm((prev) => ({ ...prev, rightSidebar: { ...prev.rightSidebar, [key]: value } }));
+  };
+
+  const moveSidebarCategory = (index, dir) => {
+    setForm((prev) => {
+      const list = [...(prev.rightSidebar?.categories || [])];
+      const target = index + dir;
+      if (target < 0 || target >= list.length) return prev;
+      const [item] = list.splice(index, 1);
+      list.splice(target, 0, item);
+      return { ...prev, rightSidebar: { ...prev.rightSidebar, categories: list } };
+    });
+  };
+
+  const setRightSidebarCategories = (list) => setRightSidebarField("categories", list);
 
   // Load the announcement bar font so the preview (and live bar) can use it.
   useEffect(() => {
@@ -2626,6 +2670,145 @@ export default function SettingsManagement() {
                   : ""}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Home Right Sidebar widgets */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FiEye className="w-5 h-5 text-brand-500" />
+              Home Right Sidebar
+            </h2>
+            <button
+              type="button"
+              onClick={() => handleSectionSave("Home Right Sidebar", { rightSidebar: form.rightSidebar })}
+              disabled={savingSection === "Home Right Sidebar"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 rounded-lg transition"
+            >
+              {savingSection === "Home Right Sidebar" ? (
+                <><div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> Saving</>
+              ) : (
+                <><FiSave className="w-3.5 h-3.5" /> Save</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Control the widgets on the right column of the home page: Shop by Category, Trending Now, and Recently Viewed.
+          </p>
+
+          {/* Show / hide toggles */}
+          <div className="space-y-3 mb-5">
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.rightSidebar?.categoriesEnabled ?? true}
+                  onChange={(e) => setRightSidebarField("categoriesEnabled", e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+              <span className="text-sm font-medium text-slate-700">Show "Shop by Category"</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.rightSidebar?.trendingEnabled ?? true}
+                  onChange={(e) => setRightSidebarField("trendingEnabled", e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+              <span className="text-sm font-medium text-slate-700">Show "Trending Now"</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.rightSidebar?.recentlyViewedEnabled ?? true}
+                  onChange={(e) => setRightSidebarField("recentlyViewedEnabled", e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+              </label>
+              <span className="text-sm font-medium text-slate-700">Show "Recently Viewed"</span>
+            </div>
+          </div>
+
+          {/* Category picker: pick which categories show, and in what order */}
+          <div className={form.rightSidebar?.categoriesEnabled === false ? "opacity-50 pointer-events-none" : ""}>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Categories to show (order matters)</label>
+            <p className="text-[11px] text-slate-400 mb-3">
+              Leave empty to show the first 8 categories. Pick up to 8, then use the arrows to reorder.
+            </p>
+            {(() => {
+              const picked = form.rightSidebar?.categories || [];
+              const pickedIds = new Set(picked);
+              const all = form.allCategories || [];
+              const remaining = all.filter((c) => !pickedIds.has(c._id) && picked.length < 8);
+              return (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    {picked.length === 0 && (
+                      <p className="text-xs text-slate-400">No categories picked yet.</p>
+                    )}
+                    {picked.map((id, i) => {
+                      const cat = all.find((c) => c._id === id);
+                      return (
+                        <div key={id} className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                          <span className="text-xs font-semibold text-slate-400 w-4">{i + 1}</span>
+                          <span className="flex-1 text-sm text-slate-700 truncate">{cat?.name || id}</span>
+                          <button
+                            type="button"
+                            onClick={() => moveSidebarCategory(i, -1)}
+                            disabled={i === 0}
+                            className="p-1 text-slate-400 hover:text-brand-600 disabled:opacity-30"
+                            title="Move up"
+                          >
+                            <span className="text-xs">▲</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveSidebarCategory(i, 1)}
+                            disabled={i === picked.length - 1}
+                            className="p-1 text-slate-400 hover:text-brand-600 disabled:opacity-30"
+                            title="Move down"
+                          >
+                            <span className="text-xs">▼</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRightSidebarCategories(picked.filter((x) => x !== id))}
+                            className="p-1 text-slate-400 hover:text-red-600"
+                            title="Remove"
+                          >
+                            <FiX className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {remaining.length > 0 && picked.length < 8 && (
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (!e.target.value) return;
+                        setRightSidebarCategories([...picked, e.target.value]);
+                        e.target.value = "";
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                    >
+                      <option value="">+ Add a category…</option>
+                      {remaining.map((c) => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
