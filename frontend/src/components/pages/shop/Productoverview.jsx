@@ -569,6 +569,32 @@ export default function ProductOverview() {
     });
   };
 
+  const handleChangeDelivery = async () => {
+    if (!localStorage.getItem("token")) {
+      navigate("/login");
+      return;
+    }
+    try {
+      const res = await api.get("/api/addresses");
+      const addresses = res.data?.addresses || res.data?.data || [];
+      if (addresses.length === 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "No Address",
+          text: "Please add a delivery address first.",
+          confirmButtonText: "Add Address",
+          confirmButtonColor: "#0f172a",
+        }).then(({ isConfirmed }) => {
+          if (isConfirmed) navigate("/profile");
+        });
+        return;
+      }
+      navigate("/profile");
+    } catch (_err) {
+      navigate("/profile");
+    }
+  };
+
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId || typeof productId !== "string" || productId === "[object Object]") {
@@ -1436,9 +1462,7 @@ export default function ProductOverview() {
                     <span className="text-gray-700 font-medium">Western, Colombo 1-15</span>
                   </div>
                   <button
-                    onClick={() => {
-                      navigate(localStorage.getItem("token") ? "/profile" : "/login");
-                    }}
+                    onClick={handleChangeDelivery}
                     className="text-brand-600 font-medium hover:text-brand-700 underline"
                   >
                     CHANGE
