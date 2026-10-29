@@ -591,15 +591,7 @@ export default function ProductOverview() {
     };
   }, []);
 
-  const deliveryLabel = deliveryAddress
-    ? [
-        deliveryAddress.province,
-        deliveryAddress.city,
-        deliveryAddress.addressLine1,
-      ]
-        .filter(Boolean)
-        .join(", ")
-    : "Western, Colombo 1-15";
+  const deliveryLabel = deliveryAddress?.addressLine1 || "Western, Colombo 1-15";
 
   const handleChangeDelivery = async () => {
     if (!localStorage.getItem("token")) {
