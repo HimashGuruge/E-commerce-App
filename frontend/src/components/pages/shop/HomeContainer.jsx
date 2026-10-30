@@ -207,12 +207,9 @@ export default function HomeContainer() {
   const [announcementSettings, setAnnouncementSettings] = useState(
     cachedAnn ? readAnnouncementSettings(cachedAnn) : { ...announcementDefaults, gradient: { ...announcementDefaults.gradient } }
   );
-  const [visibleCount, setVisibleCount] = useState(12);
   const [loading, setLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [partialError, setPartialError] = useState(null);
-  const observerTarget = useRef(null);
 
   const [filters, setFilters] = useState({
     priceRange: [0, 0],
@@ -309,10 +306,6 @@ export default function HomeContainer() {
     if (allProducts.length === 0) return [];
     return filterAndSortProducts(allProducts, filters);
   }, [allProducts, filters, filterAndSortProducts]);
-
-  useEffect(() => {
-    setVisibleCount(12);
-  }, [filters]);
 
   const activeFilterCount = useMemo(() => {
     let count = filters.categories.length;
@@ -437,45 +430,131 @@ export default function HomeContainer() {
     injectBarFont(announcementSettings.fontUrl || "");
   }, [announcementSettings.fontUrl]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          filteredProducts.length > visibleCount &&
-          !isLoadingMore
-        ) {
-          setIsLoadingMore(true);
-          setTimeout(() => {
-            setVisibleCount((prev) =>
-              Math.min(prev + 8, filteredProducts.length),
-            );
-            setIsLoadingMore(false);
-          }, 300);
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px" },
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) observer.observe(currentTarget);
-
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-      observer.disconnect();
-    };
-  }, [filteredProducts.length, visibleCount, isLoadingMore]);
-
   if (loading) {
+    // Skeleton mirrors the loaded page layout (banner → features →
+    // categories → flash sale → product grid → services) so the total
+    // page height — and therefore the footer position — stays stable
+    // while products load.
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="relative">
-          <Loader2 className="w-12 h-12 text-slate-900 animate-spin mb-4" />
-          <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-brand-500 animate-pulse" />
+      <div className="w-full bg-white">
+        {/* Banner */}
+        <div className="w-full bg-slate-900">
+          <div className="w-full pt-[56.25%] md:pt-[42.85%] lg:pt-[33.33%] animate-pulse bg-slate-800" />
         </div>
-        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">
-          Initializing Storefront
-        </span>
+
+        {/* Announcement strip (matches the loaded bar's height so the
+            footer does not shift when announcements load) */}
+        <div className="relative -mt-px leading-[0] text-[0] overflow-hidden bg-slate-50 py-2">
+          <div className="flex w-max whitespace-nowrap px-8">
+            <span className="flex items-center gap-2.5 shrink-0">
+              <span className="w-[15px] h-[15px] rounded-full bg-slate-200 animate-pulse" />
+              <span className="h-[25px] w-56 inline-block bg-slate-200 rounded animate-pulse" />
+            </span>
+          </div>
+        </div>
+
+        {/* Premium Features */}
+        <div className="py-12 bg-white border-b border-slate-100 w-full">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center p-5 rounded-2xl bg-slate-50 animate-pulse">
+                  <div className="w-14 h-14 rounded-xl bg-slate-200 mb-3" />
+                  <div className="w-16 h-3 bg-slate-200 rounded mb-2" />
+                  <div className="w-full h-2 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div className="bg-white py-6 md:py-8 border-b border-slate-100">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center gap-2 mb-4 md:mb-6 animate-pulse">
+              <div className="w-4 h-4 rounded bg-slate-200" />
+              <div className="w-32 h-3 bg-slate-200 rounded" />
+            </div>
+            <div className="flex flex-row overflow-hidden gap-4 pb-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-24 md:w-28 animate-pulse">
+                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-slate-100" />
+                  <div className="w-24 h-3 md:w-28 md:h-3 bg-slate-100 rounded mt-2" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Flash Sale */}
+        <div className="bg-white">
+          <div className="flex items-center justify-between px-4 py-3 animate-pulse">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded bg-slate-200" />
+              <div className="w-32 h-3 bg-slate-200 rounded" />
+            </div>
+            <div className="w-36 h-7 bg-slate-200 rounded-full" />
+          </div>
+          <div className="p-4 flex gap-3 overflow-hidden">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-[200px]">
+                <div className="w-[200px] h-[200px] rounded-lg bg-slate-100 animate-pulse" />
+                <div className="p-2 animate-pulse">
+                  <div className="h-3 bg-slate-100 rounded mb-1.5" />
+                  <div className="h-3 bg-slate-100 rounded w-2/3 mb-2" />
+                  <div className="h-4 w-24 bg-slate-200 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Product header + grid */}
+        <div className="w-full bg-white">
+          <div className="px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            <header className="text-center mb-6 lg:mb-8 animate-pulse">
+              <div className="inline-block w-40 h-5 rounded-full bg-slate-100 mb-3" />
+              <div className="mx-auto w-48 h-7 bg-slate-200 rounded mb-2" />
+              <div className="mx-auto w-40 h-3 bg-slate-100 rounded" />
+            </header>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg border border-slate-100 overflow-hidden animate-pulse">
+                  <div className="relative w-full pb-[100%] bg-slate-100" />
+                  <div className="pt-2 pb-3 px-2">
+                    <div className="h-4 bg-slate-100 rounded mb-1.5" />
+                    <div className="h-4 bg-slate-100 rounded w-2/3 mb-2" />
+                    <div className="h-5 w-16 bg-slate-200 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="h-16 lg:h-20 w-full flex flex-col items-center justify-center mt-8 lg:mt-12">
+              <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 text-slate-300 animate-spin" />
+            </div>
+          </div>
+        </div>
+
+        {/* Services (bottom section) */}
+        <div className="w-full bg-white py-12 md:py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-8 md:mb-12 animate-pulse">
+              <div className="mx-auto w-40 h-7 bg-slate-200 rounded mb-2" />
+              <div className="mx-auto w-56 h-3 bg-slate-100 rounded" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex items-start gap-4 rounded-xl bg-slate-50 p-5 animate-pulse">
+                  <div className="w-12 h-12 rounded-full bg-slate-200" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-slate-200 rounded w-1/2 mb-2" />
+                    <div className="h-3 bg-slate-100 rounded w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -658,9 +737,7 @@ export default function HomeContainer() {
 
                   {/* Products Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
-                    {filteredProducts
-                      .slice(0, visibleCount)
-                      .map((product, index) => (
+                    {filteredProducts.map((product, index) => (
                         <ProductCard
                           key={product.productId || product._id || index}
                           product={product}
@@ -693,20 +770,13 @@ export default function HomeContainer() {
                     </div>
                   )}
 
-                  {/* Infinite Scroll Loader */}
-                  <div
-                    ref={observerTarget}
-                    className="h-16 lg:h-20 w-full flex flex-col items-center justify-center mt-8 lg:mt-12"
-                  >
-                    {isLoadingMore && (
-                      <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 text-slate-300 animate-spin" />
+                  {/* End-of-results marker (all products are shown at once) */}
+                  <div className="h-16 lg:h-20 w-full flex flex-col items-center justify-center mt-8 lg:mt-12">
+                    {filteredProducts.length > 0 && (
+                      <p className="text-xs text-slate-400 uppercase tracking-wider">
+                        End of Results
+                      </p>
                     )}
-                    {filteredProducts.length > 0 &&
-                      filteredProducts.length <= visibleCount && (
-                        <p className="text-xs text-slate-400 uppercase tracking-wider">
-                          End of Results
-                        </p>
-                      )}
                   </div>
                 </main>
               </div>
