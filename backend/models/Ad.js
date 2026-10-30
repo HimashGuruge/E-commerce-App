@@ -4,6 +4,7 @@ const adSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: { type: String },
+    buttonText: { type: String },
     image: { type: String },
     imageUrl: { type: String },
     mediaType: { type: String, enum: ["image", "video"], default: "image" },

@@ -20,7 +20,18 @@ import {
   MdToggleOff,
   MdRefresh,
   MdImage,
+  MdDateRange,
 } from "react-icons/md";
+
+const SectionHeader = ({ icon, title, subtitle }) => (
+  <div className="flex items-start gap-3 mb-4">
+    <div className="p-2 bg-brand-50 rounded-lg text-brand-600 flex-shrink-0">{icon}</div>
+    <div>
+      <h3 className="text-sm font-semibold text-slate-800 leading-tight">{title}</h3>
+      {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+    </div>
+  </div>
+);
 
 const MEDIA_CONFIG = {
   maxSizeMB: 5,
@@ -130,6 +141,7 @@ export default function AdsManagement() {
   const [preview, setPreview] = useState(null);
   const [title, setTitle] = useState("");
   const [targetCategory, setTargetCategory] = useState("home");
+  const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [countdownText, setCountdownText] = useState("Sale Ends In:");
   const [description, setDescription] = useState("");
@@ -203,6 +215,7 @@ export default function AdsManagement() {
     setShowValidation(false);
     setEditingAd(null);
     setSelectedAds(new Set());
+    setStartDate("");
     setEndDate("");
     setCountdownText("Sale Ends In:");
     setDescription("");
@@ -218,6 +231,7 @@ export default function AdsManagement() {
     setTargetCategory(ad.category);
     setPreview(ad.mediaType === "video" ? ad.videoUrl : (ad.imageUrl || ad.image));
     setFile(null);
+    setStartDate(ad.startDate ? new Date(ad.startDate).toISOString().split('T')[0] : "");
     setEndDate(ad.endDate ? new Date(ad.endDate).toISOString().split('T')[0] : "");
     setCountdownText(ad.countdownText || "Sale Ends In:");
     setDescription(ad.description || "");
@@ -381,6 +395,12 @@ export default function AdsManagement() {
         return;
       }
 
+      if (startDate && endDate && startDate > endDate) {
+        toast("error", "Start date cannot be after end date");
+        setUploading(false);
+        return;
+      }
+
       let uploadedUrl = preview;
       let isVideo = mediaType === "video";
 
@@ -395,6 +415,7 @@ export default function AdsManagement() {
         status: adStatus,
         mediaType,
         category: targetCategory,
+        startDate: startDate || null,
         endDate: endDate || null,
         countdownText: countdownText.trim() || "Sale Ends In:",
       };
@@ -421,7 +442,7 @@ export default function AdsManagement() {
     } finally {
       setUploading(false);
     }
-  }, [file, preview, title, description, buttonText, adStatus, targetCategory, mediaType, uploading, editingAd, fetchAds, resetForm]);
+  }, [file, preview, title, description, buttonText, adStatus, targetCategory, mediaType, startDate, endDate, uploading, editingAd, fetchAds, resetForm]);
 
   const handleDelete = useCallback(async (id) => {
     const result = await Swal.fire({
@@ -539,117 +560,84 @@ export default function AdsManagement() {
             transition={{ delay: 0.1 }}
             className="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5"
           >
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">
-                  Headline Text <span className="text-red-400 font-normal">(Required)</span>
-                </label>
-                <div className="relative">
-                  <MdTextFields className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g., WINTER COLLECTION 2026"
-                    maxLength={100}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
-                  />
-                </div>
-                <p className="text-xs text-slate-400 mt-1">{title.length}/100 characters</p>
-              </div>
+            <div className="space-y-6">
+              <div className="pb-5 border-b border-slate-100">
+                <SectionHeader icon={<MdTextFields size={18} />} title="Content" subtitle="What visitors see on the banner" />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-2">
+                      Headline Text <span className="text-red-400 font-normal">(Required)</span>
+                    </label>
+                    <div className="relative">
+                      <MdTextFields className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g., WINTER COLLECTION 2026"
+                        maxLength={100}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">{title.length}/100 characters</p>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">
-                  Description <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g., Get up to 50% off on all winter items"
-                  maxLength={200}
-                  rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700 resize-none"
-                />
-                <p className="text-xs text-slate-400 mt-1">{description.length}/200 characters</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">
-                  Button Text <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <div className="relative">
-                  <MdTextFields className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="text"
-                    value={buttonText}
-                    onChange={(e) => setButtonText(e.target.value)}
-                    placeholder="e.g., Shop Now"
-                    maxLength={50}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Campaign Status</p>
-                  <p className="text-xs text-slate-400">{adStatus === "active" ? "Visible on the site" : "Hidden from visitors"}</p>
-                </div>
-                <button
-                  onClick={() => setAdStatus((s) => (s === "active" ? "inactive" : "active"))}
-                  className={adStatus === "active" ? "text-brand-500 hover:text-brand-600" : "text-slate-400 hover:text-slate-500"}
-                >
-                  {adStatus === "active" ? <MdToggleOn size={32} /> : <MdToggleOff size={32} />}
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Target Placement</label>
-                <div className="relative">
-                  <MdCategory className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <select
-                    value={targetCategory}
-                    onChange={(e) => setTargetCategory(e.target.value)}
-                    className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700 appearance-none"
-                  >
-                    <option value="home">Main Home Page</option>
-                    {categories.map((cat) => (
-                      <option key={cat._id} value={cat.slug}>{cat.name} Page</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">Countdown Text</label>
-                  <div className="relative">
-                    <MdTextFields className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      type="text"
-                      value={countdownText}
-                      onChange={(e) => setCountdownText(e.target.value)}
-                      placeholder="Sale Ends In:"
-                      maxLength={50}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-2">
+                      Description <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g., Get up to 50% off on all winter items"
+                      maxLength={200}
+                      rows={2}
+                      className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700 resize-none"
                     />
+                    <p className="text-xs text-slate-400 mt-1">{description.length}/200 characters</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-2">
+                      Button Text <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <MdTextFields className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        value={buttonText}
+                        onChange={(e) => setButtonText(e.target.value)}
+                        placeholder="e.g., Shop Now"
+                        maxLength={50}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
+                      />
+                    </div>
                   </div>
                 </div>
+              </div>
 
+              <div className="pb-5 border-b border-slate-100">
+                <SectionHeader icon={<MdCategory size={18} />} title="Placement" subtitle="Where this banner shows" />
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">Countdown End Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Set for countdown timer on banner</p>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Target Page</label>
+                  <div className="relative">
+                    <MdCategory className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <select
+                      value={targetCategory}
+                      onChange={(e) => setTargetCategory(e.target.value)}
+                      className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700 appearance-none"
+                    >
+                      <option value="home">Main Home Page</option>
+                      {categories.map((cat) => (
+                        <option key={cat._id} value={cat.slug}>{cat.name} Page</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div>
+              <div className="pb-5 border-b border-slate-100">
+                <SectionHeader icon={<MdImage size={18} />} title="Media" subtitle={editingAd ? "Replace the banner media" : "Upload the banner media"} />
                 <div className="flex items-center gap-2 mb-4 bg-slate-100 rounded-xl p-1 w-fit">
                   <button
                     onClick={() => setMediaType("image")}
@@ -744,6 +732,63 @@ export default function AdsManagement() {
                     </div>
                   </motion.div>
                 )}
+              </div>
+
+              <div>
+                <SectionHeader icon={<MdDateRange size={18} />} title="Schedule" subtitle="When this banner runs" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-2">Start Date <span className="text-slate-400 font-normal">(Optional)</span></label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Leave empty to show immediately</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-2">End Date <span className="text-slate-400 font-normal">(Optional)</span></label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || new Date().toISOString().split('T')[0]}
+                        className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Set for the countdown timer</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-2">Countdown Text <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <div className="relative">
+                      <MdTextFields className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        value={countdownText}
+                        onChange={(e) => setCountdownText(e.target.value)}
+                        placeholder="Sale Ends In:"
+                        maxLength={50}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 transition-all font-medium text-slate-700"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Campaign Status</p>
+                  <p className="text-xs text-slate-400">{adStatus === "active" ? "Visible on the site" : "Hidden from visitors"}</p>
+                </div>
+                <button
+                  onClick={() => setAdStatus((s) => (s === "active" ? "inactive" : "active"))}
+                  className={adStatus === "active" ? "text-brand-500 hover:text-brand-600" : "text-slate-400 hover:text-slate-500"}
+                >
+                  {adStatus === "active" ? <MdToggleOn size={32} /> : <MdToggleOff size={32} />}
+                </button>
               </div>
             </div>
 
