@@ -10,13 +10,13 @@ import {
   CreditCard,
   Minus,
   Plus,
-  Truck,
   Info,
   Tag
 } from "lucide-react";
 
 const initialQuoteState = {
   orderedItems: [],
+  itemsSubtotal: 0,
   total: 0,
   labeledTotal: 0,
   discount: 0,
@@ -75,6 +75,7 @@ export default function ViewCart() {
       if (data && data.orderedItems) {
         setQuoteData({
           orderedItems: data.orderedItems,
+          itemsSubtotal: data.itemsSubtotal ?? data.total ?? 0,
           total: data.total || 0,
           labeledTotal: data.labeledTotal || 0,
           discount: data.discount || 0,
@@ -86,6 +87,7 @@ export default function ViewCart() {
       } else {
         setQuoteData({
           orderedItems: cart.map(normalizeCartItem),
+          itemsSubtotal: 0,
           total: 0,
           labeledTotal: 0,
           discount: 0,
@@ -98,6 +100,7 @@ export default function ViewCart() {
     } catch (error) {
       setQuoteData({
         orderedItems: cart.map(normalizeCartItem),
+        itemsSubtotal: 0,
         total: 0,
         labeledTotal: 0,
         discount: 0,
@@ -129,6 +132,7 @@ export default function ViewCart() {
       if (data && data.orderedItems) {
         setQuoteData({
           orderedItems: data.orderedItems,
+          itemsSubtotal: data.itemsSubtotal ?? data.total ?? 0,
           total: data.total || 0,
           labeledTotal: data.labeledTotal || 0,
           discount: data.discount || 0,
@@ -136,6 +140,13 @@ export default function ViewCart() {
           coupon: data.coupon || null,
           couponError: data.couponError || null,
           message: data.message || "",
+        });
+        Swal.fire({
+          icon: "success",
+          title: "Coupon applied",
+          text: `You saved Rs. ${(data.coupon?.discountAmount || 0).toLocaleString()} on this order.`,
+          timer: 2500,
+          showConfirmButton: false,
         });
       } else if (data?.couponError) {
         appliedCoupon.current = "";
@@ -336,10 +347,10 @@ export default function ViewCart() {
           html: `
             <div class="text-left text-sm p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 ${quoteData.labeledTotal > quoteData.total ? `<div class="flex justify-between mb-1 text-gray-400"><span>Original Total:</span> <span class="line-through">Rs. ${quoteData.labeledTotal.toLocaleString()}</span></div>` : ""}
-                <div class="flex justify-between mb-2 text-gray-600 font-medium"><span>Items Subtotal:</span> <span>Rs. ${quoteData.total.toLocaleString()}</span></div>
+                ${quoteData.coupon ? `<div class="flex justify-between mb-1 text-gray-400"><span>Items Subtotal:</span> <span class="line-through">Rs. ${(quoteData.itemsSubtotal || quoteData.total).toLocaleString()}</span></div>` : ""}
+                <div class="flex justify-between mb-2 text-gray-600 font-medium"><span>${quoteData.coupon ? "Subtotal after Coupon" : "Items Subtotal"}:</span> <span>Rs. ${quoteData.total.toLocaleString()}</span></div>
                 ${quoteData.discount > 0 ? `<div class="flex justify-between text-brand-600 font-medium mb-2"><span>Savings:</span> <span>-Rs. ${quoteData.discount.toLocaleString()}</span></div>` : ""}
                 ${quoteData.coupon ? `<div class="flex justify-between text-brand-600 font-medium mb-2"><span>Coupon (${quoteData.coupon.code}):</span> <span>-Rs. ${(quoteData.coupon.discountAmount || 0).toLocaleString()}</span></div>` : ""}
-                <div class="flex justify-between text-brand-600 font-medium"><span>Delivery Charge:</span> <span>${quoteData.shipping === 0 ? "FREE" : `Rs. ${quoteData.shipping.toLocaleString()}`}</span></div>
                 <hr class="my-3 border-gray-200" />
                 <div class="flex justify-between text-lg font-black text-slate-900"><span>Grand Total:</span> <span>Rs. ${finalTotal.toLocaleString()}</span></div>
             </div>
@@ -384,8 +395,11 @@ export default function ViewCart() {
     }
   };
 
-  const { orderedItems, total, labeledTotal, discount, shipping, message, coupon, couponError } = quoteData;
+  const { orderedItems, itemsSubtotal, total, labeledTotal, discount, shipping, message, coupon, couponError } = quoteData;
   const finalTotalDisplay = total > 0 ? total + (shipping || 0) : 0;
+  const totalSavings = discount + (coupon?.discountAmount || 0);
+  const savingsPercent =
+    labeledTotal > 0 ? Math.round((totalSavings / labeledTotal) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-gray-50/50 py-12 px-4">
@@ -477,9 +491,14 @@ export default function ViewCart() {
 
                           <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
                             {originalPrice > sellingPrice && (
-                              <span className="text-gray-400 line-through text-sm font-medium">
-                                Rs. {originalPrice.toLocaleString()}
-                              </span>
+                              <>
+                                <span className="text-gray-400 line-through text-sm font-medium">
+                                  Rs. {originalPrice.toLocaleString()}
+                                </span>
+                                <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-md">
+                                  -{Math.round(((originalPrice - sellingPrice) / originalPrice) * 100)}%
+                                </span>
+                              </>
                             )}
                             <span className="text-brand-600 font-black text-xl">
                               Rs. {sellingPrice.toLocaleString()}
@@ -587,83 +606,88 @@ export default function ViewCart() {
                 )}
 
                 <div className="flex justify-between font-medium">
-                  <span>Subtotal</span>
-                  <span className="text-slate-800 font-bold font-mono">
-                    Rs. {total.toLocaleString()}
+                  <span>Items Subtotal</span>
+                  <span
+                    className={`font-bold font-mono ${coupon ? "text-gray-400 line-through" : "text-slate-800"}`}
+                  >
+                    Rs. {itemsSubtotal.toLocaleString()}
                   </span>
                 </div>
 
-                {discount > 0 && (
-                  <div className="flex justify-between font-medium text-brand-500 bg-brand-50/50 p-3 rounded-xl border border-brand-100/50">
-                    <span className="font-bold">Total Savings</span>
-                    <span className="font-black">- Rs. {discount.toLocaleString()}</span>
+                {coupon && (
+                  <div className="flex justify-between items-center bg-brand-50/60 p-3 rounded-xl border border-brand-100/60">
+                    <span className="text-sm font-bold text-brand-600 flex items-center gap-2">
+                      <Tag size={15} /> {coupon.code}
+                      {coupon.discountType === "percent" && (
+                        <span className="bg-brand-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                          {coupon.discountValue}% OFF
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="text-sm font-black text-brand-600 font-mono">
+                        -Rs. {(coupon.discountAmount || 0).toLocaleString()}
+                      </span>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        title="Remove coupon"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </span>
                   </div>
                 )}
 
-                {orderedItems.length > 0 && (
+                {coupon && (
+                  <div className="flex justify-between font-medium">
+                    <span>New Subtotal</span>
+                    <span className="text-slate-800 font-bold font-mono">
+                      Rs. {total.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
+                {totalSavings > 0 && (
+                  <div className="flex justify-between font-medium text-brand-500 bg-brand-50/50 p-3 rounded-xl border border-brand-100/50">
+                    <span className="font-bold">Total Savings {savingsPercent > 0 && `(${savingsPercent}%)`}</span>
+                    <span className="font-black">- Rs. {totalSavings.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {orderedItems.length > 0 && !coupon && (
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
                       Coupon
                     </p>
-                    {coupon ? (
-                      <div className="flex items-center justify-between bg-brand-50/60 p-3 rounded-xl border border-brand-100/60">
-                        <span className="text-sm font-bold text-brand-600 flex items-center gap-2">
-                          <Tag size={15} /> {coupon.code}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-black text-brand-600 font-mono">
-                            -Rs. {(coupon.discountAmount || 0).toLocaleString()}
-                          </span>
-                          <button
-                            onClick={handleRemoveCoupon}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
-                            title="Remove coupon"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={couponInput}
-                            onChange={(e) =>
-                              setCouponInput(e.target.value.toUpperCase())
-                            }
-                            onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
-                            placeholder="Enter code (e.g. SAVE10)"
-                            maxLength={30}
-                            disabled={couponApplying}
-                            className="flex-1 min-w-0 px-3 py-2.5 border border-slate-200 rounded-xl text-sm uppercase font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-slate-50"
-                          />
-                          <button
-                            onClick={handleApplyCoupon}
-                            disabled={couponApplying || !couponInput.trim()}
-                            className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-colors"
-                          >
-                            {couponApplying ? "Applying..." : "Apply"}
-                          </button>
-                        </div>
-                        {couponError && (
-                          <p className="text-xs font-bold text-red-500 mt-2">
-                            {couponError}
-                          </p>
-                        )}
-                      </>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) =>
+                          setCouponInput(e.target.value.toUpperCase())
+                        }
+                        onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                        placeholder="Enter code (e.g. SAVE10)"
+                        maxLength={30}
+                        disabled={couponApplying}
+                        className="flex-1 min-w-0 px-3 py-2.5 border border-slate-200 rounded-xl text-sm uppercase font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-slate-50"
+                      />
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={couponApplying || !couponInput.trim()}
+                        className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-colors"
+                      >
+                        {couponApplying ? "Applying..." : "Apply"}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-xs font-bold text-red-500 mt-2">
+                        {couponError}
+                      </p>
                     )}
                   </div>
                 )}
-
-                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <span className="flex items-center gap-2 text-slate-600 font-bold text-sm">
-                    <Truck size={18} className="text-brand-500" /> Delivery Fee
-                  </span>
-                  <span className="text-slate-900 font-black font-mono">
-                    {shipping === 0 ? "FREE" : `Rs. ${(shipping || 0).toLocaleString()}`}
-                  </span>
-                </div>
               </div>
 
               <div className="mb-10">

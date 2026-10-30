@@ -241,6 +241,7 @@ export const getQuote = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     orderedItems,
+    itemsSubtotal: subtotal,
     total: payableSubtotal,
     labeledTotal,
     discount: Math.round((labeledTotal - subtotal) * 100) / 100,
