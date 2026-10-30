@@ -10,6 +10,29 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 
+const DISTRICTS = [
+  "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
+  "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kilinochchi", "Kurunegala",
+  "Mannar", "Matale", "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya",
+  "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya", "Kegalle",
+];
+
+const COLOMBO_AREAS = [
+  "Colombo 01 - 03 (City Centre)",
+  "Colombo 7 (Maradana)",
+  "Colombo 8 (Rajagiriya)",
+  "Avicenna",
+  "Dematagoda",
+  "Deans Corner",
+  "Grange",
+  "Mount Lavinia",
+  "Nugegoda",
+  "Pannala",
+  "Piliyandala",
+  "Thalawathugoda",
+  "Thottuwa",
+];
+
 export default function Shipping() {
   const location = useLocation();
   const orderData = location.state;
@@ -410,15 +433,30 @@ export default function Shipping() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-black text-gray-400 uppercase ml-1">City / Town</label>
-                                <input
-                                    type="text"
+                                <label className="text-xs font-black text-gray-400 uppercase ml-1">District / City</label>
+                                <select
+                                    required
                                     className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-brand-600 outline-none font-bold text-gray-700 transition-all"
-                                    placeholder="Colombo"
                                     value={newShippingInfo.city}
                                     onChange={(e) => setNewShippingInfo({...newShippingInfo, city: e.target.value})}
-                                />
+                                >
+                                    <option value="" disabled>Select District / City</option>
+                                    {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                                </select>
                             </div>
+                            {newShippingInfo.city === "Colombo" && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-black text-gray-400 uppercase ml-1">Colombo Area (optional)</label>
+                                    <select
+                                        className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-100 focus:border-brand-600 outline-none font-bold text-gray-700 transition-all"
+                                        value={newShippingInfo.city.startsWith("Colombo - ") ? newShippingInfo.city.slice("Colombo - ".length) : ""}
+                                        onChange={(e) => setNewShippingInfo({...newShippingInfo, city: e.target.value ? `Colombo - ${e.target.value}` : "Colombo"})}
+                                    >
+                                        <option value="">City Centre (no area)</option>
+                                        {COLOMBO_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                                    </select>
+                                </div>
+                            )}
                             <div className="flex flex-col gap-3 pt-2">
                                 <label className="flex items-center gap-3 cursor-pointer select-none">
                                     <input

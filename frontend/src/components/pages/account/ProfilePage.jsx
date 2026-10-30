@@ -6,6 +6,29 @@ import api from "@/utils/api";
 import uploadToMedia from "@/components/utils/Mediaupload";
 import getApiError from "@/utils/errors";
 
+const DISTRICTS = [
+  "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
+  "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kilinochchi", "Kurunegala",
+  "Mannar", "Matale", "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya",
+  "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya", "Kegalle",
+];
+
+const COLOMBO_AREAS = [
+  "Colombo 01 - 03 (City Centre)",
+  "Colombo 7 (Maradana)",
+  "Colombo 8 (Rajagiriya)",
+  "Avicenna",
+  "Dematagoda",
+  "Deans Corner",
+  "Grange",
+  "Mount Lavinia",
+  "Nugegoda",
+  "Pannala",
+  "Piliyandala",
+  "Thalawathugoda",
+  "Thottuwa",
+];
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -204,6 +227,13 @@ export default function ProfilePage() {
 
   const currentImage = getProfileImage(editForm.profileImage || user?.profileImage);
 
+  // City stored as "Colombo" or "Colombo - <Area>"; anything else is legacy/unknown.
+  const savedCity = addressForm.city || "";
+  const colomboArea = savedCity.startsWith("Colombo - ") ? savedCity.slice("Colombo - ".length) : "";
+  const cityDistrict = savedCity.startsWith("Colombo - ") ? "Colombo" : savedCity;
+  const cityIsLegacy = !!savedCity && cityDistrict !== "" && !DISTRICTS.includes(cityDistrict);
+  const areaIsLegacy = !!savedCity && colomboArea !== "" && !COLOMBO_AREAS.includes(colomboArea);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
@@ -381,7 +411,33 @@ export default function ProfilePage() {
                 {addressPhoneError && <p className="col-span-2 text-xs text-red-600 -mt-2">{addressPhoneError}</p>}
                 <input required placeholder="Address Line 1" value={addressForm.addressLine1} onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
                 <input placeholder="Address Line 2" value={addressForm.addressLine2} onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
-                <input required placeholder="City" value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
+                <select
+                  required
+                  value={cityDistrict}
+                  onChange={(e) => {
+                    const d = e.target.value;
+                    setAddressForm({ ...addressForm, city: d === "Colombo" ? "Colombo" : d });
+                  }}
+                  className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                >
+                  <option value="" disabled>Select District / City</option>
+                  {cityIsLegacy && <option value={savedCity} disabled>{savedCity}</option>}
+                  {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+                {cityDistrict === "Colombo" && (
+                  <select
+                    value={colomboArea}
+                    onChange={(e) => {
+                      const a = e.target.value;
+                      setAddressForm({ ...addressForm, city: a ? `Colombo - ${a}` : "Colombo" });
+                    }}
+                    className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                  >
+                    <option value="">City Centre (no area)</option>
+                    {areaIsLegacy && <option value={colomboArea}>{colomboArea}</option>}
+                    {COLOMBO_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                )}
                 <input placeholder="Province" value={addressForm.province} onChange={(e) => setAddressForm({ ...addressForm, province: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" />
               </div>
               <label className="flex items-center gap-2">
