@@ -57,14 +57,14 @@ const CategoryGrid = ({ categories }) => {
             Shop by Category
           </h2>
         </div>
-        <div className="flex flex-row flex-nowrap gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+        <div className="flex flex-row flex-nowrap gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x">
           {categories.map((cat) => (
             <Link
               key={cat._id || cat.id}
               to={`/shop/category/${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, "-")}`}
-              className="flex-shrink-0 snap-start group w-24 md:w-28"
+              className="flex-shrink-0 snap-start group w-24 md:w-[5.5rem]"
             >
-                <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-slate-50 flex items-center justify-center p-1 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 border border-slate-100 group-hover:border-brand-200">
+                <div className="w-24 h-24 md:w-[5.5rem] md:h-[5.5rem] rounded-2xl bg-slate-50 flex items-center justify-center p-1 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 border border-slate-100 group-hover:border-brand-200">
                 <img
                   src={cat.image || "https://img.lazcdn.com/static/lk/p/default-category.jpg"}
                   alt={cat.name}
