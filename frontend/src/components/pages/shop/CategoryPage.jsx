@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "@/utils/api";
 import {
   Loader2,
   ArrowLeft,
   LayoutGrid,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
   AlertCircle,
   Filter,
-  X,
 } from "lucide-react";
 import Card from "@/components/product/Card";
 import ProductRecommendations from "@/components/home/ProductRecommendations";
+import LeftSideFilter from "@/components/product/LeftSideFilter";
+import RightSideAds from "@/components/home/RightSideAds.jsx";
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -30,17 +30,17 @@ export default function CategoryPage() {
   const [fetchError, setFetchError] = useState(null);
   const [currentCategoryName, setCurrentCategoryName] = useState("");
 
-  // Filter states
-  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
-  const [sortBy, setSortBy] = useState("newest");
-  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false);
-  const [appliedPriceRange, setAppliedPriceRange] = useState({
-    min: 0,
-    max: 0,
+  // Homepage-style filter state
+  const [filters, setFilters] = useState({
+    priceRange: [0, 0],
+    categories: [],
+    sortBy: "newest",
+    minRating: 0,
+    inStock: false,
+    readyToShip: false,
   });
-
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [currentCategoryId, setCurrentCategoryId] = useState(null);
 
   // 2. New state for currentProductId
   const [recommendationProductId, setRecommendationProductId] = useState(null);
@@ -63,48 +63,86 @@ export default function CategoryPage() {
     }
   }, [adsData.length]);
 
-  // Filter and Sort Function
-  const filterAndSortProducts = (products, priceMin, priceMax, sortType) => {
+  // Filter and sort (homepage logic)
+  const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Apply price filter only if max price is greater than 0
-    if (priceMax > 0) {
+    // Price
+    if (filters.priceRange[1] > 0) {
       filtered = filtered.filter(
-        (product) => product.price >= priceMin && product.price <= priceMax,
+        (product) =>
+          product.price >= filters.priceRange[0] &&
+          product.price <= filters.priceRange[1],
       );
+    }
+
+    // Min rating
+    if (filters.minRating > 0) {
+      filtered = filtered.filter(
+        (product) =>
+          (product.rating ?? product.averageRating ?? 0) >= filters.minRating,
+      );
+    }
+
+    // In stock
+    if (filters.inStock) {
+      filtered = filtered.filter(
+        (product) => (product.stock ?? product.quantity ?? 0) > 0,
+      );
+    }
+
+    // Ready to ship
+    if (filters.readyToShip) {
+      filtered = filtered.filter((product) => product.status === "ready");
     }
 
     // Sort
-    switch (sortType) {
+    switch (filters.sortBy) {
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
-        break;
+        return [...filtered].sort((a, b) => a.price - b.price);
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
-        break;
+        return [...filtered].sort((a, b) => b.price - a.price);
+      case "rating":
+        return [...filtered].sort(
+          (a, b) =>
+            (b.rating ?? b.averageRating ?? 0) -
+            (a.rating ?? a.averageRating ?? 0),
+        );
       case "newest":
       default:
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
+        return [...filtered].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
     }
+  }, [products, filters]);
 
-    return filtered;
-  };
+  const ratingCounts = useMemo(() => {
+    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    filteredProducts.forEach((p) => {
+      const r = p.rating ?? p.averageRating ?? 0;
+      for (let i = 1; i <= 5; i++) {
+        if (r >= i) counts[i]++;
+      }
+    });
+    return counts;
+  }, [filteredProducts]);
 
-  // Apply filters when dependencies change
-  useEffect(() => {
-    if (products.length > 0) {
-      const filtered = filterAndSortProducts(
-        products,
-        appliedPriceRange.min,
-        appliedPriceRange.max,
-        sortBy,
-      );
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts([]);
-    }
-  }, [products, appliedPriceRange, sortBy]);
+  const hasActiveFilters =
+    filters.priceRange[1] > 0 ||
+    filters.minRating > 0 ||
+    filters.inStock ||
+    filters.readyToShip ||
+    filters.sortBy !== "newest";
+
+  const resetFilters = () =>
+    setFilters({
+      priceRange: [0, 0],
+      categories: [],
+      sortBy: "newest",
+      minRating: 0,
+      inStock: false,
+      readyToShip: false,
+    });
 
   // Set recommendation for first product
   useEffect(() => {
@@ -116,27 +154,6 @@ export default function CategoryPage() {
       setRecommendationProductId(null);
     }
   }, [filteredProducts]);
-
-  // Apply price filter
-  const applyPriceFilter = () => {
-    const min =
-      priceRange.min === "" ? 0 : Math.max(0, parseInt(priceRange.min) || 0);
-    const max =
-      priceRange.max === "" ? 0 : Math.max(0, parseInt(priceRange.max) || 0);
-
-    const validMin = Math.min(min, max);
-    const validMax = Math.max(min, max);
-
-    setAppliedPriceRange({ min: validMin, max: validMax });
-    setIsPriceFilterActive(validMax > 0);
-  };
-
-  // Clear price filter
-  const clearPriceFilter = () => {
-    setPriceRange({ min: "", max: "" });
-    setAppliedPriceRange({ min: 0, max: 0 });
-    setIsPriceFilterActive(false);
-  };
 
   // Fetch data
   useEffect(() => {
@@ -208,6 +225,9 @@ export default function CategoryPage() {
 
         if (currentCategory) {
           setCurrentCategoryName(currentCategory.name);
+          setCurrentCategoryId(currentCategory._id || null);
+        } else {
+          setCurrentCategoryId(null);
         }
       } catch (error) {
         console.error("[CategoryPage] Error fetching data:", error);
@@ -222,11 +242,9 @@ export default function CategoryPage() {
 
   // Reset filters when slug changes
   useEffect(() => {
-    setPriceRange({ min: "", max: "" });
-    setSortBy("newest");
-    setAppliedPriceRange({ min: 0, max: 0 });
-    setIsPriceFilterActive(false);
-    setRecommendationProductId(null); // ✅ Reset recommendation too
+    resetFilters();
+    setCurrentCategoryId(null);
+    setRecommendationProductId(null);
   }, [slug]);
 
   // Loading State
@@ -351,148 +369,39 @@ export default function CategoryPage() {
         )}
       </section>
 
-      {/* Sort Header - Sort and Mobile Filter */}
-      <div className="sticky top-[0px] z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 py-4">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-          {/* Mobile Filter Button */}
-          <button
-            onClick={() => setIsMobileFilterOpen(true)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-black uppercase tracking-wider rounded-full"
-          >
-            <Filter size={14} />
-            Filters
-          </button>
-
-          {/* Spacer for mobile */}
-          <div className="lg:hidden flex-1" />
-
-          {/* Sort Dropdown */}
-          <div className="relative group">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none bg-white pl-4 pr-10 py-2 text-[10px] font-black uppercase tracking-widest border border-slate-200 rounded-full focus:outline-none focus:border-slate-900 cursor-pointer transition-all"
+      {/* Mobile Filter Bar */}
+      <div className="lg:hidden w-full border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur-sm z-30">
+        <div className="px-4 sm:px-6 py-4">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setIsMobileFilterOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase tracking-wider hover:bg-slate-800 active:scale-[0.98] transition-all rounded-full"
             >
-              <option value="newest">Newest First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
-            <ChevronDown
-              size={12}
-              className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
-            />
+              <Filter size={16} />
+              Filters
+              {hasActiveFilters && (
+                <span className="w-2 h-2 bg-brand-500 rounded-full" />
+              )}
+            </button>
+            <p className="text-sm text-slate-500">
+              {filteredProducts.length} products
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Main Content with Left Sidebar Filter */}
+      {/* Main Content - Homepage-style 3 columns */}
       <div className="w-full">
         <div className="flex flex-col lg:flex-row">
-          {/* Left Sidebar Filter Section */}
-          <div className="hidden lg:block lg:w-80 flex-shrink-0 border-r border-slate-100 min-h-screen sticky top-[73px] self-start bg-white">
-            <div className="p-6">
-              {/* Filter Header */}
-              <div className="flex items-center gap-2 mb-6">
-                <Filter size={16} className="text-slate-700" />
-                <h3 className="text-lg font-black uppercase tracking-wider text-slate-900">
-                  Filters
-                </h3>
-              </div>
-
-              {/* Price Range Section */}
-              <div className="mb-6 border-b border-slate-100 pb-6">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 mb-3">
-                  Price Range (LKR)
-                </h4>
-
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        placeholder="Min"
-                        value={priceRange.min}
-                        onChange={(e) =>
-                          setPriceRange({ ...priceRange, min: e.target.value })
-                        }
-                        className="w-full p-2 border border-slate-200 text-sm rounded-lg outline-none focus:border-slate-900 transition-all"
-                        min="0"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        placeholder="Max"
-                        value={priceRange.max}
-                        onChange={(e) =>
-                          setPriceRange({ ...priceRange, max: e.target.value })
-                        }
-                        className="w-full p-2 border border-slate-200 text-sm rounded-lg outline-none focus:border-slate-900 transition-all"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={applyPriceFilter}
-                      className="flex-1 py-2.5 bg-slate-900 text-white text-xs font-bold uppercase rounded-lg hover:bg-slate-800 active:scale-[0.95] transition-all"
-                    >
-                      Apply
-                    </button>
-                    {isPriceFilterActive && (
-                      <button
-                        onClick={clearPriceFilter}
-                        className="px-4 border border-slate-200 text-xs font-bold rounded-lg hover:bg-slate-50 transition-all"
-                      >
-                        Reset
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Status Indicator */}
-                  {!isPriceFilterActive && (
-                    <p className="text-[10px] text-brand-600 font-bold text-center bg-brand-50 py-2 rounded-md border border-brand-100">
-                      Showing All Prices
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Results Count in Sidebar */}
-              <div className="pt-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Results
-                </p>
-                <p className="text-2xl font-black text-slate-900">
-                  {filteredProducts.length}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {filteredProducts.length === 1 ? "Item" : "Items"} available
-                </p>
-              </div>
-
-              {/* Active Filters Summary */}
-              {isPriceFilterActive && (
-                <div className="mt-6 pt-4 border-t border-slate-100">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                    Active Filters
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-xs rounded-md">
-                      <span className="font-bold">Price:</span>
-                      {appliedPriceRange.min} - {appliedPriceRange.max}
-                      <button
-                        onClick={clearPriceFilter}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Left Sidebar Filter */}
+          <div className="hidden lg:block lg:w-80 flex-shrink-0 border-r border-slate-100 sticky top-20 self-start">
+            <LeftSideFilter
+              filters={filters}
+              setFilters={setFilters}
+              categories={categories}
+              ratingCounts={ratingCounts}
+              currentCategoryId={currentCategoryId}
+            />
           </div>
 
           {/* Mobile Filter Overlay */}
@@ -502,107 +411,21 @@ export default function CategoryPage() {
                 className="fixed inset-0 bg-black/50 z-40 lg:hidden"
                 onClick={() => setIsMobileFilterOpen(false)}
               />
-              <div className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl lg:hidden overflow-y-auto">
-                <div className="p-6">
-                  {/* Mobile Filter Header */}
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-2">
-                      <Filter size={16} className="text-slate-700" />
-                      <h3 className="text-lg font-black uppercase tracking-wider text-slate-900">
-                        Filters
-                      </h3>
-                    </div>
-                    <button
-                      onClick={() => setIsMobileFilterOpen(false)}
-                      className="p-2 hover:bg-slate-100 rounded-full"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  {/* Price Range Section - Mobile */}
-                  <div className="mb-6 border-b border-slate-100 pb-6">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 mb-3">
-                      Price Range (LKR)
-                    </h4>
-
-                    <div className="space-y-4">
-                      <div className="flex gap-3">
-                        <div className="flex-1">
-                          <input
-                            type="number"
-                            placeholder="Min"
-                            value={priceRange.min}
-                            onChange={(e) =>
-                              setPriceRange({ ...priceRange, min: e.target.value })
-                            }
-                            className="w-full p-2.5 border border-slate-200 text-sm rounded-lg outline-none focus:border-slate-900 transition-all"
-                            min="0"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <input
-                            type="number"
-                            placeholder="Max"
-                            value={priceRange.max}
-                            onChange={(e) =>
-                              setPriceRange({ ...priceRange, max: e.target.value })
-                            }
-                            className="w-full p-2.5 border border-slate-200 text-sm rounded-lg outline-none focus:border-slate-900 transition-all"
-                            min="0"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            applyPriceFilter();
-                            setIsMobileFilterOpen(false);
-                          }}
-                          className="flex-1 py-3 bg-brand-500 text-white text-xs font-bold uppercase rounded-lg hover:bg-brand-600 active:scale-[0.98] transition-all"
-                        >
-                          Apply
-                        </button>
-                        {isPriceFilterActive && (
-                          <button
-                            onClick={clearPriceFilter}
-                            className="px-4 border border-slate-200 text-xs font-bold rounded-lg hover:bg-slate-50 transition-all"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Results Count - Mobile */}
-                  <div className="pt-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                      Results
-                    </p>
-                    <p className="text-2xl font-black text-slate-900">
-                      {filteredProducts.length}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {filteredProducts.length === 1 ? "Item" : "Items"} available
-                    </p>
-                  </div>
-
-                  {/* Close Button - Mobile */}
-                  <button
-                    onClick={() => setIsMobileFilterOpen(false)}
-                    className="w-full mt-6 py-3 bg-slate-900 text-white text-xs font-bold uppercase rounded-lg"
-                  >
-                    Close
-                  </button>
-                </div>
+              <div className="fixed top-0 left-0 h-full w-80 bg-white z-50 shadow-2xl transform transition-transform duration-300 lg:hidden overflow-y-auto">
+                <LeftSideFilter
+                  filters={filters}
+                  setFilters={setFilters}
+                  categories={categories}
+                  ratingCounts={ratingCounts}
+                  currentCategoryId={currentCategoryId}
+                  onClose={() => setIsMobileFilterOpen(false)}
+                />
               </div>
             </>
           )}
 
           {/* Product Grid Section */}
-          <main className="flex-1 max-w-7xl mx-auto px-4 py-16">
+          <main className="flex-1 w-full min-w-0 bg-white px-4 py-16">
             {/* Results Count for Mobile */}
             <div className="lg:hidden mb-6">
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
@@ -625,13 +448,13 @@ export default function CategoryPage() {
                   No Items Found
                 </h3>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">
-                  No products match your price range in this category.
+                  No products match your filters.
                 </p>
                 <button
-                  onClick={clearPriceFilter}
+                  onClick={resetFilters}
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition-colors rounded-lg"
                 >
-                  <RefreshCw size={14} /> Clear Price Filter
+                  <RefreshCw size={14} /> Reset Filters
                 </button>
               </div>
             )}
@@ -646,6 +469,11 @@ export default function CategoryPage() {
               </div>
             )}
           </main>
+
+          {/* Right Sidebar - Ads */}
+          <div className="hidden lg:block w-80 flex-shrink-0 border-l border-slate-100 bg-white sticky top-20 self-start">
+            <RightSideAds limit={3} />
+          </div>
         </div>
       </div>
 
