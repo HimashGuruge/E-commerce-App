@@ -356,6 +356,7 @@ export default function ViewCart() {
                 ${quoteData.coupon ? `<div class="flex justify-between text-brand-600 font-medium mb-2"><span>Coupon (${quoteData.coupon.code}):</span> <span>-Rs. ${(quoteData.coupon.discountAmount || 0).toLocaleString()}</span></div>` : ""}
                 <hr class="my-3 border-gray-200" />
                 <div class="flex justify-between text-lg font-black text-slate-900"><span>Grand Total:</span> <span>Rs. ${finalTotal.toLocaleString()}</span></div>
+                ${quoteData.shipping > 0 ? `<div class="text-xs text-gray-400 mt-1 font-medium">Includes Rs. ${quoteData.shipping.toLocaleString()} delivery</div>` : ""}
             </div>
           `,
           icon: "question",
