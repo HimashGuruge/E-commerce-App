@@ -3,6 +3,7 @@ import { loadCart, deleteItem, updateItemQty, saveCart } from "@/components/util
 import api from "@/utils/api";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import usePublicSettings from "@/hooks/usePublicSettings";
 import {
   Trash2,
   ShoppingBag,
@@ -11,7 +12,8 @@ import {
   Minus,
   Plus,
   Info,
-  Tag
+  Tag,
+  Truck
 } from "lucide-react";
 
 const initialQuoteState = {
@@ -46,6 +48,7 @@ export default function ViewCart() {
   const [couponApplying, setCouponApplying] = useState(false);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
+  const { settings } = usePublicSettings();
   const token = localStorage.getItem("token");
   const quoteFetchRef = useRef(null);
 
@@ -689,6 +692,25 @@ export default function ViewCart() {
                   </div>
                 )}
               </div>
+
+              {settings?.shipping?.freeThreshold > 0 && total > 0 && (
+                <div
+                  className={`flex items-center gap-2 p-3 rounded-xl border mb-4 text-sm font-bold ${
+                    shipping === 0
+                      ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                      : "bg-amber-50 border-amber-100 text-amber-700"
+                  }`}
+                >
+                  <Truck size={16} className="flex-shrink-0" />
+                  {shipping === 0 ? (
+                    <span>You get FREE delivery on this order</span>
+                  ) : (
+                    <span>
+                      Add Rs. {Math.max(settings.shipping.freeThreshold - total, 0).toLocaleString()} more to get FREE delivery (over Rs. {settings.shipping.freeThreshold.toLocaleString()})
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="mb-10">
                 <p className="text-xs font-black text-slate-300 uppercase tracking-widest">
