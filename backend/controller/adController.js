@@ -12,7 +12,12 @@ export const createAd = asyncHandler(async (req, res) => {
 });
 
 export const getAds = asyncHandler(async (req, res) => {
-  const ads = await Ad.find({});
+  const { category } = req.query;
+  const filter = {};
+  if (category) {
+    filter.category = category;
+  }
+  const ads = await Ad.find(filter);
   res.json({ success: true, ads });
 });
 
