@@ -95,8 +95,12 @@
         }
 
         try {
-          /* Matches the fallback in src/utils/api.js (no .env in this project) */
-          var BASE_URL = 'http://localhost:4000';
+          /* Backend runs on this same host as the frontend (dev: frontend :3001,
+             backend :4000). Derive the base from the page URL so the fetch
+             also works from other devices on the network (e.g. a phone
+             opening http://<pc-ip>:3001 — "localhost" would point at the
+             phone itself and fail, causing the default-color flash). */
+          var BASE_URL = location.protocol + '//' + (location.hostname || 'localhost') + ':4000';
           var timeoutId = setTimeout(function () {
             window.__bootThemeTimedOut = true;
             document.documentElement.classList.remove('boot-waiting');
