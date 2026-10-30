@@ -78,6 +78,15 @@
           return true;
         }
 
+        function reveal() {
+          document.documentElement.classList.remove('boot-waiting');
+          var splash = document.getElementById('boot-splash');
+          if (splash) {
+            splash.classList.add('boot-splash-hide');
+            setTimeout(function () { splash.remove(); }, 300);
+          }
+        }
+
         var settings = null;
         try {
           var raw = localStorage.getItem(LS_KEY);
@@ -89,8 +98,14 @@
           }
         } catch (e) { /* ignore corrupt storage */ }
 
+        /* The splash always covers full page loads (first visit AND refresh),
+           so first paint never shows unstyled or mid-load content. */
+        var MIN_DISPLAY_MS = 300;
+        document.documentElement.classList.add('boot-waiting');
+
         if (settings) {
           applyTheme(settings);
+          setTimeout(reveal, MIN_DISPLAY_MS);
           return;
         }
 
@@ -103,14 +118,14 @@
           var BASE_URL = location.protocol + '//' + (location.hostname || 'localhost') + ':4000';
           var timeoutId = setTimeout(function () {
             window.__bootThemeTimedOut = true;
-            document.documentElement.classList.remove('boot-waiting');
+            reveal();
           }, 2500);
           document.documentElement.classList.add('boot-waiting');
           fetch(BASE_URL + '/api/settings/public', { headers: { 'Content-Type': 'application/json' } })
             .then(function (res) { return res.json(); })
             .then(function (data) {
               clearTimeout(timeoutId);
-              document.documentElement.classList.remove('boot-waiting');
+              reveal();
               if (data && data.success && data.settings) {
                 try { localStorage.setItem(LS_KEY, JSON.stringify(data.settings)); } catch (e) {}
                 applyTheme(data.settings);
@@ -118,17 +133,48 @@
             })
             .catch(function () {
               clearTimeout(timeoutId);
-              document.documentElement.classList.remove('boot-waiting');
+              reveal();
             });
         } catch (e) { /* fetch unavailable — fall back to React path */ }
       })();
     </script>
     <style>
-      /* Kept minimal while the admin theme is being fetched on first visit. */
-      html.boot-waiting body { opacity: 0; }
+      /* Kept minimal while the admin theme is being fetched on first visit.
+         The splash (outside #root) stays visible; React output is hidden. */
+      html.boot-waiting #root { display: none; }
+
+      /* Pre-paint loading splash: covers first frames until the saved theme
+         is applied. Never shown when settings were cached (no boot-waiting). */
+      #boot-splash {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #ffffff;
+        align-items: center;
+        justify-content: center;
+      }
+      html.boot-waiting #boot-splash { display: flex; }
+      #boot-splash.boot-splash-hide {
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+      }
+      .boot-splash-spinner {
+        width: 42px;
+        height: 42px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #9ca3af;
+        border-radius: 50%;
+        animation: boot-splash-spin 0.8s linear infinite;
+      }
+      @keyframes boot-splash-spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
+    <div id="boot-splash" aria-hidden="true">
+      <div class="boot-splash-spinner"></div>
+    </div>
     <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
       <symbol id="lazadaicon_optionChecked" viewBox="0 0 1024 1024">
         <path d="M1023.6802 0v1023.3604H0.3198L1023.6802 0z" fill="#F57224" />
