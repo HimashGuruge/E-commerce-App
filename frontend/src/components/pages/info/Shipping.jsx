@@ -20,6 +20,9 @@ export default function Shipping() {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [newShippingInfo, setNewShippingInfo] = useState({ address: "", phone: "", city: "", customerName: "" });
+  const [saveToAccount, setSaveToAccount] = useState(true);
+  const [makeDefault, setMakeDefault] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [shippingSettings, setShippingSettings] = useState({
     standardCost: 350,
     freeThreshold: 10000,
@@ -53,7 +56,7 @@ export default function Shipping() {
         // Fetch saved addresses from address API
         const addressRes = await api.get(`/api/addresses`);
 
-        const userAddresses = addressRes.data || [];
+        const userAddresses = addressRes.data?.addresses || addressRes.data?.data || [];
         setSavedAddresses(userAddresses);
 
         if (userAddresses.length > 0) {
@@ -102,19 +105,40 @@ export default function Shipping() {
 
   const subTotal = orderData?.total || 0;
   const coupon = orderData?.coupon || null;
+  const selectedAddress =
+    addressMode === "saved"
+      ? savedAddresses.find(a => a._id === selectedAddressId) || null
+      : {
+          name: newShippingInfo.customerName.trim() || "New Address",
+          addressLine1: newShippingInfo.address.trim(),
+          city: newShippingInfo.city.trim(),
+          phone: newShippingInfo.phone.trim(),
+          type: "Home",
+        };
   const deliveryFee = coupon?.discountType === "freeshipping"
     ? 0
     : subTotal >= shippingSettings.freeThreshold
       ? 0
       : shippingSettings.standardCost;
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
+    const toast = (icon, title, text) =>
+      Swal.fire({ icon, title, text, confirmButtonColor: '#2563eb' });
+
+    // No active order (direct URL / refresh): still show the address page,
+    // but block payment.
+    if (!orderData) {
+      toast('info', 'Your Cart is Empty', 'Please add items to your cart before proceeding to payment.');
+      navigate("/viewcart");
+      return;
+    }
+
     let finalData = {};
 
     if (addressMode === "saved") {
       const selected = savedAddresses.find(a => a._id === selectedAddressId);
       if (!selected) {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a saved address' });
+        toast('error', 'No Address Selected', 'Please select a saved address or enter a new one below.');
         return;
       }
       finalData = {
@@ -124,17 +148,41 @@ export default function Shipping() {
         city: selected.city
       };
     } else {
-      finalData = newShippingInfo;
-    }
+      finalData = { ...newShippingInfo };
+      if (!finalData.address?.trim() || !finalData.phone?.trim() || !finalData.customerName?.trim()) {
+        toast('error', 'Missing Information', 'Please fill in all required delivery details.');
+        return;
+      }
 
-    if (!finalData.address?.trim() || !finalData.phone?.trim() || !finalData.customerName?.trim()) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Missing Information',
-        text: 'Please fill in all required delivery details.',
-        confirmButtonColor: '#2563eb'
-      });
-      return;
+      // Save the newly entered address to the account on proceed
+      const token = localStorage.getItem("token");
+      if (saveToAccount && token) {
+        setSavingAddress(true);
+        try {
+          const res = await api.post(`/api/addresses`, {
+            name: finalData.customerName.trim(),
+            phone: finalData.phone.trim(),
+            addressLine1: finalData.address.trim(),
+            city: finalData.city.trim(),
+            type: "Home",
+            isDefault: makeDefault,
+          });
+          const newAddress = res.data?.address;
+          const refreshRes = await api.get(`/api/addresses`);
+          const freshList = refreshRes.data?.addresses || refreshRes.data?.data || [];
+          setSavedAddresses(freshList);
+          if (newAddress?._id) {
+            setAddressMode("saved");
+            setSelectedAddressId(newAddress._id);
+          }
+          toast('success', 'Address Saved', 'Your new address has been saved to your account.');
+        } catch (_err) {
+          console.error("Failed to save address:", _err);
+          toast('error', 'Save Failed', 'Could not save your address. You can still continue to payment.');
+        } finally {
+          setSavingAddress(false);
+        }
+      }
     }
 
     const finalOrderData = {
@@ -157,24 +205,6 @@ export default function Shipping() {
         </div>
         <h2 className="mt-8 font-black text-gray-800 text-2xl tracking-tight">Syncing Profile...</h2>
         <p className="text-gray-500 mt-2">Preparing your delivery options</p>
-      </div>
-    </div>
-  );
-
-  if (!orderData) return (
-    <div className="min-h-screen bg-[#F8F9FD] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] p-12 text-center max-w-md shadow-2xl border border-gray-100">
-        <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-6 transform rotate-3">
-          <Package size={40} className="text-amber-500" />
-        </div>
-        <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Cart is Empty</h2>
-        <p className="text-gray-500 mb-8 font-medium">You need to add items to your cart before proceeding to shipping.</p>
-        <button
-          onClick={() => navigate("/")}
-          className="w-full bg-brand-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-brand-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-        >
-          Return to Store
-        </button>
       </div>
     </div>
   );
@@ -231,6 +261,24 @@ export default function Shipping() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
+        {!orderData && (
+          <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 mt-6">
+            <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl shrink-0">
+              <Info size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-black text-gray-900">Your Cart is Empty</h3>
+              <p className="text-sm text-gray-600 mt-1 font-medium">You still need to select a delivery address. Add items to your cart first, then continue to payment.</p>
+            </div>
+            <button
+              onClick={() => navigate("/viewcart")}
+              className="shrink-0 bg-brand-600 text-white px-5 py-3 rounded-xl font-black text-sm hover:bg-brand-700 transition-colors"
+            >
+              Go to Cart
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Left Column */}
@@ -245,6 +293,19 @@ export default function Shipping() {
               </div>
 
               <div className="grid grid-cols-1 gap-4">
+                {/* NO SAVED ADDRESS REMINDER */}
+                {savedAddresses.length === 0 && (
+                  <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                    <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl shrink-0">
+                      <Info size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-gray-900 text-sm">Add Your Delivery Address</h4>
+                      <p className="text-sm text-gray-600 mt-1 font-medium">You don't have a saved address yet. Enter one below so we know where to ship your order.</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* SAVED ADDRESSES LIST */}
                 {savedAddresses.length > 0 && (
                   <div className="space-y-4">
@@ -272,7 +333,12 @@ export default function Shipping() {
                             <div className="flex-1 min-w-0">
                                <div className="flex justify-between items-center mb-1">
                                   <span className="text-xs font-black uppercase tracking-tighter opacity-60">{addr.type}</span>
-                                  {addressMode === "saved" && selectedAddressId === addr._id && <CheckCircle2 className="text-brand-600" size={16} />}
+                                  {addressMode === "saved" && selectedAddressId === addr._id && (
+                                   <span className="inline-flex items-center gap-1 bg-brand-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                     <CheckCircle2 size={12} />
+                                     Selected
+                                   </span>
+                                 )}
                                </div>
                                <p className="font-black truncate text-sm">{addr.name}</p>
                                <p className="text-xs font-medium line-clamp-2 mt-0.5 opacity-80">{addr.addressLine1}{addr.addressLine2 ? `, ${addr.addressLine2}` : ''}, {addr.city}</p>
@@ -353,6 +419,28 @@ export default function Shipping() {
                                     onChange={(e) => setNewShippingInfo({...newShippingInfo, city: e.target.value})}
                                 />
                             </div>
+                            <div className="flex flex-col gap-3 pt-2">
+                                <label className="flex items-center gap-3 cursor-pointer select-none">
+                                    <input
+                                    type="checkbox"
+                                    checked={saveToAccount}
+                                    onChange={(e) => setSaveToAccount(e.target.checked)}
+                                    className="w-5 h-5 rounded-md border-gray-300 text-brand-600 focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                                    />
+                                    <span className="text-sm font-bold text-gray-700">Save my address to my account</span>
+                                </label>
+                                {saveToAccount && (
+                                    <label className="flex items-center gap-3 cursor-pointer select-none pl-8">
+                                        <input
+                                            type="checkbox"
+                                            checked={makeDefault}
+                                            onChange={(e) => setMakeDefault(e.target.checked)}
+                                            className="w-5 h-5 rounded-md border-gray-300 text-brand-600 focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                                        />
+                                        <span className="text-sm font-bold text-gray-700">Set as my default address</span>
+                                    </label>
+                                )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -407,6 +495,29 @@ export default function Shipping() {
                 ))}
               </div>
 
+              
+              <div className="px-4 py-3 bg-brand-50 border border-brand-100 rounded-2xl mb-6">
+                <p className="text-[11px] font-black text-brand-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <MapPin size={13} />
+                  Delivery to
+                </p>
+                {selectedAddress && (selectedAddress.addressLine1 || selectedAddress.city || selectedAddress.phone) ? (
+                  <div className="space-y-1 text-sm text-gray-800">
+                    <p className="font-black">{selectedAddress.name}</p>
+                    {(selectedAddress.addressLine1 || selectedAddress.city) && (
+                      <p className="font-medium text-gray-600">
+                        {selectedAddress.addressLine1}{selectedAddress.city ? `, ${selectedAddress.city}` : ''}
+                      </p>
+                    )}
+                    {selectedAddress.phone && (
+                      <p className="font-bold text-gray-700 flex items-center gap-1.5"><Phone size={13} />{selectedAddress.phone}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-gray-500">No address selected yet</p>
+                )}
+              </div>
+
               <div className="space-y-4 pt-6 border-t border-dashed border-gray-200">
                 <div className="flex justify-between items-center text-sm font-bold">
                   <span className="text-gray-400">Items Subtotal</span>
@@ -440,10 +551,11 @@ export default function Shipping() {
 
               <button
                 onClick={handleProceed}
-                className="w-full mt-8 py-5 bg-brand-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-brand-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.98]"
+                disabled={savingAddress}
+                className="w-full mt-8 py-5 bg-brand-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-brand-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Proceed to Payment
-                <ChevronRight size={22} />
+                {savingAddress ? 'Saving…' : 'Proceed to Payment'}
+                {!savingAddress && <ChevronRight size={22} />}
               </button>
 
               <div className="mt-6 flex items-center justify-center gap-3 px-4 py-3 bg-gray-50 rounded-2xl border border-gray-100">
