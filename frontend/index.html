@@ -87,6 +87,15 @@
           }
         }
 
+        /* Shared with React: once the homepage data has loaded (or failed),
+           the HomeContainer reveals the splash. The splash now covers the
+           data load, not just the theme. */
+        window.__revealBootSplash = reveal;
+
+        /* Only the home route loads its data in HomeContainer. Other routes
+           keep the old behavior (reveal after a short minimum display). */
+        var WAIT_FOR_DATA = location.pathname === '/';
+
         var settings = null;
         try {
           var raw = localStorage.getItem(LS_KEY);
@@ -105,6 +114,13 @@
 
         if (settings) {
           applyTheme(settings);
+          if (WAIT_FOR_DATA) {
+            /* Theme is cached, but the splash stays up until HomeContainer
+               loads the homepage data (it reveals itself). 10s safety net
+               so the splash can never trap the page. */
+            setTimeout(reveal, 10000);
+            return;
+          }
           setTimeout(reveal, MIN_DISPLAY_MS);
           return;
         }
@@ -125,15 +141,27 @@
             .then(function (res) { return res.json(); })
             .then(function (data) {
               clearTimeout(timeoutId);
-              reveal();
               if (data && data.success && data.settings) {
                 try { localStorage.setItem(LS_KEY, JSON.stringify(data.settings)); } catch (e) {}
                 applyTheme(data.settings);
               }
+              if (WAIT_FOR_DATA) {
+                /* Theme is applied; the splash now stays up until
+                   HomeContainer loads the homepage data (it reveals). */
+                setTimeout(reveal, 10000);
+              } else {
+                reveal();
+              }
             })
             .catch(function () {
               clearTimeout(timeoutId);
-              reveal();
+              if (WAIT_FOR_DATA) {
+                /* Settings fetch failed; React still mounts and HomeContainer
+                   will reveal once its data load finishes (or fails). */
+                setTimeout(reveal, 10000);
+              } else {
+                reveal();
+              }
             });
         } catch (e) { /* fetch unavailable — fall back to React path */ }
       })();

@@ -332,6 +332,10 @@ export default function HomeContainer() {
     setLoading(true);
     setFetchError(null);
     setPartialError(null);
+    // The boot splash waits for the homepage data, not just the theme.
+    // HomeContainer only renders on the "/" route, so revealing here is
+    // always correct.
+    const reveal = () => window.__revealBootSplash && window.__revealBootSplash();
 
     try {
       const results = await Promise.allSettled([
@@ -398,6 +402,8 @@ export default function HomeContainer() {
       setFetchError("Unable to load data. Please check your connection.");
     } finally {
       setLoading(false);
+      // Data is done (loaded or failed) — reveal the page underneath.
+      reveal();
     }
   };
 
