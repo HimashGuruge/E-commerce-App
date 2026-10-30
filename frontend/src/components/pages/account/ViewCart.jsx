@@ -409,7 +409,7 @@ export default function ViewCart() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-10 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="bg-amber-500 p-3 rounded-2xl shadow-lg shadow-amber-100">
+            <div className="bg-brand-600 p-3 rounded-2xl shadow-lg shadow-brand-100">
               <ShoppingBag className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-3xl font-black text-slate-900">Your Cart</h1>
@@ -581,7 +581,7 @@ export default function ViewCart() {
                   <h3 className="text-xl font-bold mb-4">Your cart is empty</h3>
                   <button
                     onClick={() => navigate("/")}
-                    className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black"
+                    className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-2xl font-black transition-colors"
                   >
                     Start Shopping
                   </button>
@@ -697,8 +697,8 @@ export default function ViewCart() {
                 <div
                   className={`flex items-center gap-2 p-3 rounded-xl border mb-4 text-sm font-bold ${
                     shipping === 0
-                      ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                      : "bg-amber-50 border-amber-100 text-amber-700"
+                      ? "bg-brand-50 border-brand-100 text-brand-700"
+                      : "bg-brand-50 border-brand-100 text-brand-700"
                   }`}
                 >
                   <Truck size={16} className="flex-shrink-0" />
@@ -728,7 +728,7 @@ export default function ViewCart() {
                   total <= 0 ||
                   orderedItems.some((item) => item.qty > item.stock)
                 }
-                className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.5rem] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 uppercase disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full bg-brand-600 text-white font-black py-5 rounded-[1.5rem] shadow-2xl hover:bg-brand-700 transition-all flex items-center justify-center gap-3 uppercase disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {loading
                   ? "Syncing..."
