@@ -28,9 +28,9 @@ const MEDIA_CONFIG = {
   minWidth: 750,
   minHeight: 250,
   recommendedWidth: 1920,
-  recommendedHeight: 640,
-  aspectRatio: 3 / 1,
-  aspectTolerance: 0.15,
+  recommendedHeight: 537,
+  aspectRatio: 3.57 / 1,
+  aspectTolerance: 0.7,
   imageTypes: ["image/jpeg", "image/png", "image/webp"],
   videoTypes: ["video/mp4", "video/webm", "video/quicktime"],
 };
@@ -54,7 +54,7 @@ const validateImage = (file) => {
         errors.push(`Height must be at least ${MEDIA_CONFIG.minHeight}px (current: ${height}px)`);
       }
       if (!isValidRatio) {
-        warnings.push(`Aspect ratio ${aspectRatio.toFixed(2)}:1 (recommended 3:1)`);
+        warnings.push(`Aspect ratio ${aspectRatio.toFixed(2)}:1 (recommended ${MEDIA_CONFIG.aspectRatio.toFixed(2)}:1)`);
       }
       if (width > 3840) {
         warnings.push(`Large image may affect load time. Consider ${MEDIA_CONFIG.recommendedWidth}px or less`);
@@ -670,7 +670,7 @@ export default function AdsManagement() {
                 </div>
 
                 <label className="block text-sm font-medium text-slate-600 mb-2">
-                  {mediaType === "image" ? "Banner Image" : "Banner Video"} {!editingAd && (mediaType === "image" ? "(3:1 Ratio Recommended)" : "")}
+                  {mediaType === "image" ? "Banner Image" : "Banner Video"} {!editingAd && (mediaType === "image" ? "(≈3.57:1 Ratio Recommended)" : "")}
                 </label>
                 <div className="relative border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-white transition-all cursor-pointer">
                   <input
@@ -692,7 +692,7 @@ export default function AdsManagement() {
                         </p>
                         <p className="text-xs text-slate-400 mt-1">
                           {mediaType === "image"
-                            ? `3:1 Ratio | Max ${MEDIA_CONFIG.maxSizeMB}MB | JPG, PNG, WebP`
+                            ? `≈3.57:1 Ratio | Max ${MEDIA_CONFIG.maxSizeMB}MB | JPG, PNG, WebP`
                             : `Max ${MEDIA_CONFIG.maxVideoSizeMB}MB | MP4, WebM, MOV`}
                         </p>
                       </>
@@ -774,7 +774,7 @@ export default function AdsManagement() {
                 <span className="text-xs font-medium text-slate-400 uppercase">Preview</span>
                 <span className="text-xs font-medium text-brand-400">{selectedCategoryName}</span>
               </div>
-              <div className="relative aspect-[3/1] bg-slate-800 rounded-xl overflow-hidden">
+              <div className="relative aspect-[1920/537] bg-slate-800 rounded-xl overflow-hidden">
                 {preview ? (
                   mediaType === "video" ? (
                     <video src={preview} className="w-full h-full object-cover" autoPlay muted loop playsInline />
@@ -873,7 +873,7 @@ export default function AdsManagement() {
                     onChange={() => toggleAdSelection(ad._id)}
                     className="w-4 h-4 text-brand-500 rounded border-slate-300 focus:ring-brand-500"
                   />
-                  <div className="w-32 aspect-[3/1] rounded-lg overflow-hidden bg-slate-200 flex-shrink-0 relative">
+                  <div className="w-32 aspect-[1920/537] rounded-lg overflow-hidden bg-slate-200 flex-shrink-0 relative">
                     {ad.mediaType === "video" ? (
                       <>
                         <video src={ad.videoUrl} className="w-full h-full object-cover" muted loop playsInline />
