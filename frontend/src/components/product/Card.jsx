@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
-import api from "@/utils/api";
 
 const formatPrice = (value) => {
   if (!value && value !== 0) return "0";
@@ -71,36 +70,21 @@ export default function Card({ productId, productName, price, sellingPrice, imag
     };
   }, [productId, token]);
 
-  const handleWishlistClick = async (e) => {
+  const handleWishlistClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!token) {
-      const local = JSON.parse(localStorage.getItem("myWishlist") || "[]");
-      const product = { productId, productName, price, sellingPrice, images, stock };
-      if (isWishlisted) {
-        const filtered = local.filter(p => p.productId !== productId);
-        localStorage.setItem("myWishlist", JSON.stringify(filtered));
-      } else {
-        local.push(product);
-        localStorage.setItem("myWishlist", JSON.stringify(local));
-      }
-      setIsWishlisted(!isWishlisted);
-      window.dispatchEvent(new Event("wishlistUpdated"));
-      return;
+    const local = JSON.parse(localStorage.getItem("myWishlist") || "[]");
+    const product = { productId, productName, price, sellingPrice, images, stock };
+    if (isWishlisted) {
+      const filtered = local.filter(p => p.productId !== productId);
+      localStorage.setItem("myWishlist", JSON.stringify(filtered));
+    } else {
+      local.push(product);
+      localStorage.setItem("myWishlist", JSON.stringify(local));
     }
-
-    try {
-      if (isWishlisted) {
-        await api.delete("/api/wishlist/remove", { params: { productId } });
-      } else {
-        await api.post("/api/wishlist/add", { productId });
-      }
-      setIsWishlisted(!isWishlisted);
-      window.dispatchEvent(new Event("wishlistUpdated"));
-    } catch (error) {
-      console.error("Wishlist toggle error:", error);
-    }
+    setIsWishlisted(!isWishlisted);
+    window.dispatchEvent(new Event("wishlistUpdated"));
   };
 
   return (
