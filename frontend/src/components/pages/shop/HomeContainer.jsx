@@ -445,7 +445,7 @@ export default function HomeContainer() {
       <div className="w-full bg-white">
         {/* Banner */}
         <div className="w-full bg-slate-900">
-          <div className="w-full pt-[56.25%] md:pt-[42.85%] lg:pt-[33.33%] animate-pulse bg-slate-800" />
+          <div className="w-full pt-[45%] md:pt-[36%] lg:pt-[28%] animate-pulse bg-slate-800" />
         </div>
 
         {/* Announcement strip (matches the loaded bar's height so the

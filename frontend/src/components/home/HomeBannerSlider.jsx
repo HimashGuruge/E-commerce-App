@@ -106,7 +106,7 @@ const HomeBannerSlider = ({ ads }) => {
       </div>
 
       <div className="relative w-full">
-        <div className="relative w-full pt-[56.25%] md:pt-[42.85%] lg:pt-[33.33%]">
+        <div className="relative w-full pt-[45%] md:pt-[36%] lg:pt-[28%]">
           {ads.map((ad, index) => (
             <div
               key={index}
