@@ -21,6 +21,15 @@ export default function WishlistPage() {
       const { data } = await api.get("/api/wishlist");
       setWishlist(data.products || []);
     } catch (error) {
+      // No server wishlist endpoint yet — fall back to the local wishlist,
+      // which the product page and product cards write to.
+      let local = [];
+      try {
+        local = JSON.parse(localStorage.getItem("myWishlist")) || [];
+      } catch (_e) {
+        local = [];
+      }
+      setWishlist(local);
       console.error("Fetch wishlist error:", error);
     } finally {
       setLoading(false);
@@ -40,8 +49,17 @@ export default function WishlistPage() {
       setWishlist((prev) => prev.filter((p) => (p._id || p.productId) !== productId));
       window.dispatchEvent(new Event("wishlistUpdated"));
     } catch (error) {
-      console.error("Remove from wishlist error:", error);
-      toast.error(getApiError(error, "Failed to update wishlist"));
+      // Fall back to the local wishlist (no server endpoint yet).
+      let local = [];
+      try {
+        local = JSON.parse(localStorage.getItem("myWishlist")) || [];
+      } catch (_e) {
+        local = [];
+      }
+      const filtered = local.filter((p) => p.productId !== productId);
+      localStorage.setItem("myWishlist", JSON.stringify(filtered));
+      setWishlist(filtered);
+      window.dispatchEvent(new Event("wishlistUpdated"));
     }
   };
 

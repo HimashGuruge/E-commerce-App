@@ -68,8 +68,20 @@ export default function FlashSaleManagement() {
     buttonText: "",
     buttonColor: "",
     buttonBorderColor: "",
+    timerEnabled: false,
+    timerText: "Ends in",
+    endsAt: "",
   });
   const [savingHeader, setSavingHeader] = useState(false);
+
+  // datetime-local needs "YYYY-MM-DDTHH:mm" in local time
+  const toLocalInput = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -97,6 +109,9 @@ export default function FlashSaleManagement() {
         buttonText: fs.buttonText || "",
         buttonColor: fs.buttonColor || "",
         buttonBorderColor: fs.buttonBorderColor || "",
+        timerEnabled: fs.timerEnabled || false,
+        timerText: fs.timerText || "Ends in",
+        endsAt: toLocalInput(fs.endsAt),
       });
     } catch (err) {
       console.error("Failed to load flash sale header settings:", err);
@@ -106,7 +121,12 @@ export default function FlashSaleManagement() {
   const handleSaveHeader = async () => {
     setSavingHeader(true);
     try {
-      const res = await api.put("/api/settings", { flashSale: header });
+      const payload = {
+        ...header,
+        // store a real date (or null when no end time / timer off)
+        endsAt: header.endsAt ? new Date(header.endsAt).toISOString() : null,
+      };
+      const res = await api.put("/api/settings", { flashSale: payload });
       if (res.data?.success) {
         toast.success("Flash sale header style saved");
         invalidatePublicSettings();
@@ -353,6 +373,40 @@ export default function FlashSaleManagement() {
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Countdown timer</label>
+            <select
+              value={header.timerEnabled ? "on" : "off"}
+              onChange={(e) => setHeader((h) => ({ ...h, timerEnabled: e.target.value === "on" }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+            >
+              <option value="off">Off (no timer)</option>
+              <option value="on">On (show in bottom bar)</option>
+            </select>
+            <p className="mt-1 text-[11px] text-slate-400">When on, the homepage shows a live countdown below the flash sale cards.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Timer label</label>
+            <input
+              type="text"
+              value={header.timerText}
+              placeholder="Ends in"
+              disabled={!header.timerEnabled}
+              onChange={(e) => setHeader((h) => ({ ...h, timerText: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none disabled:opacity-50 disabled:bg-slate-50"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Sale ends at</label>
+            <input
+              type="datetime-local"
+              value={header.endsAt}
+              disabled={!header.timerEnabled}
+              onChange={(e) => setHeader((h) => ({ ...h, endsAt: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none disabled:opacity-50 disabled:bg-slate-50"
+            />
+            <p className="mt-1 text-[11px] text-slate-400">Uses the visitor's browser time zone for display. The countdown stops at this time.</p>
+          </div>
         </div>
 
         {/* Live preview */}
@@ -374,6 +428,35 @@ export default function FlashSaleManagement() {
                 borderColor: h.buttonBorderColor || c,
                 color: h.buttonColor || c,
               };
+              if (header.timerEnabled) {
+                return (
+                  <div>
+                    <div className="bg-white border border-slate-100 rounded-t-xl px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {h.emoji ? (
+                          <span className="text-base leading-none">{h.emoji}</span>
+                        ) : (
+                          <span style={{ color: c }}>✦</span>
+                        )}
+                        <div className="font-black uppercase tracking-wider" style={headerStyle}>
+                          {titleText}
+                        </div>
+                      </div>
+                      <span className="text-center text-xs font-black uppercase border-2 px-3 py-1.5 rounded-full" style={buttonStyle}>
+                        {btnText}
+                      </span>
+                    </div>
+                    <div className="bg-white border border-t-0 border-slate-100 rounded-b-xl px-4 py-3 flex items-center justify-between">
+                      <div className="font-black tracking-wide" style={headerStyle}>
+                        {h.timerText || "Ends in"} 00:00:00
+                      </div>
+                      <span className="text-center text-xs font-black uppercase border-2 px-3 py-1.5 rounded-full" style={buttonStyle}>
+                        {btnText}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div className="bg-white border border-slate-100 rounded-xl px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">

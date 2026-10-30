@@ -195,8 +195,8 @@ export default function ProductOverview() {
   };
 
   const askQuestion = async () => {
-    const { user } = getCurrentUser();
-    if (!user?.email) {
+    const { token } = getCurrentUser();
+    if (!token) {
       Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to ask a question' });
       return;
     }
@@ -1262,7 +1262,7 @@ export default function ProductOverview() {
                         addToWishlistLocal(productToWishlist);
                       }
                       setIsWishlisted(!isWishlisted);
-                      window.dispatchEvent(new Event("wishlistUpdate"));
+                      window.dispatchEvent(new Event("wishlistUpdated"));
                     }}
                     className={`p-1.5 rounded-full transition hover:bg-gray-100 ${isWishlisted ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'}`}
                     title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
@@ -2025,8 +2025,8 @@ export default function ProductOverview() {
             <h2 className="text-sm font-bold text-gray-900">Questions & Answers</h2>
             <button
               onClick={() => {
-                const { user } = getCurrentUser();
-                if (!user?.email) {
+                const { token } = getCurrentUser();
+                if (!token) {
                   Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to ask a question' });
                   return;
                 }

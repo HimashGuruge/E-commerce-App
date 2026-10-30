@@ -10,6 +10,32 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
   const fsSettings = settings?.flashSale || {};
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState(null); // null = not ready, "ended" = sale over, else "HH:MM:SS"
+
+  // Live countdown to the admin-set end time (settings push live via Socket.IO)
+  useEffect(() => {
+    if (!fsSettings.timerEnabled || !fsSettings.endsAt) {
+      setCountdown(null);
+      return;
+    }
+    const endMs = new Date(fsSettings.endsAt).getTime();
+
+    const tick = () => {
+      let total = Math.floor((endMs - Date.now()) / 1000);
+      if (isNaN(total) || total <= 0) {
+        setCountdown("ended");
+        return;
+      }
+      const h = Math.floor(total / 3600);
+      total %= 3600;
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      setCountdown(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [fsSettings.timerEnabled, fsSettings.endsAt]);
 
   // Load the admin-picked header font (does not touch the site-wide font).
   useEffect(() => {
@@ -204,6 +230,29 @@ export default function FlashSale({ limit = 10, title = "On Sale Now" }) {
           })}
         </div>
       </div>
+
+      {/* Bottom bar — mirrors the top header, only when admin turned the timer on */}
+      {fsSettings.timerEnabled && (
+        <div
+          className="card-fs-content-header flex items-center justify-between px-4 py-3"
+          style={{ backgroundColor: "#fff" }}
+        >
+          <div className="fs-status-text font-black tracking-wide" style={headerStyle}>
+            {countdown === "ended"
+              ? "Sale Ended"
+              : countdown
+                ? `${fsSettings.timerText || "Ends in"} ${countdown}`
+                : "On Sale"}
+          </div>
+          <Link
+            to="/shop?sort=discount"
+            className="pc-custom-link shopMoreBtn text-center text-xs font-black uppercase"
+            style={buttonStyle}
+          >
+            {fsSettings.buttonText || "Shop All Products"}
+          </Link>
+        </div>
+      )}
     </section>
   );
 }
