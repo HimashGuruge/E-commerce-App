@@ -75,12 +75,23 @@ export default function Notification() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newMessageArrived, setNewMessageArrived] = useState(false);
   const [toast, setToast] = useState(null);
+  const [flashUserId, setFlashUserId] = useState(null);
 
   const threadEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const activeUserIdRef = useRef(null);
   const liveUpdatesRef = useRef(true);
   const prevCountRef = useRef(0);
+  const prevLatestRef = useRef({});
+  const suppressNextRef = useRef(false);
+  const flashTimeoutRef = useRef(null);
+
+  const flashUser = useCallback((userId) => {
+    if (!userId) return;
+    setFlashUserId(userId);
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = setTimeout(() => setFlashUserId(null), 2500);
+  }, []);
 
   useEffect(() => {
     activeUserIdRef.current = activeUserId;
@@ -106,14 +117,41 @@ export default function Notification() {
       const list = Array.isArray(data) ? data : data?.data || [];
       const users = (Array.isArray(list) ? list : []).filter((n) => n?.userId);
 
-      if (
-        prevCountRef.current > 0 &&
-        users.length > prevCountRef.current &&
-        liveUpdatesRef.current
-      ) {
+      // Detect brand-new conversations (a user who wasn't in the list before)
+      let newUser = null;
+      if (prevCountRef.current > 0) {
+        newUser = users.find((u) => !prevLatestRef.current[u.userId]);
+      }
+
+      // Detect new messages inside EXISTING conversations by comparing each
+      // user's latest message snapshot to the previous one
+      let newMsgUser = null;
+      if (prevLatestRef.current) {
+        const latest = {};
+        for (const u of users) {
+          latest[u.userId] = {
+            key: `${u.message || ""}|${u.sentAt || u.createdAt || u.updatedAt || ""}`,
+          };
+          const prev = prevLatestRef.current[u.userId];
+          if (prev && prev.key !== latest[u.userId].key) newMsgUser = newMsgUser || u;
+        }
+        prevLatestRef.current = latest;
+      }
+
+      // Skip the flash/toast triggered by our own action (e.g. right after
+      // opening a conversation or replying)
+      if (!suppressNextRef.current && (newUser || newMsgUser) && liveUpdatesRef.current) {
+        const arrived = newUser || newMsgUser;
         setNewMessageArrived(true);
         setTimeout(() => setNewMessageArrived(false), 5000);
+        if (arrived) {
+          flashUser(arrived.userId);
+          if (arrived.userId !== activeUserIdRef.current) {
+            setToast(`🔔 New message from ${arrived.userName || "a customer"}`);
+          }
+        }
       }
+      suppressNextRef.current = false;
       prevCountRef.current = users.length;
 
       setConversations(users);
@@ -125,7 +163,7 @@ export default function Notification() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [flashUser]);
 
   const fetchThread = useCallback(async (userId, force = false) => {
     try {
@@ -143,17 +181,34 @@ export default function Notification() {
 
   useEffect(() => {
     fetchConversations();
+    return () => {
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    };
   }, [fetchConversations]);
 
   // Real-time: refresh the list and the open thread when the backend pushes
   // a new user message. The Live toggle controls this subscription.
   useEffect(() => {
     if (!liveUpdates) return undefined;
-    return onSocketEvent(["chat:unseen-user", "chat:new-message"], () => {
-      fetchConversations();
-      if (activeUserIdRef.current) fetchThread(activeUserIdRef.current);
-    });
-  }, [liveUpdates, fetchConversations, fetchThread]);
+    return onSocketEvent(
+      ["chat:unseen-user", "chat:new-message"],
+      (payload) => {
+        // Instant feedback straight from the socket payload: show the
+        // "new message" toast + flash the row before the refetch settles.
+        const userId = payload?.userId;
+        const name = payload?.userName;
+        if (name && userId) {
+          setToast(`🔔 New message from ${name}`);
+          flashUser(userId);
+        }
+        // The refetch below would also detect the new message; suppress
+        // that pass so we don't double-signal.
+        suppressNextRef.current = true;
+        fetchConversations();
+        if (activeUserIdRef.current) fetchThread(activeUserIdRef.current);
+      }
+    );
+  }, [liveUpdates, fetchConversations, fetchThread, flashUser]);
 
   // Click a conversation -> show its full message/thread + mark it read
   const openConversation = (notification) => {
@@ -445,7 +500,11 @@ export default function Notification() {
                   key={c.userId}
                   onClick={() => openConversation(c)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-                    activeUserId === c.userId ? "bg-brand-50" : "hover:bg-slate-50"
+                    flashUserId === c.userId
+                      ? "bg-green-50 ring-2 ring-green-400 animate-pulse"
+                      : activeUserId === c.userId
+                        ? "bg-brand-50"
+                        : "hover:bg-slate-50"
                   }`}
                 >
                   <div className="relative w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-brand-100">
