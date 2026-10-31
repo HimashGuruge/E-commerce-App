@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Eye, EyeOff, HelpCircle, MessageSquare } from "lucide-react";
+import { Trash2, Eye, EyeOff, HelpCircle, MessageSquare, Info, ChevronDown, ChevronUp } from "lucide-react";
 import Swal from "sweetalert2";
 import { onSocketEvent } from "@/utils/socket";
 
@@ -10,6 +10,7 @@ export default function QuestionsManagement() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [showGuide, setShowGuide] = useState(false);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -99,6 +100,64 @@ export default function QuestionsManagement() {
           </span>
           Live
         </span>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden mb-4 sm:mb-6">
+        <button
+          onClick={() => setShowGuide((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Info size={18} className="text-blue-500" />
+            How to use this page (quick guide)
+          </span>
+          {showGuide ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+        {showGuide && (
+          <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+            <div>
+              <p className="font-semibold mb-1.5">Where do questions come from?</p>
+              <p className="leading-relaxed">
+                Customers ask them on the <strong>product page</strong> — in the{" "}
+                <strong>Questions &amp; Answers</strong> tab (logged-in customers only). Every question
+                here belongs to a product — click the product name under a question to jump straight to it.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">How to reply to a question (3 steps)</p>
+              <ol className="list-decimal list-inside space-y-1 leading-relaxed">
+                <li>Open the product page (click the blue product link on the question card).</li>
+                <li>Go to the <strong>Questions &amp; Answers</strong> tab and click <strong>Answer</strong> under the question.</li>
+                <li>Write your reply and submit — it appears on the product page instantly for <em>all</em> customers, including the one who asked.</li>
+              </ol>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">Understanding each question card</p>
+              <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                <li><strong>Name + date</strong> — who asked and when.</li>
+                <li><strong>Status</strong> — <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">active</span> = visible on the product page; <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">hidden</span> = customers can't see it (it's still saved).</li>
+                <li><strong>Answer count</strong> — how many replies the question has so far.</li>
+                <li><strong>Product link</strong> — where the question was asked; click it to manage it.</li>
+                <li><strong>Grey box under the question</strong> — preview of the replies already given.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">The two buttons on each card</p>
+              <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                <li><strong>👁 Eye icon</strong> — hide or show the question to customers (hiding is instant; the question data is kept).</li>
+                <li><strong>🗑 Trash icon</strong> — permanently deletes the question <em>and all its answers</em>. There is no undo — hide it instead if you just want to clean up the product page.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">Useful tips</p>
+              <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                <li>The <strong>Live</strong> badge in the header is real: the list refreshes automatically when a question is asked, answered, hidden, or deleted — no need to reload.</li>
+                <li>Use the <strong>All / Active / Hidden</strong> tabs to filter the list (e.g. to find unanswered or hidden questions).</li>
+                <li>Use <strong>Hide</strong> for spam or off-topic questions — you lose no data.</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
