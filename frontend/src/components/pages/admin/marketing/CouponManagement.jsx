@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiSearch, FiTag } from "react-icons/fi";
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiSearch, FiTag, FiInfo, FiChevronDown, FiChevronUp } from "react-icons/fi";
 
 const emptyForm = {
   code: "",
@@ -22,6 +22,7 @@ export default function CouponManagement() {
   const [formData, setFormData] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const [apiError, setApiError] = useState("");
+  const [showGuide, setShowGuide] = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -164,6 +165,61 @@ export default function CouponManagement() {
         </button>
       </div>
 
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setShowGuide((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <FiInfo size={18} className="text-blue-500" />
+            How to use this page (quick guide)
+          </span>
+          {showGuide ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+        </button>
+        {showGuide && (
+          <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+            <div>
+              <p className="font-semibold mb-1.5">Where do customers enter coupons?</p>
+              <p className="leading-relaxed">
+                In the <strong>View Cart</strong> page — there's a "Coupon" box with an Apply button.
+                They can also enter a code at checkout. Codes are case-insensitive (a customer can
+                type <code className="font-mono bg-blue-100 px-1 rounded">save10</code> and it still matches <code className="font-mono bg-blue-100 px-1 rounded">SAVE10</code>).
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">How to create your first coupon (5 steps)</p>
+              <ol className="list-decimal list-inside space-y-1 leading-relaxed">
+                <li>Click <strong>Add Coupon</strong> (top-right).</li>
+                <li>Enter a <strong>Code</strong> — short and memorable, e.g. <code className="font-mono bg-blue-100 px-1 rounded">SAVE10</code>.</li>
+                <li>Pick the <strong>Type</strong>: percentage off, fixed amount off, or free shipping — then set the value.</li>
+                <li>Set the rules: <strong>Min order</strong> (cart must be at least this much), <strong>Max uses</strong> (0 = unlimited), and an optional <strong>expiry</strong>.</li>
+                <li>Click <strong>Add</strong>. The coupon is live immediately — test it from a customer cart.</li>
+              </ol>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">Understanding the table columns</p>
+              <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                <li><strong>Code</strong> — the code customers type; the line under it is your private note (customers never see it).</li>
+                <li><strong>Discount</strong> — what the coupon does (e.g. "10% (max Rs. 500)" or "Rs. 500").</li>
+                <li><strong>Min order</strong> — minimum cart value required to use it; "—" means no minimum.</li>
+                <li><strong>Uses</strong> — how many times it's been used vs. the limit (e.g. 3 / 50). "∞" = unlimited.</li>
+                <li><strong>Expires</strong> — when it stops working (or "Never").</li>
+                <li><strong>Status</strong> — <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">active</span> works now, <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">inactive</span> is switched off by you, <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">expired</span> ran out of time. Click the badge to turn it on/off.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1.5">Important things to know</p>
+              <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                <li>Percentage coupons: set <strong>Max discount</strong> to cap the discount (e.g. 20% off but never more than Rs. 1,000). Leave 0 for no cap.</li>
+                <li><strong>Free shipping</strong> coupons: they remove the delivery fee; no discount value is needed.</li>
+                <li>Deleting a coupon does <em>not</em> change orders that already used it.</li>
+                <li>Coupons only apply to logged-in customers, and only one coupon per order.</li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+
       {apiError && (
         <div className="px-4 py-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">
           {apiError}
@@ -283,6 +339,10 @@ export default function CouponManagement() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              <p className="text-xs text-slate-500 -mt-1 leading-relaxed">
+                A coupon lets customers type a code at checkout to get a discount. It works
+                immediately after saving — even while this modal is open.
+              </p>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Code</label>
                 <input

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "@/utils/api";
-import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiDownload } from "react-icons/fi";
+import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiDownload, FiInfo, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 export default function ReturnsManagement() {
@@ -10,6 +10,7 @@ export default function ReturnsManagement() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     fetchReturns();
@@ -137,9 +138,58 @@ export default function ReturnsManagement() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-black text-gray-900 mb-2">Return Requests</h1>
           <p className="text-gray-600">Manage customer return requests and process refunds</p>
+        </div>
+
+        {/* Quick Guide */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl overflow-hidden mb-8">
+          <button
+            onClick={() => setShowGuide((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <FiInfo size={18} className="text-blue-500" />
+              How to use this page (quick guide)
+            </span>
+            {showGuide ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+          </button>
+          {showGuide && (
+            <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+              <div>
+                <p className="font-semibold mb-1.5">How does a return work (step by step)?</p>
+                <ol className="list-decimal list-inside space-y-1 leading-relaxed">
+                  <li>The customer requests a return from their account — it appears here as <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">pending</span> and the sidebar shows a "PENDING" badge.</li>
+                  <li>Click <strong>Approve</strong> — the customer is messaged that the return is approved.</li>
+                  <li>When the return is approved, click <strong>Process Refund</strong> — the requested refund amount is set, the status becomes <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">processing</span>, and the returned items are put back in stock automatically.</li>
+                  <li>Click <strong>Complete</strong> once the refund is actually paid out — the status becomes <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">refunded</span>. The flow ends here.</li>
+                </ol>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Understanding the table columns</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li><strong>ID</strong> — short return number (last 8 characters).</li>
+                  <li><strong>Customer</strong> — who requested the return (name + email).</li>
+                  <li><strong>Order</strong> — the order the returned items came from.</li>
+                  <li><strong>Items</strong> — which products are being returned and how many.</li>
+                  <li><strong>Reason</strong> — why the customer wants the return (e.g. Defective, Damaged on Arrival).</li>
+                  <li><strong>Amount</strong> — the refund amount in Rs.</li>
+                  <li><strong>Status</strong> — where the return is in the workflow (see above).</li>
+                  <li><strong>Actions</strong> — the button to click for the next step of this return.</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Useful tips</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li>Only <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">pending</span>, <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">approved</span> and <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">processing</span> rows have action buttons — finished ones just stay in the list.</li>
+                  <li>The top filter buttons let you view only one status at a time (e.g. click <strong>Pending</strong> to see everything waiting for you).</li>
+                  <li>The stats cards only count the rows on the current page (10 per page), so big numbers may look smaller on page 1.</li>
+                  <li>Every approve/reject decision sends a message to the customer automatically — no separate notification needed.</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}

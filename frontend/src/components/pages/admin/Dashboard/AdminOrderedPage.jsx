@@ -24,6 +24,7 @@ import {
   FiZap,
   FiMail,
   FiFilter,
+  FiInfo,
   FiX,
   FiGrid,
   FiList,
@@ -93,6 +94,7 @@ export default function AdminOrderedPage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [tempSearch, setTempSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showGuide, setShowGuide] = useState(false);
 
   const itemsPerPage = 10;
 
@@ -469,6 +471,60 @@ export default function AdminOrderedPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden mb-4">
+          <button
+            onClick={() => setShowGuide((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <FiInfo size={18} className="text-blue-500" />
+              How to use this page (quick guide)
+            </span>
+            {showGuide ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+          </button>
+          {showGuide && (
+            <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+              <div>
+                <p className="font-semibold mb-1.5">What this page is for</p>
+                <p className="leading-relaxed">
+                  This is the full order list for your store. Every customer order shows here as soon as
+                  it's placed (the list updates in real-time). You move each order through its life cycle
+                  here — the customer is automatically notified in their account whenever you change a status.
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">How to manage an order (4 steps)</p>
+                <ol className="list-decimal list-inside space-y-1 leading-relaxed">
+                  <li>In the <strong>Status</strong> column, pick the status from the dropdown: <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">pending</span> → <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">processing</span> → <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-600 border border-purple-100">shipped</span> → <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">delivered</span>.</li>
+                  <li>Before marking an order <strong>shipped</strong>, type the courier's <strong>Tracking No.</strong> into the box under the status and save — the save happens automatically when you move to another field (or press the save icon in card view).</li>
+                  <li>Once an order is shipped, you can open the <strong>Track</strong> link to check it live on Domex.</li>
+                  <li>If an order fails or is cancelled, a red <strong>Delete</strong> button appears — this permanently removes the record.</li>
+                </ol>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Understanding the table columns</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li><strong>#</strong> — the order ID (e.g. #4821). This is what customers see in their own order history.</li>
+                  <li><strong>Customer</strong> — the delivery name (falling back to the account name for guest checkouts).</li>
+                  <li><strong>Date</strong> — when the order was placed.</li>
+                  <li><strong>Status</strong> — the current stage of the order; the dropdown changes it. Marking it "shipped" without a tracking number is blocked on purpose.</li>
+                  <li><strong>Amount</strong> — the total charged to the customer. Note: for COD orders, "delivered" only creates a pending cash-settlement record — the money isn't counted as collected until it's verified in Payouts.</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Useful things to know</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li>Switch to <strong>card view</strong> (grid icon, top-right) for a bigger interface with full order details per order — the table view is faster for bulk status updates.</li>
+                  <li>Use the <strong>search box</strong> to find an order by its number or the customer's name, and the <strong>status tabs</strong> to jump to only one status (e.g. only Pending orders).</li>
+                  <li>Changing a status to <strong>cancelled</strong> on a COD order marks its pending cash settlement as failed.</li>
+                  <li>When an order first becomes <strong>delivered</strong>, the customer automatically gets a review reminder.</li>
+                  <li>Pagination shows 10 orders per page; the status-tab counts reflect all orders, not just the current page.</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 mb-4">

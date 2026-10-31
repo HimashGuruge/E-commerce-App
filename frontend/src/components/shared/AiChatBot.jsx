@@ -347,11 +347,19 @@ export default function ChatBot() {
   // Unread chat badge - with lazy init to reset on mount
   const [chatUnreadCount, setChatUnreadCount] = useState(() => 0);
 
+  const rememberDefaultTitle = () => {
+    if (!window.__defaultDocTitle) window.__defaultDocTitle = document.title;
+  };
+  const restoreDefaultTitle = () => {
+    if (window.__defaultDocTitle) document.title = window.__defaultDocTitle;
+  };
+
   useEffect(() => {
     if (chatUnreadCount > 0) {
       document.title = `(${chatUnreadCount}) AI Chat`;
+      rememberDefaultTitle();
     } else {
-      document.title = "AI Chat";
+      restoreDefaultTitle();
     }
   }, [chatUnreadCount]);
 
