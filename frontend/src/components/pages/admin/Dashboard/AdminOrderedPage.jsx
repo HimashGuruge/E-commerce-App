@@ -83,6 +83,7 @@ const STATUS_CONFIG = {
 export default function AdminOrderedPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [tempTracking, setTempTracking] = useState({});
   const [editingOrderId, setEditingOrderId] = useState(null);
@@ -99,15 +100,18 @@ export default function AdminOrderedPage() {
     loadAllOrders();
   }, []);
 
-  const loadAllOrders = async () => {
-    setLoading(true);
+  const loadAllOrders = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    if (silent) setRefreshing(true);
     try {
       const res = await api.get("/api/orders/userplace/orders");
       setOrders(res.data.orders);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
+      if (silent) toast.error("Failed to refresh orders");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+      if (silent) setRefreshing(false);
     }
   };
 
@@ -127,7 +131,7 @@ export default function AdminOrderedPage() {
         setEditingOrderId((prev) => (prev === orderId ? null : prev));
       }
       toast.success(`Order marked as ${status}`);
-      loadAllOrders();
+      loadAllOrders({ silent: true });
     } catch (err) {
       console.error("Update error:", err);
       toast.error("Failed to update order");
@@ -151,7 +155,7 @@ export default function AdminOrderedPage() {
       try {
         await api.delete(`/api/orders/admin/failed-order/${orderId}`);
         toast.success("Order deleted");
-        loadAllOrders();
+        loadAllOrders({ silent: true });
       } catch (err) {
         console.error("Delete error:", err);
         toast.error("Failed to delete order");
@@ -425,8 +429,14 @@ export default function AdminOrderedPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
               Orders <span className="text-brand-600">Central</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
               Manage and track your customer orders in real-time.
+              {refreshing && (
+                <span className="inline-flex items-center gap-1 text-emerald-600">
+                  <FiRefreshCw className="animate-spin" size={13} />
+                  <span className="text-[10px] font-bold uppercase">syncing</span>
+                </span>
+              )}
             </p>
           </div>
 
