@@ -626,20 +626,22 @@ export default function HomeContainer() {
                     return (
                       <span key={item._id} className="flex items-center gap-2.5 shrink-0 whitespace-nowrap" style={announcementItemStyle(item.style, announcementSettings)}>
                         <IconByName name={item.icon} size={15} className="shrink-0" style={{ color: itemColor, opacity: 0.7 }} />
-                        {String(item.text).split(/(\s+)/).map((word, i) =>
-                          /^[A-Z][A-Z0-9_-]{3,}$/.test(word) ? (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-md text-xl font-black bg-white/20 ring-1 ring-current"
-                              style={{ color: itemColor }}
-                            >
-                            {word}
-                          </span>
-                        ) : (
-                          <span key={i}>{word}</span>
-                        )
-                      )}
-                    </span>
+                        <span>
+                          {String(item.text).split(/(\s+)/).map((word, i) =>
+                            /^[A-Z][A-Z0-9_-]{3,}$/.test(word) ? (
+                              <span
+                                key={i}
+                                className="px-1.5 py-0.5 mx-0.5 rounded-md text-xl font-black bg-white/20 ring-1 ring-current"
+                                style={{ color: itemColor }}
+                              >
+                                {word}
+                              </span>
+                            ) : (
+                              word
+                            )
+                          )}
+                        </span>
+                      </span>
                   );
                 })}
               </div>
