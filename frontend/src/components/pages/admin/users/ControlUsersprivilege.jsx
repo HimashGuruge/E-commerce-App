@@ -20,6 +20,7 @@ import {
 } from "react-icons/fi";
 import { FaCrown } from "react-icons/fa";
 import { TbUserShield, TbUserOff } from "react-icons/tb";
+import { Info, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { onSocketEvent } from "@/utils/socket";
 
@@ -37,6 +38,7 @@ export default function ControlUsersprivilege() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -310,6 +312,68 @@ export default function ControlUsersprivilege() {
             </span>
             Live
           </span>
+        </div>
+
+        {/* Quick Guide */}
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowGuide((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Info size={18} className="text-blue-500" />
+              How to use this page (quick guide)
+            </span>
+            {showGuide ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {showGuide && (
+            <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+              <div>
+                <p className="font-semibold mb-1.5">What you can do on this page</p>
+                <p className="leading-relaxed">
+                  Manage every user on the site — change their <strong>role</strong>, <strong>suspend or reactivate</strong>
+                  them, edit their details, or <strong>delete</strong> them. The <strong>Live</strong> badge is real: the
+                  list updates automatically when any user signs up or changes — no reload needed. Your own admin
+                  account never appears here and cannot be modified.
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Quick filters (3 steps)</p>
+                <ol className="list-decimal list-inside space-y-1 leading-relaxed">
+                  <li>Use the <strong>search box</strong> to find a user by name or email.</li>
+                  <li>Use the <strong>role tabs</strong> (All / Customers / Sellers / Admins) and the <strong>status tabs</strong> (All / Active / Suspended) to narrow the list.</li>
+                  <li>The <strong>stats cards</strong> at the top show the total, active users, and admins at a glance.</li>
+                </ol>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Understanding each row</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li><strong>Name + email</strong> — who the user is and their contact email.</li>
+                  <li><strong>Role dropdown</strong> — change the user between <em>customer</em>, <em>seller</em>, and <em>admin</em>. A <strong>👑 Main Admin</strong> badge marks the protected main account, and a <strong>Sub Admin</strong> badge marks other admins — their role is locked.</li>
+                  <li><strong>Status badge</strong> — click it to <strong>suspend</strong> an active user (they can no longer log in or order) or <strong>activate</strong> them again. Suspended users show a red badge.</li>
+                  <li><strong>Joined</strong> — the date the user signed up.</li>
+                  <li><strong>Actions</strong> — appear on hover: <strong>✏ Edit</strong> (name and phone; email is fixed) and <strong>🗑 Delete</strong> (permanent, no undo).</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Bulk actions</p>
+                <p className="leading-relaxed">
+                  Tick the <strong>checkboxes</strong> on the users you want to affect (or the box in the header to pick
+                  everyone on this page) and a green action bar appears with <strong>Activate</strong>, <strong>Suspend</strong>,
+                  and <strong>Delete</strong>. Use it to clean up many accounts at once. Main Admin checkboxes are always disabled.
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1.5">Useful tips</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li>Every role change, suspend, and delete asks you to <strong>confirm first</strong> — nothing happens by accident.</li>
+                  <li>A <strong>suspended</strong> user keeps all their data; they just can't log in until you activate them again.</li>
+                  <li>Deleting a user is permanent — their profile and order history links are affected, so suspend first if you are unsure.</li>
+                  <li>Page through large lists with the pagination buttons at the bottom of the table.</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
