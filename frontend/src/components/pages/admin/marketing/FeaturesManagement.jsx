@@ -36,10 +36,10 @@ const COLOR_OPTIONS = [
 ];
 
 const INPUT_CLASS =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition";
+  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition";
 
 const SELECT_CLASS =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition";
+  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition";
 
 export default function FeaturesManagement() {
   const [features, setFeatures] = useState([]);
@@ -177,7 +177,7 @@ export default function FeaturesManagement() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
             <Award size={26} />
           </div>
           <div>
@@ -209,7 +209,7 @@ export default function FeaturesManagement() {
         <div className="xl:col-span-7 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-100">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              {editingId ? <Pencil size={18} className="text-emerald-600" /> : <Plus size={18} className="text-emerald-600" />}
+              {editingId ? <Pencil size={18} className="text-brand-600" /> : <Plus size={18} className="text-brand-600" />}
               {editingId ? "Edit Feature" : "Create New Feature"}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -371,7 +371,7 @@ export default function FeaturesManagement() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-5 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <><Loader2 className="animate-spin" size={19} /> {editingId ? "Updating..." : "Creating..."}</>
@@ -402,11 +402,11 @@ export default function FeaturesManagement() {
           <div className="p-6">
             {loading && !features.length ? (
               <div className="min-h-[420px] flex items-center justify-center">
-                <Loader2 className="animate-spin text-emerald-600" size={40} />
+                <Loader2 className="animate-spin text-brand-600" size={40} />
               </div>
             ) : features.length === 0 ? (
               <div className="min-h-[420px] flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-5">
+                <div className="w-20 h-20 rounded-3xl bg-brand-50 text-brand-600 flex items-center justify-center mb-5">
                   <Layers size={36} />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">
@@ -415,7 +415,7 @@ export default function FeaturesManagement() {
                 <p className="text-sm text-gray-500 max-w-[260px] mt-2 leading-relaxed">
                   Your homepage features will appear here. Create your first feature to get started.
                 </p>
-                <div className="mt-6 flex items-center gap-2 text-sm font-medium text-emerald-600">
+                <div className="mt-6 flex items-center gap-2 text-sm font-medium text-brand-600">
                   <Plus size={17} />
                   Start by creating a feature
                 </div>
@@ -430,7 +430,7 @@ export default function FeaturesManagement() {
                       key={feature._id || feature.id}
                       className={`rounded-xl p-4 border transition-all ${
                         isEditing
-                          ? "bg-emerald-50/50 border-emerald-400 ring-1 ring-emerald-500"
+                          ? "bg-brand-50/50 border-brand-400 ring-1 ring-brand-500"
                           : "bg-gray-50/50 border-gray-200 hover:border-gray-300"
                       }`}
                     >
@@ -469,10 +469,10 @@ export default function FeaturesManagement() {
                         <div className="flex gap-2 flex-shrink-0">
                           <button
                             onClick={() => handleEdit(feature)}
-                            className="p-2 bg-white hover:bg-emerald-50 rounded-lg transition-colors border border-gray-200"
+                            className="p-2 bg-white hover:bg-brand-50 rounded-lg transition-colors border border-gray-200"
                             title="Edit"
                           >
-                            <Pencil size={16} className="text-emerald-600" />
+                            <Pencil size={16} className="text-brand-600" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(feature._id || feature.id)}

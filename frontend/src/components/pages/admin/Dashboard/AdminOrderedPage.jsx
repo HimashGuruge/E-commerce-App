@@ -2,33 +2,22 @@ import React, { useEffect, useState } from "react";
 import api from "@/utils/api";
 import {
   FiRefreshCw,
-  FiPackage,
-  FiUser,
-  FiMapPin,
-  FiPhone,
-  FiShoppingCart,
+  FiClock,
   FiTruck,
   FiCheckCircle,
-  FiClock,
   FiXCircle,
-  FiArrowRight,
   FiSearch,
   FiChevronDown,
   FiChevronUp,
   FiEdit2,
   FiSave,
-  FiPrinter,
-  FiAlertCircle,
-  FiBox,
   FiExternalLink,
-  FiZap,
-  FiMail,
-  FiFilter,
   FiInfo,
   FiX,
   FiGrid,
   FiList,
   FiTrash2,
+  FiPackage,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
@@ -42,42 +31,44 @@ const STATUS_OPTIONS = [
   "failed",
 ];
 
-const API_BASE_URL = "";
-
-const TRACKER_STEPS = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
-
 const capitalize = (value = "") => value.charAt(0).toUpperCase() + value.slice(1);
 
 const STATUS_CONFIG = {
   pending: {
-    color: "bg-amber-50 text-amber-600 border-amber-100",
-    icon: <FiClock className="animate-spin-slow" />,
-    pulse: "shadow-amber-100 animate-pulse",
+    dot: "bg-amber-500",
+    text: "text-amber-700",
+    select: "border-amber-200 bg-amber-50/70 text-amber-800",
+    icon: <FiClock />,
   },
   processing: {
-    color: "bg-brand-50 text-brand-600 border-brand-100",
+    dot: "bg-indigo-500",
+    text: "text-indigo-700",
+    select: "border-indigo-200 bg-indigo-50/70 text-indigo-800",
     icon: <FiRefreshCw className="animate-spin" />,
-    pulse: "shadow-emerald-100 animate-pulse",
   },
   shipped: {
-    color: "bg-purple-50 text-purple-600 border-purple-100",
-    icon: <FiTruck className="translate-x-1 duration-700" />,
-    pulse: "shadow-purple-100",
+    dot: "bg-purple-500",
+    text: "text-purple-700",
+    select: "border-purple-200 bg-purple-50/70 text-purple-800",
+    icon: <FiTruck />,
   },
   delivered: {
-    color: "bg-brand-50 text-brand-600 border-brand-100",
+    dot: "bg-emerald-500",
+    text: "text-emerald-700",
+    select: "border-emerald-200 bg-emerald-50/70 text-emerald-800",
     icon: <FiCheckCircle />,
-    pulse: "shadow-emerald-100",
   },
   cancelled: {
-    color: "bg-rose-50 text-rose-600 border-rose-100",
+    dot: "bg-rose-500",
+    text: "text-rose-700",
+    select: "border-rose-200 bg-rose-50/70 text-rose-800",
     icon: <FiXCircle />,
-    pulse: "shadow-rose-100",
   },
   failed: {
-    color: "bg-red-50 text-red-600 border-red-100",
+    dot: "bg-red-500",
+    text: "text-red-700",
+    select: "border-red-200 bg-red-50/70 text-red-800",
     icon: <FiXCircle />,
-    pulse: "shadow-red-100",
   },
 };
 
@@ -91,8 +82,6 @@ export default function AdminOrderedPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("table");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [tempSearch, setTempSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showGuide, setShowGuide] = useState(false);
 
@@ -188,225 +177,185 @@ export default function AdminOrderedPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const MobileFilters = () => {
+  const OrderStatusPicker = ({ order }) => {
+    const isTerminal =
+      order.orderStatus === "failed" || order.orderStatus === "cancelled";
+    const canShowTracking =
+      order.orderStatus === "processing" ||
+      editingOrderId === order._id ||
+      order.orderStatus === "shipped";
+
     return (
-      <div className="lg:hidden mb-4">
-        <button
-          onClick={() => {
-            setTempSearch(searchTerm);
-            setShowMobileFilters(true);
-          }}
-          className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-brand-600 to-emerald-700 text-white rounded-xl shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all"
-        >
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <FiFilter size={18} />
-            Search & Filter Orders
-          </span>
-          {searchTerm && (
-            <span className="bg-white/20 px-2 py-1 rounded-lg text-xs">
-              Active
-            </span>
-          )}
-        </button>
-
-        {searchTerm && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-100 text-brand-700 rounded-full text-xs">
-              Search: {searchTerm}
-              <button
-                onClick={() => setSearchTerm("")}
-                className="ml-1 hover:text-brand-900"
-              >
-                <FiX size={14} />
-              </button>
-            </span>
-          </div>
-        )}
-
-        {showMobileFilters && (
-          <div className="bg-white rounded-lg p-3 mt-3 space-y-2">
-            <input
-              type="text"
-              placeholder="Search orders..."
-              value={tempSearch}
-              onChange={(e) => setTempSearch(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-            />
-          </div>
+      <div className="flex items-center gap-1.5">
+        {isTerminal ? (
+          <button
+            onClick={() => handleDeleteFailedOrder(order._id, order.orderId)}
+            className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-md text-[11px] font-semibold transition-colors"
+          >
+            <FiTrash2 size={11} />
+            Delete
+          </button>
+        ) : (
+          <>
+            <select
+              value={order.orderStatus}
+              disabled={updatingId === order._id}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                const val = e.target.value;
+                const trackingValue =
+                  tempTracking[order._id] || order.trackingNumber || "";
+                if (val === "shipped" && !trackingValue.trim()) {
+                  toast.error("Shipping details ඇතුළත් කරන්න.");
+                  return;
+                }
+                handleStatusUpdate(order._id, val, trackingValue);
+              }}
+              className={`min-w-[104px] px-2 py-1 rounded-md text-[11px] font-semibold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_CONFIG[order.orderStatus]?.select || STATUS_CONFIG.pending.select}`}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {updatingId === order._id ? "Updating..." : capitalize(opt)}
+                </option>
+              ))}
+            </select>
+            {canShowTracking && (
+              <input
+                type="text"
+                placeholder="Tracking No."
+                value={tempTracking[order._id] ?? order.trackingNumber ?? ""}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) =>
+                  setTempTracking((prev) => ({
+                    ...prev,
+                    [order._id]: e.target.value,
+                  }))
+                }
+                onBlur={(e) => {
+                  const val = (e.target.value || "").trim();
+                  const unchanged = val === (order.trackingNumber ?? "");
+                  if (val && !unchanged) {
+                    handleStatusUpdate(order._id, "shipped", val);
+                  }
+                }}
+                className="w-32 px-2 py-1 border border-slate-200 rounded-md text-[11px] focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            )}
+            {order.orderStatus === "shipped" && order.trackingNumber && (
+              <>
+                <button
+                  onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
+                  className="flex items-center gap-1 px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
+                  title="Track on Domex"
+                >
+                  <FiTruck size={11} />
+                  Track
+                  <FiExternalLink size={10} />
+                </button>
+                <button
+                  onClick={() => setEditingOrderId(order._id)}
+                  className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors"
+                  title="Edit tracking"
+                >
+                  <FiEdit2 size={13} />
+                </button>
+              </>
+            )}
+          </>
         )}
       </div>
     );
   };
 
-  const MobileOrderCard = ({ order, index }) => {
-    const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const OrderCard = ({ order }) => {
+    const [expanded, setExpanded] = useState(false);
+    const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
+    const name = order.shippingAddress?.fullName || order.user?.name || "Guest";
 
     return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-3">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <span className="font-mono font-bold text-brand-600 text-xs">
-                #{order.orderId || order._id.slice(-6)}
-              </span>
-              <p className="text-xs text-slate-400 mt-1">
+      <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
+        <div className="p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono font-semibold text-brand-600 text-xs">
+              #{order.orderId || order._id.slice(-6)}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${cfg.text}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+              {order.orderStatus}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-slate-900 truncate">{name}</p>
+              <p className="text-[11px] text-slate-400 font-mono mt-0.5">
                 {new Date(order.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <div
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
-            >
-              {STATUS_CONFIG[order.orderStatus]?.icon || <FiClock />}{" "}
-              {order.orderStatus}
+            <div className="text-right flex-shrink-0">
+              <p className="text-[13px] font-bold text-slate-900 tabular-nums">
+                Rs. {(order.totalPrice ?? 0).toLocaleString()}
+              </p>
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-[11px] text-slate-400 hover:text-brand-600 inline-flex items-center gap-0.5 mt-0.5 transition-colors"
+              >
+                Details
+                {expanded ? <FiChevronUp size={11} /> : <FiChevronDown size={11} />}
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500 truncate max-w-[150px]">
-              {order.shippingAddress?.fullName || order.user?.name || "Guest"}
-            </p>
-            <button
-              onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
-              className="p-2 bg-slate-100 rounded-lg"
-            >
-              {expandedOrderId === order._id ? (
-                <FiChevronUp size={16} />
-              ) : (
-                <FiChevronDown size={16} />
-              )}
-            </button>
-          </div>
-
-          {expandedOrderId === order._id && (
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+          {expanded && (
+            <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 mb-2">
+                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 mb-2">
                   Items ({order.items?.length})
                 </p>
-                <div className="space-y-2">
-                  {order.items?.slice(0, 2).map((item, i) => (
+                <div className="space-y-1.5">
+                  {order.items?.slice(0, 3).map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
+                      <div className="w-7 h-7 rounded-md bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
                           src={item.image || item.imageUrl}
                           alt={item.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.target.src = "https://placehold.co/150?text=No+Image";
+                            e.target.style.display = "none";
                           }}
                         />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-slate-800 truncate">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-800 truncate">
                           {item.name}
                         </p>
-                        <p className="text-[9px] text-slate-400">Qty: {item.quantity}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          Qty: {item.quantity}
+                        </p>
                       </div>
-                      <p className="text-xs font-bold text-brand-600">
+                      <p className="text-xs font-semibold text-slate-700 tabular-nums">
                         Rs. {item.price?.toLocaleString()}
                       </p>
                     </div>
                   ))}
-                  {order.items?.length > 2 && (
-                    <p className="text-[9px] text-slate-400 text-center">
-                      +{order.items.length - 2} more items
+                  {order.items?.length > 3 && (
+                    <p className="text-[10px] text-slate-400 text-center">
+                      +{order.items.length - 3} more items
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-3">
-                <p className="text-[10px] font-bold text-slate-400 mb-2">
+              {order.trackingNumber && (
+                <p className="text-[11px] text-slate-500 font-mono">
+                  Tracking: {order.trackingNumber}
+                </p>
+              )}
+
+              <div className="pt-1">
+                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 mb-2">
                   Update Status
                 </p>
-
-                {order.orderStatus === "failed" || order.orderStatus === "cancelled" ? (
-                  <button
-                    onClick={() => handleDeleteFailedOrder(order._id, order.orderId)}
-                    className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-xs font-black transition-all"
-                  >
-                    <FiTrash2 size={14} />
-                    Delete {order.orderStatus === "failed" ? "Failed" : "Cancelled"} Order
-                  </button>
-                ) : (
-                  <>
-                    <select
-                      value={order.orderStatus}
-                      disabled={updatingId === order._id}
-                      onChange={(e) => {
-                        const val = e.target.value;
-
-                        if (val === "shipped") {
-                          toast.error("Shipping details ඇතුළත් කරන්න.");
-                          return;
-                        }
-                        handleStatusUpdate(
-                          order._id,
-                          val,
-                          tempTracking[order._id] || order.trackingNumber,
-                        );
-                      }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 outline-none mb-2"
-                    >
-                      {STATUS_OPTIONS.map((opt) => (
-                        <option
-                          key={opt}
-                          value={opt}
-                          disabled={opt === "shipped"}
-                        >
-                          {capitalize(opt)}
-                        </option>
-                      ))}
-                    </select>
-
-                    {(order.orderStatus === "processing" ||
-                      editingOrderId === order._id) && (
-                      <div className="relative flex items-center">
-                        <input
-                          placeholder="Tracking ID..."
-                          className="w-full bg-white border-2 border-emerald-500 rounded-lg px-3 py-2 text-xs font-bold outline-none pr-10"
-                          value={tempTracking[order._id] || order.trackingNumber || ""}
-                          onChange={(e) =>
-                            setTempTracking({
-                              ...tempTracking,
-                              [order._id]: e.target.value,
-                            })
-                          }
-                        />
-                        <button
-                          onClick={() =>
-                                handleStatusUpdate(
-                                  order._id,
-                                  "shipped",
-                                  tempTracking[order._id] || order.trackingNumber,
-                                )
-                          }
-                          className="absolute right-1 bg-brand-600 text-white p-1.5 rounded-lg"
-                        >
-                          <FiSave size={14} />
-                        </button>
-                      </div>
-                    )}
-
-                    {order.orderStatus === "shipped" && order.trackingNumber && (
-                      <div className="flex items-center justify-between">
-                        <button
-                          onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
-                          className="flex items-center gap-1 bg-[#f37021] text-white px-3 py-2 rounded-lg text-xs font-bold"
-                        >
-                          <FiTruck size={12} /> Track{" "}
-                          <FiExternalLink size={10} />
-                        </button>
-                        <button
-                          onClick={() => setEditingOrderId(order._id)}
-                          className="p-2 bg-slate-100 rounded-lg text-slate-500"
-                        >
-                          <FiEdit2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
+                <OrderStatusPicker order={order} />
               </div>
             </div>
           )}
@@ -417,77 +366,84 @@ export default function AdminOrderedPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="p-4 md:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="h-8 w-48 rounded-lg bg-slate-200/70 animate-pulse" />
+          <div className="mt-6 space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-10 rounded bg-slate-200/50 animate-pulse" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6 pb-20 lg:pb-6 font-sans text-slate-900">
-      <div className="max-w-7xl mx-auto mb-6 sm:mb-10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-              Orders <span className="text-brand-600">Central</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
-              Manage and track your customer orders in real-time.
-              {refreshing && (
-                <span className="inline-flex items-center gap-1 text-emerald-600">
-                  <FiRefreshCw className="animate-spin" size={13} />
-                  <span className="text-[10px] font-bold uppercase">syncing</span>
-                </span>
-              )}
+    <div className="p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">Orders</h1>
+            <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+              {filteredOrders.length} orders
             </p>
+            {refreshing && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                <FiRefreshCw className="animate-spin" size={12} />
+                syncing
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search orders..."
+                placeholder="Search order # or name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full sm:w-64 pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
               />
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
 
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
+            <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("table")}
                 title="Table view"
-                className={`p-2 rounded-lg transition-colors ${viewMode === "table" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-600"}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === "table" ? "bg-brand-500 text-white" : "text-slate-400 hover:text-slate-600"}`}
               >
-                <FiList size={16} />
+                <FiList size={15} />
               </button>
               <button
                 onClick={() => setViewMode("grid")}
-                title="Card view (status management)"
-                className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-600"}`}
+                title="Card view"
+                className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-brand-500 text-white" : "text-slate-400 hover:text-slate-600"}`}
               >
-                <FiGrid size={16} />
+                <FiGrid size={15} />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden mb-4">
+        {/* Quick guide — collapsed info bar */}
+        <div className="bg-slate-50/80 border border-slate-200/80 rounded-lg overflow-hidden">
           <button
             onClick={() => setShowGuide((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-100/70 transition-colors"
           >
             <span className="flex items-center gap-2">
-              <FiInfo size={18} className="text-blue-500" />
+              <FiInfo size={15} className="text-slate-400" />
               How to use this page (quick guide)
             </span>
-            {showGuide ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+            {showGuide ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
           </button>
           {showGuide && (
-            <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+            <div className="px-4 pb-4 text-[13px] text-slate-600 space-y-3">
               <div>
-                <p className="font-semibold mb-1.5">What this page is for</p>
+                <p className="font-semibold text-slate-800 mb-1">What this page is for</p>
                 <p className="leading-relaxed">
                   This is the full order list for your store. Every customer order shows here as soon as
                   it's placed (the list updates in real-time). You move each order through its life cycle
@@ -495,16 +451,16 @@ export default function AdminOrderedPage() {
                 </p>
               </div>
               <div>
-                <p className="font-semibold mb-1.5">How to manage an order (4 steps)</p>
+                <p className="font-semibold text-slate-800 mb-1">How to manage an order (4 steps)</p>
                 <ol className="list-decimal list-inside space-y-1 leading-relaxed">
-                  <li>In the <strong>Status</strong> column, pick the status from the dropdown: <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">pending</span> → <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">processing</span> → <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-600 border border-purple-100">shipped</span> → <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">delivered</span>.</li>
+                  <li>In the <strong>Status</strong> column, pick the status from the dropdown: pending → processing → shipped → delivered.</li>
                   <li>Before marking an order <strong>shipped</strong>, type the courier's <strong>Tracking No.</strong> into the box under the status and save — the save happens automatically when you move to another field (or press the save icon in card view).</li>
                   <li>Once an order is shipped, you can open the <strong>Track</strong> link to check it live on Domex.</li>
                   <li>If an order fails or is cancelled, a red <strong>Delete</strong> button appears — this permanently removes the record.</li>
                 </ol>
               </div>
               <div>
-                <p className="font-semibold mb-1.5">Understanding the table columns</p>
+                <p className="font-semibold text-slate-800 mb-1">Understanding the table columns</p>
                 <ul className="list-disc list-inside space-y-1 leading-relaxed">
                   <li><strong>#</strong> — the order ID (e.g. #4821). This is what customers see in their own order history.</li>
                   <li><strong>Customer</strong> — the delivery name (falling back to the account name for guest checkouts).</li>
@@ -514,7 +470,7 @@ export default function AdminOrderedPage() {
                 </ul>
               </div>
               <div>
-                <p className="font-semibold mb-1.5">Useful things to know</p>
+                <p className="font-semibold text-slate-800 mb-1">Useful things to know</p>
                 <ul className="list-disc list-inside space-y-1 leading-relaxed">
                   <li>Switch to <strong>card view</strong> (grid icon, top-right) for a bigger interface with full order details per order — the table view is faster for bulk status updates.</li>
                   <li>Use the <strong>search box</strong> to find an order by its number or the customer's name, and the <strong>status tabs</strong> to jump to only one status (e.g. only Pending orders).</li>
@@ -527,7 +483,8 @@ export default function AdminOrderedPage() {
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
+        {/* Status tabs — slim */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
           {[
             { key: "all", label: "All", count: orders.length },
             ...STATUS_OPTIONS.map((s) => ({
@@ -542,15 +499,15 @@ export default function AdminOrderedPage() {
                 setStatusFilter(tab.key);
                 setCurrentPage(1);
               }}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-all ${
                 statusFilter === tab.key
-                  ? "bg-brand-600 text-white border-brand-600 shadow-md"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-brand-300 hover:text-brand-600"
+                  ? "bg-brand-500 text-white border-brand-500"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
               }`}
             >
               {tab.label}
               <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-full tabular-nums ${
                   statusFilter === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
                 }`}
               >
@@ -560,139 +517,119 @@ export default function AdminOrderedPage() {
           ))}
         </div>
 
+        {/* Grid view — compact cards */}
         {viewMode === "grid" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {currentOrders.map((order, index) => (
-              <MobileOrderCard key={order._id} order={order} index={index} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {currentOrders.map((order) => (
+              <OrderCard key={order._id} order={order} />
             ))}
           </div>
         )}
 
+        {/* Table view — dense */}
         {viewMode === "table" && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 sticky top-0">
-                  <tr>
-                    <th className="px-4 py-3 font-bold text-slate-600">#</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Customer</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Date</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Status</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Amount</th>
-                    <th className="px-4 py-3 font-bold text-slate-600">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {currentOrders.map((order) => (
-                    <tr key={order._id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-brand-600 font-bold">
-                        #{order.orderId || order._id.slice(-6)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {order.shippingAddress?.fullName || order.user?.name || "Guest"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </td>
-                      <td
-                        className="px-4 py-3"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex flex-col gap-1">
-                          <select
-                            value={order.orderStatus}
-                            disabled={updatingId === order._id}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const trackingValue =
-                                tempTracking[order._id] || order.trackingNumber || "";
-                              if (val === "shipped" && !trackingValue.trim()) {
-                                toast.error("Shipping details ඇතුළත් කරන්න.");
-                                return;
-                              }
-                              handleStatusUpdate(order._id, val, trackingValue);
-                            }}
-                            className={`min-w-[110px] px-2 py-1 rounded-lg text-[9px] font-black uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
-                          >
-                            {STATUS_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {updatingId === order._id ? "Updating..." : capitalize(opt)}
-                              </option>
-                            ))}
-                          </select>
-                            <input
-                            type="text"
-                            placeholder="Tracking No."
-                            value={tempTracking[order._id] ?? order.trackingNumber ?? ""}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setTempTracking((prev) => ({
-                                ...prev,
-                                [order._id]: e.target.value,
-                              }))
-                            }
-                            onBlur={(e) => {
-                              const val = (e.target.value || "").trim();
-                              const unchanged = val === (order.trackingNumber ?? "");
-                              if (val && !unchanged) {
-                                handleStatusUpdate(order._id, "shipped", val);
-                              }
-                            }}
-                            className="w-36 px-2 py-1 border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:ring-2 focus:ring-brand-500"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-bold text-slate-700">
-                        Rs. {(order.totalPrice ?? 0).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        {(order.orderStatus === "failed" ||
-                          order.orderStatus === "cancelled") && (
-                          <button
-                            onClick={() =>
-                              handleDeleteFailedOrder(order._id, order.orderId)
-                            }
-                            className="flex items-center gap-1 px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-[10px] font-black transition-colors"
-                          >
-                            <FiTrash2 size={12} />
-                            Delete
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredOrders.length > itemsPerPage && (
-              <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <span className="px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-xl text-xs sm:text-sm font-bold">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
-                >
-                  Next
-                </button>
+          <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
+            {filteredOrders.length === 0 ? (
+              <div className="py-12 text-center text-sm text-slate-400">
+                <FiPackage className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                No orders found — try a different search or status
               </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+                  <table className="w-full text-left text-[13px]">
+                    <thead className="bg-slate-50/70 sticky top-0 z-10">
+                      <tr className="border-b border-slate-200/80">
+                        <th className="pl-4 pr-2 py-2.5 text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">#</th>
+                        <th className="px-2 py-2.5 text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Customer</th>
+                        <th className="px-2 py-2.5 text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Date</th>
+                        <th className="px-2 py-2.5 text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
+                        <th className="px-2 py-2.5 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Amount</th>
+                        <th className="px-2 py-2.5 pr-4 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {currentOrders.map((order) => (
+                        <tr key={order._id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="pl-4 pr-2 py-2 font-mono text-brand-600 font-semibold whitespace-nowrap">
+                            #{order.orderId || order._id.slice(-6)}
+                          </td>
+                          <td className="px-2 py-2 text-slate-900 font-medium max-w-[200px] truncate">
+                            {order.shippingAddress?.fullName || order.user?.name || "Guest"}
+                          </td>
+                          <td className="px-2 py-2 text-slate-500 whitespace-nowrap">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                            <OrderStatusPicker order={order} />
+                          </td>
+                          <td className="px-2 py-2 text-right font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                            Rs. {(order.totalPrice ?? 0).toLocaleString()}
+                          </td>
+                          <td className="px-2 py-2 pr-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            {(order.orderStatus === "failed" ||
+                              order.orderStatus === "cancelled") && (
+                              <button
+                                onClick={() =>
+                                  handleDeleteFailedOrder(order._id, order.orderId)
+                                }
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-md text-[11px] font-semibold transition-colors"
+                              >
+                                <FiTrash2 size={11} />
+                                Delete
+                              </button>
+                            )}
+                            {order.orderStatus === "shipped" && order.trackingNumber && (
+                              <button
+                                onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
+                              >
+                                <FiTruck size={11} />
+                                Track
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="border-t border-slate-100 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <p className="text-xs text-slate-400">
+                      Showing <span className="font-semibold text-slate-600">{startIndex + 1}</span> to{" "}
+                      <span className="font-semibold text-slate-600">{Math.min(endIndex, filteredOrders.length)}</span> of{" "}
+                      <span className="font-semibold text-slate-600">{filteredOrders.length}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs font-mono text-slate-500 tabular-nums">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {filteredOrders.length === 0 && (
+        {/* Empty state (no orders at all in table mode) */}
+        {viewMode === "table" && filteredOrders.length === 0 && (
           <div className="text-center py-12">
             <FiPackage className="mx-auto text-slate-300 mb-3" size={48} />
             <p className="text-sm text-slate-500 font-medium">No orders found</p>
@@ -701,4 +638,4 @@ export default function AdminOrderedPage() {
       </div>
     </div>
   );
-};
+}

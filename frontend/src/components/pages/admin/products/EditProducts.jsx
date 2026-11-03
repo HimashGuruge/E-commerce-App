@@ -9,13 +9,13 @@ import Swal from "sweetalert2";
 import QuillEditor from "@/components/shared/QuillEditor.jsx";
 
 const Colors = {
-  primary: "#10b981",
-  purple: "#7c3aed",
+  primary: "var(--color-brand-500)",
+  purple: "var(--color-brand-600)",
   gray: "#6b7280",
   grayLight: "#9ca3af",
   border: "#e5e7eb",
   bgLight: "#f9fafb",
-  success: "#10b981",
+  success: "var(--color-brand-500)",
   danger: "#ef4444",
 };
 
@@ -590,7 +590,7 @@ export default function EditProduct() {
       title: 'Edit Category',
       html: `
         <div id="swal-edit-overlay" style="display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9999; border-radius: 12px; flex-direction: column; align-items: center; justify-content: center;">
-          <div style="width: 40px; height: 40px; border: 3px solid #10b981; border-top-color: transparent; border-radius: 50%; animation: swal-spin 0.8s linear infinite;"></div>
+          <div style="width: 40px; height: 40px; border: 3px solid var(--color-brand-500); border-top-color: transparent; border-radius: 50%; animation: swal-spin 0.8s linear infinite;"></div>
           <p style="margin-top: 12px; font-size: 14px; font-weight: 600; color: #374151;">Uploading image...</p>
           <style>@keyframes swal-spin { to { transform: rotate(360deg); } }</style>
         </div>
@@ -947,7 +947,7 @@ export default function EditProduct() {
                     padding: "16px", 
                     borderRadius: "12px", 
                     border: `2px solid ${!isParent ? Colors.primary : Colors.border}`,
-                    background: !isParent ? "#eff6ff" : "white",
+                    background: !isParent ? "var(--color-brand-50)" : "white",
                     opacity: isParent ? 0.6 : 1,
                     cursor: "default"
                   }}
@@ -961,7 +961,7 @@ export default function EditProduct() {
                     padding: "16px", 
                     borderRadius: "12px", 
                     border: `2px solid ${isParent ? Colors.purple : Colors.border}`,
-                    background: isParent ? "#faf5ff" : "white",
+                    background: isParent ? "var(--color-brand-50)" : "white",
                     opacity: isParent ? 1 : 0.6,
                     cursor: "default"
                   }}
@@ -1009,9 +1009,9 @@ export default function EditProduct() {
               </div>
             </div>
 
-            <div style={{ padding: "16px", background: "#f0f9ff", borderRadius: "12px", border: "1px solid #bae6fd", marginBottom: "16px" }}>
-              <div style={{ fontSize: "14px", fontWeight: "600", color: "#0369a1", marginBottom: "8px" }}>Or add your own options</div>
-              <div style={{ fontSize: "13px", color: "#075985", marginBottom: "12px" }}>
+            <div style={{ padding: "16px", background: "var(--color-brand-50)", borderRadius: "12px", border: "1px solid var(--color-brand-200)", marginBottom: "16px" }}>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--color-brand-700)", marginBottom: "8px" }}>Or add your own options</div>
+              <div style={{ fontSize: "13px", color: "var(--color-brand-800)", marginBottom: "12px" }}>
                 Add new options like "Size", "Color" to create more variants
               </div>
 
@@ -1034,7 +1034,7 @@ export default function EditProduct() {
                     setNewVariantAttributes([...newVariantAttributes, "Color"]);
                     setNewAttributeOptions({ ...newAttributeOptions, Color: [] });
                   }}
-                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #7c3aed", borderRadius: "16px", color: "#7c3aed", cursor: "pointer" }}
+                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid var(--color-brand-500)", borderRadius: "16px", color: "var(--color-brand-600)", cursor: "pointer" }}
                 >
                   + Color
                 </button>
@@ -1044,7 +1044,7 @@ export default function EditProduct() {
                     setNewVariantAttributes([...newVariantAttributes, "Size"]);
                     setNewAttributeOptions({ ...newAttributeOptions, Size: [] });
                   }}
-                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #7c3aed", borderRadius: "16px", color: "#7c3aed", cursor: "pointer" }}
+                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid var(--color-brand-500)", borderRadius: "16px", color: "var(--color-brand-600)", cursor: "pointer" }}
                 >
                   + Size
                 </button>
@@ -1054,7 +1054,7 @@ export default function EditProduct() {
                     setNewVariantAttributes([...newVariantAttributes, "Model"]);
                     setNewAttributeOptions({ ...newAttributeOptions, Model: [] });
                   }}
-                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
+                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid var(--color-brand-500)", borderRadius: "16px", color: "var(--color-brand-600)", cursor: "pointer" }}
                 >
                   + Model
                 </button>
@@ -1064,7 +1064,7 @@ export default function EditProduct() {
                     setNewVariantAttributes([...newVariantAttributes, "Storage"]);
                     setNewAttributeOptions({ ...newAttributeOptions, Storage: [] });
                   }}
-                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid #10b981", borderRadius: "16px", color: "#10b981", cursor: "pointer" }}
+                  style={{ padding: "6px 12px", fontSize: "11px", background: "white", border: "1px solid var(--color-brand-500)", borderRadius: "16px", color: "var(--color-brand-600)", cursor: "pointer" }}
                 >
                   + Storage
                 </button>
@@ -1107,7 +1107,7 @@ export default function EditProduct() {
 
             {newVariantAttributes.length > 0 && Object.values(newAttributeOptions).some(arr => arr.length > 0) && (
               <div>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "999px", background: "#f5f3ff", border: "1px solid #ede9fe", marginBottom: "16px" }}>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "999px", background: "var(--color-brand-50)", border: "1px solid var(--color-brand-200)", marginBottom: "16px" }}>
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: generateNewVariants().length > 0 ? "#10b981" : "#fbbf24" }}></span>
                   <span style={{ fontSize: "12px", fontWeight: "600", color: Colors.purple }}>
                     {generateNewVariants().length} variants · grouped by {newVariantAttributes[0]}
@@ -1180,7 +1180,7 @@ export default function EditProduct() {
                                   </div>
                                   {/* Per-variant images */}
                                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px", justifyContent: "center" }}>
-                                    {variantImgs.slice(0, 4).map((img, i) => (
+                                    {variantImgs.map((img, i) => (
                                       <div key={i} style={{ position: "relative" }}>
                                         <img src={img.preview} alt="" style={{ width: "36px", height: "36px", objectFit: "cover", borderRadius: "6px", border: `1px solid ${Colors.border}` }} />
                                         <button
@@ -1193,7 +1193,7 @@ export default function EditProduct() {
                                     ))}
                                     <label style={{ cursor: "pointer", display: "grid", placeItems: "center" }}>
                                       <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => handleNewVariantImageAdd(variantKey, e)} />
-                                      <span style={{ padding: "4px 8px", fontSize: "10px", fontWeight: "500", color: "#059669", border: `1px dashed #6ee7b7`, borderRadius: "6px" }}>+ Image</span>
+                                      <span style={{ padding: "4px 8px", fontSize: "10px", fontWeight: "500", color: "var(--color-brand-600)", border: `1px dashed #a5b4fc`, borderRadius: "6px" }}>+ Image{variantImgs.length > 0 ? ` (${variantImgs.length})` : ""}</span>
                                     </label>
                                   </div>
                                   <input
@@ -1346,7 +1346,7 @@ export default function EditProduct() {
               Manage Existing Variants
             </h2>
 
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "999px", background: "#f5f3ff", border: "1px solid #ede9fe", marginBottom: "16px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "999px", background: "var(--color-brand-50)", border: "1px solid var(--color-brand-200)", marginBottom: "16px" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }}></span>
               <span style={{ fontSize: "12px", fontWeight: "600", color: Colors.purple }}>
                 {variants.length} variants · total stock: {totalVariantStock}
@@ -1422,14 +1422,14 @@ export default function EditProduct() {
                                   {Object.entries(getVariantAttributes(variant)).map(([k, v]) => `${k}: ${v}`).join(" / ") || variant.variantSku || "Variant"}
                                 </div>
                                 <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
-                                  <button type="button" onClick={() => handleEditVariantValues(variant)} style={{ padding: "3px 8px", fontSize: "10px", fontWeight: "500", background: "#3b82f6", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Edit</button>
+                                  <button type="button" onClick={() => handleEditVariantValues(variant)} style={{ padding: "3px 8px", fontSize: "10px", fontWeight: "500", background: "var(--color-brand-500)", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Edit</button>
                                   <button type="button" onClick={() => handleDeleteVariant(variant)} style={{ padding: "3px 8px", fontSize: "10px", fontWeight: "500", background: Colors.danger, color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Remove</button>
                                 </div>
                               </div>
 
                               {/* Variant images */}
                               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
-                                {vImgs.slice(0, 4).map((img, i) => (
+                                {vImgs.map((img, i) => (
                                   <div key={i} style={{ position: "relative" }}>
                                     <img src={img.preview || img} alt="" style={{ width: "36px", height: "36px", objectFit: "cover", borderRadius: "6px", border: `1px solid ${Colors.border}` }} />
                                     <button
@@ -1442,7 +1442,7 @@ export default function EditProduct() {
                                 ))}
                                 <label style={{ cursor: "pointer", display: "grid", placeItems: "center" }}>
                                   <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleVariantImageAdd(vId, e)} />
-                                  <span style={{ padding: "4px 8px", fontSize: "10px", fontWeight: "500", color: "#059669", border: `1px dashed #6ee7b7`, borderRadius: "6px" }}>+ Image</span>
+                                  <span style={{ padding: "4px 8px", fontSize: "10px", fontWeight: "500", color: "var(--color-brand-600)", border: `1px dashed #a5b4fc`, borderRadius: "6px" }}>+ Image{vImgs.length > 0 ? ` (${vImgs.length})` : ""}</span>
                                 </label>
                               </div>
 
@@ -1581,7 +1581,7 @@ export default function EditProduct() {
                           <span style={{ fontSize: "13px", color: "#374151", fontWeight: "500" }}>{cat.name}</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <button type="button" onClick={() => handleEditCategory(cat)} style={{ padding: "4px 10px", background: "#3b82f6", color: "white", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "500", cursor: "pointer" }}>Edit</button>
+                          <button type="button" onClick={() => handleEditCategory(cat)} style={{ padding: "4px 10px", background: "var(--color-brand-500)", color: "white", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "500", cursor: "pointer" }}>Edit</button>
                           <button type="button" onClick={() => handleDeleteCategory(cat._id, cat.name)} style={{ padding: "4px 10px", background: Colors.danger, color: "white", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "500", cursor: "pointer" }}>Delete</button>
                         </div>
                       </div>

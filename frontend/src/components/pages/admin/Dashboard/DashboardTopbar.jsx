@@ -93,7 +93,7 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
   };
 
   const renderDropdown = () => (
-    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto">
+    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 z-50 max-h-80 overflow-y-auto">
       {filteredRoutes.length === 0 ? (
         <div className="px-4 py-3 text-sm text-slate-400 text-center">No pages match "{searchQuery}"</div>
       ) : (
@@ -104,10 +104,10 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
               key={r.path}
               type="button"
               onClick={() => handleNavigate(r.path)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 text-left transition-colors"
             >
-              <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
-                <IconComp size={16} className="text-brand-600" />
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <IconComp size={16} className="text-slate-600" />
               </div>
               <span className="text-sm font-medium text-slate-900">{r.label}</span>
             </button>
@@ -120,21 +120,21 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="lg:hidden sticky top-0 left-0 right-0 h-11 bg-white border-b border-slate-200 px-4 flex justify-between items-center z-50 shadow-sm">
+      <div className="lg:hidden sticky top-0 left-0 right-0 h-12 bg-white border-b border-slate-200 px-4 flex justify-between items-center z-50 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={toggleMobile} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg">
             <RxHamburgerMenu size={24} />
           </button>
-          <h1 className="text-lg font-bold text-slate-900">{pageTitle || "Dashboard"}</h1>
+          <h1 className="text-lg font-display font-bold text-slate-900 tracking-tight">{pageTitle || "Dashboard"}</h1>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button onClick={() => setShowMobileSearch(!showMobileSearch)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
             <FiSearch size={20} />
           </button>
           {user?.profileImage ? (
-            <img src={user.profileImage} alt="" className="w-7 h-7 rounded-full object-cover" referrerPolicy="no-referrer" />
+            <img src={user.profileImage} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200" referrerPolicy="no-referrer" />
           ) : (
-            <div className="w-7 h-7 bg-gradient-to-br from-brand-500 to-brand-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+            <div className="w-7 h-7 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white font-bold text-xs">
               {user?.name?.charAt(0) || "A"}
             </div>
           )}
@@ -164,8 +164,8 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
       )}
 
       {/* Desktop Header */}
-      <div className="hidden lg:flex sticky top-0 h-12 bg-white border-b border-slate-200 px-6 items-center justify-end z-40">
-        <div className="flex items-center gap-3">
+      <div className="hidden lg:flex sticky top-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 items-center justify-end z-40">
+        <div className="flex items-center gap-4">
           {/* Search */}
           <div className="relative" ref={searchRef}>
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -175,32 +175,32 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => filteredRoutes.length > 0 && setShowDropdown(true)}
-              className="pl-10 pr-4 py-2 bg-slate-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 w-64"
+              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-300 w-64 transition-shadow"
             />
             {showDropdown && renderDropdown()}
           </div>
-          
+
           {/* Add Button */}
           <NavLink
             to="/admin/dashboard/addproducts"
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 text-white rounded-xl hover:bg-brand-600 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 text-white rounded-xl hover:bg-brand-600 hover:shadow-md hover:shadow-brand-500/30 transition-all active:scale-95"
           >
             <FiPlus size={18} />
             <span className="text-sm font-medium">Add Product</span>
           </NavLink>
-          
+
           {/* User */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+          <div className="flex items-center gap-2.5 pl-4 border-l border-slate-200">
             {user?.profileImage ? (
-              <img src={user.profileImage} alt="" className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+              <img src={user.profileImage} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-600 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white font-bold">
                 {user?.name?.charAt(0) || "A"}
               </div>
             )}
             <div className="hidden xl:block">
-              <p className="text-sm font-semibold text-slate-900">{user?.name || "Admin"}</p>
-              <p className="text-xs text-slate-500">Administrator</p>
+              <p className="text-sm font-semibold text-slate-900 leading-tight">{user?.name || "Admin"}</p>
+              <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wider">Administrator</p>
             </div>
           </div>
 
@@ -213,7 +213,7 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
               window.dispatchEvent(new Event("authChange"));
               navigate("/login");
             }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-all duration-200 active:scale-95"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-red-50/70 text-red-600 border border-red-100 hover:bg-red-100 transition-all duration-200 active:scale-95"
             title="Logout"
           >
             <RxExit size={16} className="text-red-500" />

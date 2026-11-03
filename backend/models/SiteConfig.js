@@ -7,6 +7,9 @@ const siteConfigSchema = new mongoose.Schema(
     logo: { type: String, default: "" },
     primaryColor: { type: String, default: "#F85606" },
     chatWidgetColor: { type: String, default: "#F85606" },
+    // Admin panel (dashboard console) accent color. Empty string = follow
+    // the store primary color. Never affects the storefront.
+    adminTheme: { type: String, default: "" },
     fontFamily: { type: String, default: "Inter, system-ui, -apple-system, sans-serif" },
     fontUrl: { type: String, default: "" },
     tagline: { type: String, default: "" },

@@ -910,7 +910,7 @@ export default function AnnouncementManagement() {
                     </button>
                     <button
                       onClick={() => handleEdit(item)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                       title="Edit"
                     >
                       <MdEdit size={18} />

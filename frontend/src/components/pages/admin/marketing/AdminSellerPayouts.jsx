@@ -476,7 +476,7 @@ export default function AdminSellerPayouts() {
                         {c.type === "collection" && c.status === "pending_collection" && (
                           <button
                             onClick={() => verifyCollection(c)}
-                            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center gap-1"
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-brand-500 text-white hover:bg-brand-600 inline-flex items-center gap-1"
                           >
                             <FiCheckCircle className="w-3.5 h-3.5" /> Verify
                           </button>

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -26,6 +27,16 @@
   --color-shoptext: #172033;
   --color-shopgreen: #15976a;
   --color-shopred: #dc5454;
+
+  /* User-access console (admin user privileges) */
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-ink: #14171c;
+  --color-ink-soft: #232830;
+  --color-parchment: #f4f1ea;
+  --color-cloud: #e6e2d8;
 }
 
 /* Seller chat panel entrance: fades the backdrop, slides in from the

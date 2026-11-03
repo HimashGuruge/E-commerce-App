@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import api from "@/utils/api";
+import { getCachedSettings } from "@/utils/siteSettings";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from "chart.js";
 import { Line, Doughnut, Bar } from "react-chartjs-2";
 import AddProducts from "@/components/pages/admin/products/AddProducts.jsx";
@@ -32,16 +34,17 @@ const chartOptions = {
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: "#1e293b",
-      titleFont: { size: 13, weight: "bold" },
-      bodyFont: { size: 12 },
+      backgroundColor: "#14171c",
+      titleFont: { family: "'Archivo', system-ui, sans-serif", size: 13, weight: "700" },
+      bodyFont: { family: "'IBM Plex Mono', ui-monospace, monospace", size: 12 },
       padding: 12,
-      cornerRadius: 8,
+      cornerRadius: 10,
+      boxPadding: 4,
     },
   },
   scales: {
-    x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-    y: { grid: { color: "#f1f5f9" }, ticks: { font: { size: 11 } }, beginAtZero: true },
+    x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: "'IBM Plex Mono', ui-monospace, monospace", size: 11 }, color: "#94a3b8" } },
+    y: { grid: { color: "#f1f5f9" }, border: { display: false }, ticks: { font: { family: "'IBM Plex Mono', ui-monospace, monospace", size: 11 }, color: "#94a3b8" }, beginAtZero: true },
   },
 };
 
@@ -52,6 +55,23 @@ export default function DashboardRoutes() {
   const [recentOrders, setRecentOrders] = useState([]);
   const [orderStatusData, setOrderStatusData] = useState({ Pending: 0, Processing: 0, Shipped: 0, Delivered: 0, Cancelled: 0 });
   const [categoryData, setCategoryData] = useState([]);
+  // Admin panel accent color for the revenue chart. Prefers the admin
+  // theme color saved in Settings (from the cached public settings so it
+  // is correct on first paint), and follows live Settings updates.
+  // Falls back to the store brand color.
+  const resolveAccent = (s) => {
+    const raw = s && typeof s.adminTheme === "string" ? s.adminTheme.trim() : "";
+    if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw;
+    const root = getComputedStyle(document.documentElement).getPropertyValue("--color-brand").trim();
+    return /^#[0-9a-fA-F]{6}$/.test(root) ? root : "#F85606";
+  };
+  const [brandColor, setBrandColor] = useState(() => resolveAccent(getCachedSettings()));
+
+  useEffect(() => {
+    const handler = (e) => setBrandColor(resolveAccent(e.detail));
+    window.addEventListener("settingsUpdated", handler);
+    return () => window.removeEventListener("settingsUpdated", handler);
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -94,15 +114,22 @@ export default function DashboardRoutes() {
     fetchDashboardData();
   }, []);
 
+  const brandHex = brandColor.startsWith("#") ? brandColor : "#F85606";
   const revenueChartData = {
     labels: chartData.labels,
     datasets: [{
       label: "Revenue",
       data: chartData.revenue,
-      borderColor: "#10b981",
-      backgroundColor: "rgba(16, 185, 129, 0.1)",
+      borderColor: brandHex,
+      backgroundColor: brandHex + "14",
+      pointBackgroundColor: brandHex,
+      pointBorderColor: "#ffffff",
+      pointBorderWidth: 1.5,
+      pointRadius: 3,
+      pointHoverRadius: 5,
       fill: true,
       tension: 0.4,
+      borderWidth: 2.5,
     }],
   };
 
@@ -118,6 +145,7 @@ export default function DashboardRoutes() {
       ],
       backgroundColor: ["#f59e0b", "#3b82f6", "#8b5cf6", "#10b981", "#ef4444"],
       borderWidth: 0,
+      hoverOffset: 6,
     }],
   };
 
@@ -130,37 +158,90 @@ export default function DashboardRoutes() {
         ? categoryData.map((_, i) => categoryColors[i % categoryColors.length])
         : ["#cbd5e1"],
       borderWidth: 0,
+      hoverOffset: 6,
     }],
   };
 
   const statusConfig = {
-    Pending: { color: "text-amber-600 bg-amber-100", label: "Pending" },
-    Processing: { color: "text-brand-600 bg-brand-100", label: "Processing" },
-    Shipped: { color: "text-purple-600 bg-purple-100", label: "Shipped" },
-    Delivered: { color: "text-brand-600 bg-brand-100", label: "Delivered" },
-    Cancelled: { color: "text-red-600 bg-red-100", label: "Cancelled" },
+    Pending: { color: "text-amber-700 bg-amber-100" },
+    Processing: { color: "text-indigo-700 bg-indigo-100" },
+    Shipped: { color: "text-purple-700 bg-purple-100" },
+    Delivered: { color: "text-emerald-700 bg-emerald-100" },
+    Cancelled: { color: "text-red-700 bg-red-100" },
+  };
+
+  // Orders API returns lowercase statuses ("processing") — normalize for lookup
+  const statusKey = (status) =>
+    status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
+
+  // Light personal touch: greet the admin by first name at the right time of day
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  let firstName = "there";
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    if (storedUser?.name) firstName = storedUser.name.split(" ")[0];
+  } catch (_e) { /* fall back to "there" */ }
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 16 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
   };
 
   return (
     <Routes>
       <Route index element={
-        <div className="p-4 md:p-6 space-y-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
+        <div className="p-4 md:p-6 space-y-5">
+          {/* Hero header */}
+          <motion.div
+            variants={fadeUp} initial="hidden" animate="visible"
+            className="flex flex-col md:flex-row md:items-end md:justify-between gap-3"
+          >
+            <div>
+              <p className="text-[11px] font-mono uppercase tracking-[0.22em] text-slate-400 mb-2">
+                Admin Console — {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </p>
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 tracking-tight leading-tight">
+                {greeting}, {firstName}
+              </h1>
+              <p className="text-sm text-slate-500 mt-1.5">Here's what's happening across the store.</p>
+            </div>
+            <div className="flex items-center gap-2 self-start md:self-auto">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-500">Live · synced</span>
+            </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stat cards */}
+          <motion.div
+            variants={fadeUp} initial="hidden" animate="visible"
+            transition={{ delay: 0.06 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
             <StatCard icon={<FiPackage size={24} />} title="Total Products" value={stats.totalProducts} color="text-green-600" />
             <StatCard icon={<MdShoppingCart size={24} />} title="Total Orders" value={stats.totalOrders} color="text-indigo-600" />
             <StatCard icon={<FiDollarSign size={24} />} title="Total Revenue" value={`Rs. ${(stats.totalRevenue || 0).toLocaleString()}`} color="text-amber-600" />
             <StatCard icon={<FiUsers size={24} />} title="Total Users" value={stats.newUsers} color="text-teal-600" />
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          {/* Revenue + order status */}
+          <motion.div
+            variants={fadeUp} initial="hidden" animate="visible"
+            transition={{ delay: 0.12 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-5"
+          >
+            <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-slate-900">Revenue Overview</h3>
+                <div>
+                  <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Revenue Overview</h3>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400 mt-1">Monthly performance</p>
+                </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">{new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
-                  <select className="text-sm bg-slate-50 rounded-lg px-3 py-1.5 border-0">
+                  <span className="hidden sm:inline text-[11px] text-slate-400 font-mono">{new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+                  <select className="text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 cursor-pointer">
                     <option>This Year</option>
                     <option>Last Year</option>
                   </select>
@@ -179,8 +260,9 @@ export default function DashboardRoutes() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-900 mb-6">Orders by Status</h3>
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+              <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Orders by Status</h3>
+              <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400 mt-1 mb-5">Pipeline health</p>
               <div className="h-48 flex items-center justify-center">
                 {Object.values(orderStatusData).some(v => v > 0) ? (
                   <Doughnut data={ordersChartData} options={{ ...chartOptions, cutout: "65%" }} />
@@ -201,19 +283,28 @@ export default function DashboardRoutes() {
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h3 className="font-bold text-slate-900 mb-6">Categories</h3>
+          {/* Categories + recent orders */}
+          <motion.div
+            variants={fadeUp} initial="hidden" animate="visible"
+            transition={{ delay: 0.18 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-5"
+          >
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+              <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Categories</h3>
+              <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400 mt-1 mb-4">Share of catalog</p>
               <div className="h-48 flex items-center justify-center">
                 <Doughnut data={categoryChartData} options={{ ...chartOptions, cutout: "65%" }} />
               </div>
-              <div className="space-y-2 mt-4">
+              <div className="space-y-2.5 mt-4">
                 {categoryData.length > 0 ? categoryData.map((cat, idx) => (
                   <div key={cat.name} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">{cat.name}</span>
-                    <span className="font-medium text-slate-900">{cat.percentage}%</span>
+                    <span className="flex items-center gap-2 text-slate-600">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: categoryColors[idx % categoryColors.length] }} />
+                      {cat.name}
+                    </span>
+                    <span className="font-mono font-semibold text-slate-900">{cat.percentage}%</span>
                   </div>
                 )) : (
                   <p className="text-center text-slate-400 text-sm">No category data</p>
@@ -221,33 +312,51 @@ export default function DashboardRoutes() {
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-slate-900">Recent Orders</h3>
-                <Link to="/admin/dashboard/orders" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1">
+            <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-display font-bold text-slate-900 text-lg tracking-tight">Recent Orders</h3>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400 mt-1">Latest customer purchases</p>
+                </div>
+                <Link to="/admin/dashboard/orders" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-medium">
                   View all <FiArrowRight className="w-4 h-4" />
                 </Link>
               </div>
-              <div className="space-y-3">
-                {recentOrders.length > 0 ? recentOrders.slice(0, 5).map((order) => (
-                  <div key={order._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+              <div className="space-y-2.5">
+                {recentOrders.length > 0 ? recentOrders.slice(0, 5).map((order) => {
+                  const sKey = statusKey(order.orderStatus);
+                  const name = order.user?.name || "Customer";
+                  return (
+                  <div key={order._id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-white hover:border-slate-200 hover:shadow-sm transition-all">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-brand-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                        #{order._id.toString().slice(-4)}
+                      {/* Customer profile photo (initials fallback) */}
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 flex-shrink-0">
+                        {order.user?.profileImage ? (
+                          <img
+                            src={order.user.profileImage}
+                            alt={name}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => { e.target.style.display = "none"; }}
+                          />
+                        ) : (
+                          <span className="text-white font-bold text-sm">{name.charAt(0).toUpperCase()}</span>
+                        )}
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">{order.user?.name || "Customer"}</p>
-                        <p className="text-xs text-slate-500">{order.items?.length || 0} items</p>
+                        <p className="font-medium text-slate-900 text-sm">{name}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{order.items?.length || 0} items</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-slate-900">Rs. {(order.totalPrice || 0).toLocaleString()}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-lg ${statusConfig[order.orderStatus]?.color || "bg-slate-100 text-slate-600"}`}>
+                      <p className="font-display font-bold text-slate-900">Rs. {(order.totalPrice || 0).toLocaleString()}</p>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-lg ${statusConfig[sKey]?.color || "bg-slate-100 text-slate-600"} font-medium`}>
                         {order.orderStatus || "Pending"}
                       </span>
                     </div>
                   </div>
-                )) : (
+                  );
+                }) : (
                   <div className="text-center py-8 text-slate-500">
                     <TbPackage className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                     <p>No recent orders</p>
@@ -255,21 +364,26 @@ export default function DashboardRoutes() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Quick stat strip */}
+          <motion.div
+            variants={fadeUp} initial="hidden" animate="visible"
+            transition={{ delay: 0.24 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          >
             {[
-              { label: "Pending Orders", value: stats.pendingOrders || 0, icon: FiClock, color: "text-amber-600 bg-amber-100" },
-              { label: "Low Stock Items", value: stats.lowStockCount || 0, icon: TbPackage, color: "text-red-600 bg-red-100" },
-              { label: "Avg. Order Value", value: stats.totalOrders > 0 ? `Rs. ${Math.round(stats.totalRevenue / stats.totalOrders).toLocaleString()}` : "Rs. 0", icon: FiDollarSign, color: "text-brand-600 bg-brand-100" },
-              { label: "Pending Reviews", value: stats.pendingReviews || 0, icon: FiTrendingUp, color: "text-purple-600 bg-purple-100" },
+              { label: "Pending Orders", value: stats.pendingOrders || 0, icon: FiClock, color: "text-amber-600" },
+              { label: "Low Stock Items", value: stats.lowStockCount || 0, icon: TbPackage, color: "text-red-600" },
+              { label: "Avg. Order Value", value: stats.totalOrders > 0 ? `Rs. ${Math.round(stats.totalRevenue / stats.totalOrders).toLocaleString()}` : "Rs. 0", icon: FiDollarSign, color: "text-brand-600" },
+              { label: "Pending Reviews", value: stats.pendingReviews || 0, icon: FiTrendingUp, color: "text-purple-600" },
             ].map((item, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                <p className="text-xs text-slate-500 mb-1">{item.label}</p>
-                <p className={`text-xl font-bold ${item.color.split(" ")[0]}`}>{item.value}</p>
+              <div key={idx} className="bg-white rounded-2xl p-4 border border-slate-200/80 hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-slate-400 mb-1.5">{item.label}</p>
+                <p className={`text-xl font-display font-bold ${item.color}`}>{item.value}</p>
               </div>
             ))}
-          </div>
+          </motion.div>
         </div>
       } />
 

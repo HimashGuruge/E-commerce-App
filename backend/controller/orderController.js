@@ -260,7 +260,7 @@ export const getQuote = asyncHandler(async (req, res) => {
 });
 
 export const adminGetAllOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find().populate("user", "name email").sort({ createdAt: -1 });
+  const orders = await Order.find().populate("user", "name email profileImage").sort({ createdAt: -1 });
   res.json({ success: true, orders });
 });
 

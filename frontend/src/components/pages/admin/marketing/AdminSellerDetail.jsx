@@ -184,7 +184,7 @@ export default function AdminSellerDetail() {
                               <FiCheck className="w-4 h-4" />
                             </button>
                           )}
-                          <button onClick={() => navigate(`/admin/dashboard/editproducts/${p._id}`)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                          <button onClick={() => navigate(`/admin/dashboard/editproducts/${p._id}`)} className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="Edit">
                             <FiExternalLink className="w-4 h-4" />
                           </button>
                         </div>

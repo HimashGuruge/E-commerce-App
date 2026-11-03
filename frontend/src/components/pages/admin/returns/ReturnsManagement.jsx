@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "@/utils/api";
-import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiDownload, FiInfo, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiInfo, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 export default function ReturnsManagement() {
@@ -21,7 +21,7 @@ export default function ReturnsManagement() {
       setLoading(true);
       const params = new URLSearchParams({ page, limit });
       if (statusFilter !== "all") params.append("status", statusFilter);
-      
+
       const res = await api.get(`/api/feedback/returns?${params}`);
       if (res.data.success) {
         setReturns(res.data.returns || []);
@@ -92,21 +92,23 @@ export default function ReturnsManagement() {
     }
   };
 
+  // Slim status: dot + colored text (no big pills)
+  const statusStyles = {
+    pending: { dot: "bg-amber-500", text: "text-amber-700", label: "Pending" },
+    approved: { dot: "bg-blue-500", text: "text-blue-700", label: "Approved" },
+    rejected: { dot: "bg-red-500", text: "text-red-700", label: "Rejected" },
+    processing: { dot: "bg-purple-500", text: "text-purple-700", label: "Processing" },
+    shipped: { dot: "bg-indigo-500", text: "text-indigo-700", label: "Shipped" },
+    completed: { dot: "bg-emerald-500", text: "text-emerald-700", label: "Completed" },
+    refunded: { dot: "bg-emerald-500", text: "text-emerald-700", label: "Refunded" },
+  };
+
   const getStatusBadge = (status) => {
-    const badges = {
-      pending: { color: "bg-yellow-100 text-yellow-800", icon: FiAlertCircle, label: "Pending" },
-      approved: { color: "bg-blue-100 text-blue-800", icon: FiCheckCircle, label: "Approved" },
-      rejected: { color: "bg-red-100 text-red-800", icon: FiXCircle, label: "Rejected" },
-      processing: { color: "bg-purple-100 text-purple-800", icon: FiRefreshCw, label: "Processing" },
-      shipped: { color: "bg-indigo-100 text-indigo-800", icon: FiPackage, label: "Shipped" },
-      completed: { color: "bg-green-100 text-green-800", icon: FiCheckCircle, label: "Completed" },
-      refunded: { color: "bg-emerald-100 text-emerald-800", icon: FiDollarSign, label: "Refunded" }
-    };
-    const badge = badges[status] || badges.pending;
+    const s = statusStyles[status] || statusStyles.pending;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${badge.color}`}>
-        <badge.icon size={12} />
-        {badge.label}
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap ${s.text}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+        {s.label}
       </span>
     );
   };
@@ -125,49 +127,78 @@ export default function ReturnsManagement() {
 
   if (loading && returns.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <FiRefreshCw className="w-12 h-12 text-brand-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Loading return requests...</p>
+      <div className="p-4 md:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="h-8 w-52 rounded-lg bg-slate-200/70 animate-pulse" />
+          <div className="mt-6 space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-10 rounded bg-slate-200/50 animate-pulse" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
+  // Page-level stats (same source as before: rows on the current page)
+  const pendingCount = returns.filter((r) => r.status === "pending").length;
+  const approvedCount = returns.filter((r) => r.status === "approved").length;
+  const refundedCount = returns.filter((r) => r.status === "refunded").length;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Return Requests</h1>
-          <p className="text-gray-600">Manage customer return requests and process refunds</p>
+    <div className="p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header — compact */}
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">Returns</h1>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+            {total} total requests
+          </p>
         </div>
 
-        {/* Quick Guide */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl overflow-hidden mb-8">
+        {/* Slim stat strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 bg-white rounded-xl border border-slate-200/80 divide-x divide-slate-100">
+          {[
+            { label: "Total", value: total, dot: "bg-slate-400" },
+            { label: "Pending", value: pendingCount, dot: "bg-amber-500" },
+            { label: "Approved", value: approvedCount, dot: "bg-blue-500" },
+            { label: "Refunded", value: refundedCount, dot: "bg-emerald-500" },
+          ].map((stat) => (
+            <div key={stat.label} className="px-4 py-2.5 flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.1em] text-slate-400">
+                <span className={`w-1.5 h-1.5 rounded-full ${stat.dot}`} />
+                {stat.label}
+              </span>
+              <span className="text-base font-display font-bold text-slate-900 tabular-nums">{stat.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick guide — slim collapsed bar */}
+        <div className="bg-slate-50/80 border border-slate-200/80 rounded-lg overflow-hidden">
           <button
             onClick={() => setShowGuide((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-100/70 transition-colors"
           >
             <span className="flex items-center gap-2">
-              <FiInfo size={18} className="text-blue-500" />
+              <FiInfo size={15} className="text-slate-400" />
               How to use this page (quick guide)
             </span>
-            {showGuide ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+            {showGuide ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
           </button>
           {showGuide && (
-            <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
+            <div className="px-4 pb-4 text-[13px] text-slate-600 space-y-3">
               <div>
-                <p className="font-semibold mb-1.5">How does a return work (step by step)?</p>
+                <p className="font-semibold text-slate-800 mb-1">How does a return work (step by step)?</p>
                 <ol className="list-decimal list-inside space-y-1 leading-relaxed">
-                  <li>The customer requests a return from their account — it appears here as <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">pending</span> and the sidebar shows a "PENDING" badge.</li>
+                  <li>The customer requests a return from their account — it appears here as <strong>Pending</strong> and the sidebar shows a "PENDING" badge.</li>
                   <li>Click <strong>Approve</strong> — the customer is messaged that the return is approved.</li>
-                  <li>When the return is approved, click <strong>Process Refund</strong> — the requested refund amount is set, the status becomes <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">processing</span>, and the returned items are put back in stock automatically.</li>
-                  <li>Click <strong>Complete</strong> once the refund is actually paid out — the status becomes <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">refunded</span>. The flow ends here.</li>
+                  <li>When the return is approved, click <strong>Process Refund</strong> — the requested refund amount is set, the status becomes <strong>Processing</strong>, and the returned items are put back in stock automatically.</li>
+                  <li>Click <strong>Complete</strong> once the refund is actually paid out — the status becomes <strong>Refunded</strong>. The flow ends here.</li>
                 </ol>
               </div>
               <div>
-                <p className="font-semibold mb-1.5">Understanding the table columns</p>
+                <p className="font-semibold text-slate-800 mb-1">Understanding the table columns</p>
                 <ul className="list-disc list-inside space-y-1 leading-relaxed">
                   <li><strong>ID</strong> — short return number (last 8 characters).</li>
                   <li><strong>Customer</strong> — who requested the return (name + email).</li>
@@ -180,11 +211,11 @@ export default function ReturnsManagement() {
                 </ul>
               </div>
               <div>
-                <p className="font-semibold mb-1.5">Useful tips</p>
+                <p className="font-semibold text-slate-800 mb-1">Useful tips</p>
                 <ul className="list-disc list-inside space-y-1 leading-relaxed">
-                  <li>Only <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">pending</span>, <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">approved</span> and <span className="inline-block px-1.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">processing</span> rows have action buttons — finished ones just stay in the list.</li>
-                  <li>The top filter buttons let you view only one status at a time (e.g. click <strong>Pending</strong> to see everything waiting for you).</li>
-                  <li>The stats cards only count the rows on the current page (10 per page), so big numbers may look smaller on page 1.</li>
+                  <li>Only <strong>Pending</strong>, <strong>Approved</strong> and <strong>Processing</strong> rows have action buttons — finished ones just stay in the list.</li>
+                  <li>The filter buttons let you view only one status at a time (e.g. click <strong>Pending</strong> to see everything waiting for you).</li>
+                  <li>The stats only count the rows on the current page (10 per page), so big numbers may look smaller on page 1.</li>
                   <li>Every approve/reject decision sends a message to the customer automatically — no separate notification needed.</li>
                 </ul>
               </div>
@@ -192,185 +223,146 @@ export default function ReturnsManagement() {
           )}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total Requests</p>
-                <p className="text-3xl font-black text-gray-900">{total}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <FiPackage className="text-brand-600" size={24} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Pending</p>
-                <p className="text-3xl font-black text-yellow-600">
-                  {returns.filter(r => r.status === "pending").length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <FiAlertCircle className="text-yellow-600" size={24} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Approved</p>
-                <p className="text-3xl font-black text-blue-600">
-                  {returns.filter(r => r.status === "approved").length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <FiCheckCircle className="text-blue-600" size={24} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Refunded</p>
-                <p className="text-3xl font-black text-green-600">
-                  {returns.filter(r => r.status === "refunded").length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <FiDollarSign className="text-green-600" size={24} />
-              </div>
-            </div>
-          </div>
+        {/* Status filter tabs — slim */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {["all", "pending", "approved", "rejected", "processing", "refunded"].map((status) => (
+            <button
+              key={status}
+              onClick={() => {
+                setStatusFilter(status);
+                setPage(1);
+              }}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-all ${
+                statusFilter === status
+                  ? "bg-brand-500 text-white border-brand-500"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
-          <div className="flex flex-wrap gap-4 items-center">
-            <span className="text-sm font-bold text-gray-700 mr-2">Filter by:</span>
-            {["all", "pending", "approved", "rejected", "processing", "refunded"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                  statusFilter === status
-                    ? "bg-brand-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Returns List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Dense table */}
+        <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           {returns.length === 0 ? (
-            <div className="text-center py-12">
-              <FiPackage className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium">No return requests found</p>
+            <div className="py-12 text-center text-sm text-slate-400">
+              <FiPackage className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+              No return requests found
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Order</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Items</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Reason</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {returns.map((returnRequest) => (
-                    <tr key={returnRequest._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">#{returnRequest._id.slice(-8)}</td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{returnRequest.user?.name || "N/A"}</div>
-                        <div className="text-xs text-gray-500">{returnRequest.user?.email || ""}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">#{returnRequest.order?._id?.slice(-8) || "N/A"}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {returnRequest.items?.map((item, i) => (
-                          <div key={i} className="text-xs">
-                            {item.product?.name?.slice(0, 20) || "Product"} x{item.quantity}
-                          </div>
-                        ))}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-gray-100 text-gray-800">
-                          {getReasonLabel(returnRequest.items?.[0]?.reason || "other")}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">Rs. {returnRequest.refundAmount?.toLocaleString() || "0"}</td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(returnRequest.status)}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="flex gap-2">
-                          {returnRequest.status === "pending" && (
-                            <button
-                              onClick={() => handleApprove(returnRequest._id)}
-                              className="text-green-600 hover:text-green-800 font-bold px-3 py-1 rounded-lg hover:bg-green-50 transition-colors"
-                            >
-                              Approve
-                            </button>
-                          )}
-                          {returnRequest.status === "approved" && (
-                            <button
-                              onClick={() => handleProcessRefund(returnRequest._id, returnRequest.refundAmount || 0)}
-                              className="text-blue-600 hover:text-blue-800 font-bold px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                            >
-                              Process Refund
-                            </button>
-                          )}
-                          {returnRequest.status === "processing" && (
-                            <button
-                              onClick={() => handleComplete(returnRequest._id, returnRequest.refundMethod || "stripe")}
-                              className="text-purple-600 hover:text-purple-800 font-bold px-3 py-1 rounded-lg hover:bg-purple-50 transition-colors"
-                            >
-                              Complete
-                            </button>
-                          )}
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px]">
+                  <thead className="bg-slate-50/70 sticky top-0 z-10">
+                    <tr className="border-b border-slate-200/80">
+                      <th className="pl-4 pr-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">ID</th>
+                      <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Customer</th>
+                      <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Order</th>
+                      <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Items</th>
+                      <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Reason</th>
+                      <th className="px-2 py-2.5 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Amount</th>
+                      <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
+                      <th className="px-2 py-2.5 pr-4 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {total > limit && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} returns
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage(p => Math.min(Math.ceil(total / limit), p + 1))}
-                  disabled={page >= Math.ceil(total / limit)}
-                  className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Next
-                </button>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {returns.map((returnRequest) => (
+                      <tr key={returnRequest._id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="pl-4 pr-2 py-2 font-mono font-semibold text-slate-700 whitespace-nowrap">
+                          #{returnRequest._id.slice(-8)}
+                        </td>
+                        <td className="px-2 py-2">
+                          <p className="text-slate-900 font-medium max-w-[180px] truncate">
+                            {returnRequest.user?.name || "N/A"}
+                          </p>
+                          <p className="text-[11px] text-slate-400 max-w-[180px] truncate">
+                            {returnRequest.user?.email || ""}
+                          </p>
+                        </td>
+                        <td className="px-2 py-2 font-mono text-slate-500 whitespace-nowrap">
+                          #{returnRequest.order?._id?.slice(-8) || "N/A"}
+                        </td>
+                        <td className="px-2 py-2 text-slate-500 max-w-[240px]">
+                          {returnRequest.items?.map((item, i) => (
+                            <div key={i} className="text-xs truncate">
+                              {item.product?.name?.slice(0, 20) || "Product"} ×{item.quantity}
+                            </div>
+                          ))}
+                        </td>
+                        <td className="px-2 py-2 text-slate-500 whitespace-nowrap">
+                          {getReasonLabel(returnRequest.items?.[0]?.reason || "other")}
+                        </td>
+                        <td className="px-2 py-2 text-right font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                          Rs. {(returnRequest.refundAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="px-2 py-2">
+                          {getStatusBadge(returnRequest.status)}
+                        </td>
+                        <td className="px-2 py-2 pr-4">
+                          <div className="flex justify-end gap-1">
+                            {returnRequest.status === "pending" && (
+                              <button
+                                onClick={() => handleApprove(returnRequest._id)}
+                                className="px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            {returnRequest.status === "approved" && (
+                              <button
+                                onClick={() => handleProcessRefund(returnRequest._id, returnRequest.refundAmount || 0)}
+                                className="px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
+                              >
+                                Process Refund
+                              </button>
+                            )}
+                            {returnRequest.status === "processing" && (
+                              <button
+                                onClick={() => handleComplete(returnRequest._id, returnRequest.refundMethod || "stripe")}
+                                className="px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
+                              >
+                                Complete
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+
+              {/* Pagination — compact */}
+              {total > limit && (
+                <div className="border-t border-slate-100 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2">
+                  <p className="text-xs text-slate-400">
+                    Showing <span className="font-semibold text-slate-600">{(page - 1) * limit + 1}</span> to{" "}
+                    <span className="font-semibold text-slate-600">{Math.min(page * limit, total)}</span> of{" "}
+                    <span className="font-semibold text-slate-600">{total}</span> returns
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs font-mono text-slate-500 tabular-nums">
+                      {page} / {Math.ceil(total / limit)}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(Math.ceil(total / limit), p + 1))}
+                      disabled={page >= Math.ceil(total / limit)}
+                      className="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

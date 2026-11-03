@@ -5,7 +5,7 @@ import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-i
 
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
-import { injectTheme, injectFont, injectNavbar, injectBarFont } from "@/utils/color";
+import { injectTheme, injectFont, injectNavbar, injectBarFont, injectAdminTheme, generateBrandShades } from "@/utils/color";
 import { invalidatePublicSettings } from "@/utils/siteSettings";
 
 const SOCIAL_ICONS = {
@@ -116,6 +116,7 @@ export default function SettingsManagement() {
     iconLetter: "",
     logo: "",
     primaryColor: "#F85606",
+    adminTheme: "",
     chatWidgetColor: "#F85606",
     commissionPayment: {
       instructions: "",
@@ -276,6 +277,7 @@ export default function SettingsManagement() {
           iconLetter: s.iconLetter || "",
           logo: s.logo || "",
           primaryColor: s.primaryColor || "#F85606",
+          adminTheme: s.adminTheme || "",
           chatWidgetColor: s.chatWidgetColor || "#F85606",
           fontFamily: s.fontFamily || "Inter, system-ui, -apple-system, sans-serif",
           fontUrl: s.fontUrl || "",
@@ -537,6 +539,7 @@ export default function SettingsManagement() {
         iconLetter: form.iconLetter,
         logo: form.logo,
         primaryColor: form.primaryColor,
+        adminTheme: form.adminTheme,
         chatWidgetColor: form.chatWidgetColor,
         fontFamily: form.fontFamily,
         fontUrl: form.fontUrl,
@@ -582,6 +585,7 @@ export default function SettingsManagement() {
       const res = await api.put("/api/settings", payload);
       if (res.data?.success) {
         injectTheme(form.primaryColor);
+        injectAdminTheme(form.adminTheme);
         injectFont(form.fontFamily, form.fontUrl);
         injectNavbar(form);
         const color = form.chatWidgetColor || form.primaryColor || "#F85606";
@@ -604,6 +608,7 @@ export default function SettingsManagement() {
       const res = await api.put("/api/settings", payload);
       if (res.data?.success) {
         if (payload.primaryColor) injectTheme(payload.primaryColor);
+        if (payload.adminTheme !== undefined) injectAdminTheme(payload.adminTheme);
         if (payload.fontFamily) injectFont(payload.fontFamily, payload.fontUrl || form.fontUrl);
         if (payload.navbarBg || payload.navbarText || payload.navbarBorder || payload.topbarBg || payload.topbarText || payload.navbar) {
           injectNavbar({ ...form, ...payload });
@@ -1099,6 +1104,101 @@ export default function SettingsManagement() {
               ))}
             </div>
             <p className="text-xs text-slate-400 mt-1">All Tailwind brand-* utilities (bg-brand-500, text-brand-600, etc.) use this color</p>
+          </div>
+        </div>
+
+        {/* Admin Panel Theme */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FiSliders className="w-5 h-5 text-brand-500" />
+              Admin Panel Theme
+            </h2>
+            <button
+              type="button"
+              onClick={() => handleSectionSave("Admin Panel Theme", { adminTheme: form.adminTheme })}
+              disabled={savingSection === "Admin Panel Theme"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 rounded-lg transition"
+            >
+              {savingSection === "Admin Panel Theme" ? (
+                <><div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" /> Saving</>
+              ) : (
+                <><FiSave className="w-3.5 h-3.5" /> Save</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Give the admin console its own accent color, separate from the store theme.
+            Leave this empty to make the admin panel follow the store brand color.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Admin Accent Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme) ? form.adminTheme : "#2563eb"}
+                  onChange={(e) => setForm((prev) => ({ ...prev, adminTheme: e.target.value }))}
+                  className="w-12 h-12 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                />
+                <input
+                  type="text"
+                  value={form.adminTheme}
+                  placeholder="#2563eb (empty = store color)"
+                  onChange={(e) => setForm((prev) => ({ ...prev, adminTheme: e.target.value }))}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm font-mono"
+                />
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSectionSave("Admin Panel Theme", { adminTheme: "" })}
+                  disabled={savingSection === "Admin Panel Theme"}
+                  className="px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition disabled:opacity-50"
+                >
+                  Follow store color
+                </button>
+                {form.adminTheme === "" && (
+                  <span className="text-xs text-slate-400">Currently: follows the store brand color</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="text-center w-full">
+                {/* Preview mirrors the console: brand utilities inside a scope
+                    that carries the same admin-scope vars. */}
+                <div
+                  className="rounded-xl p-4 bg-[#f2f1ee] border border-slate-200 w-full"
+                  style={{
+                    "--color-brand": (form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme)) ? form.adminTheme : form.primaryColor,
+                    "--color-brand-dark": (form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme)) ? generateBrandShades(form.adminTheme)[600] : form.primaryColor,
+                    "--color-brand-500": (form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme)) ? form.adminTheme : form.primaryColor,
+                    "--color-brand-50": (form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme)) ? generateBrandShades(form.adminTheme)[50] : "#fff5f0",
+                    "--color-brand-600": (form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme)) ? generateBrandShades(form.adminTheme)[600] : form.primaryColor,
+                    "--color-brand-700": (form.adminTheme && /^#[0-9a-fA-F]{6}$/.test(form.adminTheme)) ? generateBrandShades(form.adminTheme)[700] : form.primaryColor,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">Admin console</span>
+                    <span className="text-[10px] font-mono text-slate-400">12 items</span>
+                  </div>
+                  <div className="rounded-lg bg-white border border-slate-100 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-900">Products</span>
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-brand-500 text-white">Manage</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-2 rounded bg-slate-100"><div className="h-2 w-2/3 rounded bg-brand-500" /></div>
+                      <div className="h-2 rounded bg-slate-100"><div className="h-2 w-1/3 rounded bg-brand-500" /></div>
+                    </div>
+                  </div>
+                  <button type="button" tabIndex={-1} className="mt-3 w-full text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-700 text-white py-2 transition">
+                    Primary action
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">Live preview (updates as you pick a color)</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1722,7 +1822,7 @@ export default function SettingsManagement() {
               type="button"
               onClick={handleTestEmail}
               disabled={testLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:bg-gray-300 transition"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 disabled:bg-gray-300 transition"
             >
               <FiSend className={`w-4 h-4 ${testLoading ? "animate-ping" : ""}`} />
               {testLoading ? "Sending..." : "Send Test Email"}

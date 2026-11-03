@@ -22,6 +22,7 @@ export const getPublicSettings = asyncHandler(async (req, res) => {
       logo: config.logo,
       primaryColor: config.primaryColor,
       chatWidgetColor: config.chatWidgetColor,
+      adminTheme: config.adminTheme,
       fontFamily: config.fontFamily,
       fontUrl: config.fontUrl,
       tagline: config.tagline,
@@ -69,7 +70,7 @@ export const getSettings = asyncHandler(async (req, res) => {
 export const updateSettings = asyncHandler(async (req, res) => {
   let config = await getFirstConfig();
   const allowed = [
-    "brandName", "iconLetter", "logo", "primaryColor", "chatWidgetColor", "fontFamily", "fontUrl", "tagline",
+    "brandName", "iconLetter", "logo", "primaryColor", "chatWidgetColor", "adminTheme", "fontFamily", "fontUrl", "tagline",
     "footerCompanyName", "footerSupportEmail", "footerDescription", "footerAddress", "footerPhone",
     "footerBg", "footerTextColor", "footerHeadingColor", "footerLinkHoverColor", "footerFontSize", "footerFontFamily", "footerLogo",
     "socialEnabled",

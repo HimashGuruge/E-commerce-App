@@ -5,6 +5,12 @@ import { Star, Trash2, CheckCircle, XCircle, Loader2, MessageSquare } from "luci
 import Swal from "sweetalert2";
 import { onSocketEvent } from "@/utils/socket";
 
+const statusStyles = {
+  approved: { dot: "bg-emerald-500", text: "text-emerald-700" },
+  pending: { dot: "bg-amber-500", text: "text-amber-700" },
+  rejected: { dot: "bg-red-500", text: "text-red-700" },
+};
+
 const FeedbackManagement = () => {
   const navigate = useNavigate();
   const [feedbacks, setFeedbacks] = useState([]);
@@ -98,12 +104,18 @@ const FeedbackManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Feedback Management</h1>
+    <div className="p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header — compact */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">Feedback</h1>
+            <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+              {feedbacks.length} reviews
+            </p>
+          </div>
           <span
-            className="flex items-center gap-1.5 text-xs text-emerald-600"
+            className="flex items-center gap-1.5 text-xs text-emerald-600 w-fit"
             title="This page updates live when feedback changes"
           >
             <span className="relative flex h-2 w-2">
@@ -114,37 +126,26 @@ const FeedbackManagement = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        {/* Slim stat strip */}
+        <div className="bg-white rounded-xl border border-slate-200/80 px-4 py-2.5 flex flex-wrap items-center divide-x divide-slate-100">
           {[
-            { label: "Total Reviews", value: stats.total, color: "from-slate-500 to-slate-600", shadow: "shadow-slate-200", icon: "M3 21h18M3 10h18M3 7l9-4 9 4M3 14h18" },
-            { label: "Pending", value: stats.pending, color: "from-amber-500 to-amber-600", shadow: "shadow-amber-200", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-            { label: "Approved", value: stats.approved, color: "from-emerald-500 to-emerald-600", shadow: "shadow-emerald-200", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-            { label: "Rejected", value: stats.rejected, color: "from-red-500 to-red-600", shadow: "shadow-red-200", icon: "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" },
-          ].map((stat, idx) => (
-            <div key={idx} className="relative bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group overflow-hidden">
-              <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-200`} />
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-3xl font-black text-slate-900 group-hover:text-brand-600 transition-colors">{stat.value}</p>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-0.5">{stat.label}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md ${stat.shadow} group-hover:scale-110 transition-transform duration-200`}>
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                  </svg>
-                </div>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div className={`h-full rounded-full bg-gradient-to-r ${stat.color} transition-all duration-500`} style={{ width: `${stats.total > 0 ? (stat.value / stats.total) * 100 : 0}%` }} />
-              </div>
+            { label: "Total", value: stats.total, dot: "bg-slate-500" },
+            { label: "Pending", value: stats.pending, dot: "bg-amber-500" },
+            { label: "Approved", value: stats.approved, dot: "bg-emerald-500" },
+            { label: "Rejected", value: stats.rejected, dot: "bg-red-500" },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-4 py-1 first:pl-0 last:pr-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+              <span className="text-sm font-semibold tabular-nums text-slate-900">{s.value}</span>
+              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">{s.label}</span>
             </div>
           ))}
         </div>
 
         {feedbacks.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center">
-            <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">No feedback found</p>
+          <div className="bg-white rounded-xl border border-slate-200/80 px-4 py-14 text-center">
+            <MessageSquare className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-sm text-slate-400">No feedback found</p>
           </div>
         ) : (
           <ReviewTable feedbacks={feedbacks} handleApprove={handleApprove} handleReject={handleReject} handleDelete={handleDelete} />
@@ -155,83 +156,80 @@ const FeedbackManagement = () => {
 };
 
 const ReviewTable = ({ feedbacks, handleApprove, handleReject, handleDelete }) => {
-  const getStatusBadge = (status) => {
-    if (status === "approved") return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-brand-100 text-brand-700">Approved</span>;
-    if (status === "pending") return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>;
-    return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">Rejected</span>;
-  };
-
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 overflow-hidden">
-      <div className="mb-4">
-        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-          <span>⭐</span>Customer Reviews
-          <span className="text-xs font-normal text-slate-400">({feedbacks.length} reviews)</span>
-        </h3>
-      </div>
+    <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
-              <th className="py-3 px-3 text-left">Product</th>
-              <th className="py-3 px-3 text-left">Customer</th>
-              <th className="py-3 px-3 text-left">Rating</th>
-              <th className="py-3 px-3 text-left">Review</th>
-              <th className="py-3 px-3 text-left">Status</th>
-              <th className="py-3 px-3 text-right">Actions</th>
+        <table className="w-full text-[13px]">
+          <thead className="bg-slate-50/70 sticky top-0 z-10">
+            <tr className="border-b border-slate-200/80">
+              <th className="pl-4 pr-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Product</th>
+              <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Customer</th>
+              <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Rating</th>
+              <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Review</th>
+              <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
+              <th className="px-2 py-2.5 pr-4 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {feedbacks.map((fb) => (
-              <tr key={fb._id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                <td className="py-3 px-3">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={fb.product?.images?.[0] || "https://via.placeholder.com/40"}
-                      alt={fb.product?.name || ""}
-                      className="w-8 h-8 object-cover rounded border border-slate-100"
-                      loading="lazy"
-                      onError={(e) => { e.target.style.display = "none"; }}
-                    />
-                    <span className="text-xs text-slate-700 truncate max-w-[140px]">{fb.product?.name || "—"}</span>
-                  </div>
-                </td>
-                <td className="py-3 px-3 text-xs text-slate-600">{fb.user?.name || "Anonymous"}</td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-px">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span key={star} className={`text-[11px] ${star <= fb.rating ? "text-yellow-400" : "text-gray-200"}`}>★</span>
-                    ))}
-                  </div>
-                </td>
-                <td className="py-3 px-3 max-w-[200px]">
-                  <div className="text-xs text-slate-600 line-clamp-2" dangerouslySetInnerHTML={{ __html: fb.comment || "-" }} />
-                </td>
-                <td className="py-3 px-3">{getStatusBadge(fb.status)}</td>
-                <td className="py-3 px-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    {fb.status === "pending" && (
-                      <>
-                        <button onClick={() => handleApprove(fb._id)} className="p-1.5 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors" title="Approve">
-                          <CheckCircle className="w-3.5 h-3.5" />
+          <tbody className="divide-y divide-slate-100">
+            {feedbacks.map((fb) => {
+              const s = statusStyles[(fb.status || "pending").toLowerCase()] || statusStyles.pending;
+              return (
+                <tr key={fb._id} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="pl-4 pr-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={fb.product?.images?.[0] || "https://via.placeholder.com/40"}
+                        alt={fb.product?.name || ""}
+                        className="w-8 h-8 object-cover rounded border border-slate-100 shrink-0"
+                        loading="lazy"
+                        onError={(e) => { e.target.style.display = "none"; }}
+                      />
+                      <span className="text-xs text-slate-700 truncate max-w-[140px]">{fb.product?.name || "—"}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 text-xs text-slate-600 whitespace-nowrap">{fb.user?.name || "Anonymous"}</td>
+                  <td className="px-2 py-2">
+                    <div className="flex gap-px items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className={`text-[11px] ${star <= fb.rating ? "text-yellow-400" : "text-gray-200"}`}>★</span>
+                      ))}
+                      <span className="ml-1.5 text-[11px] tabular-nums text-slate-400">{fb.rating}/5</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 max-w-[260px]">
+                    <div className="text-xs text-slate-600 line-clamp-2" dangerouslySetInnerHTML={{ __html: fb.comment || "-" }} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${s.text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                      {fb.status || "pending"}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 pr-4">
+                    <div className="flex items-center justify-end gap-0.5">
+                      {fb.status === "pending" && (
+                        <>
+                          <button onClick={() => handleApprove(fb._id)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" title="Approve">
+                            <CheckCircle size={14} />
+                          </button>
+                          <button onClick={() => handleReject(fb._id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Reject">
+                            <XCircle size={14} />
+                          </button>
+                        </>
+                      )}
+                      {fb.status === "approved" && (
+                        <button onClick={() => handleReject(fb._id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Reject">
+                          <XCircle size={14} />
                         </button>
-                        <button onClick={() => handleReject(fb._id)} className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" title="Reject">
-                          <XCircle className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                    {fb.status === "approved" && (
-                      <button onClick={() => handleReject(fb._id)} className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" title="Reject">
-                        <XCircle className="w-3.5 h-3.5" />
+                      )}
+                      <button onClick={() => handleDelete(fb._id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                        <Trash2 size={14} />
                       </button>
-                    )}
-                    <button onClick={() => handleDelete(fb._id)} className="p-1.5 bg-white text-slate-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors border border-slate-200" title="Delete">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

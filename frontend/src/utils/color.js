@@ -44,6 +44,64 @@ export function generateBrandShades(hex) {
   };
 }
 
+// Inject the admin panel (dashboard console) accent color.
+// Overridden to the admin color only within `.admin-scope`, so the store
+// theme (`:root --color-brand-*`) is never touched. An empty/missing color
+// means "follow the store brand color". Safe to call before the admin
+// screen has rendered (the style tag is still valid; `.admin-scope`
+// simply matches nothing until Dashboard renders it).
+export function injectAdminTheme(adminColor) {
+  const color = (adminColor && /^#[0-9a-fA-F]{6}$/.test(adminColor.trim())) ? adminColor.trim() : "";
+  let css;
+  if (!color) {
+    // Delegate: clear the scope vars so the admin console inherits the
+    // store brand values from :root.
+    css = "";
+  } else {
+    const shades = generateBrandShades(color);
+    css = `
+.admin-scope {
+  --color-brand: ${color};
+  --color-brand-dark: ${shades[600]};
+  --color-brand-light: ${shades[400]};
+  --color-brand-50: ${shades[50]};
+  --color-brand-100: ${shades[100]};
+  --color-brand-200: ${shades[200]};
+  --color-brand-300: ${shades[300]};
+  --color-brand-400: ${shades[400]};
+  --color-brand-500: ${shades[500]};
+  --color-brand-600: ${shades[600]};
+  --color-brand-700: ${shades[700]};
+  --color-brand-800: ${shades[800]};
+  --color-brand-900: ${shades[900]};
+}
+`;
+  }
+  let style = document.getElementById("admin-theme-variables");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "admin-theme-variables";
+    document.head.appendChild(style);
+  }
+  style.textContent = css;
+}
+
+// Resolve the admin panel accent to a usable hex value. Reads the live
+// `--color-brand` from inside the `.admin-scope` element (the element
+// already scoped its value). Falls back to the store brand color, then to
+// the default orange. Used for things that can't read CSS variables
+// (e.g. Chart.js).
+export function getAdminAccent() {
+  const scope = document.querySelector(".admin-scope");
+  if (scope) {
+    const c = getComputedStyle(scope).getPropertyValue("--color-brand").trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(c)) return c;
+  }
+  const root = getComputedStyle(document.documentElement).getPropertyValue("--color-brand").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(root)) return root;
+  return "#F85606";
+}
+
 export function injectTheme(primaryColor) {
   const shades = generateBrandShades(primaryColor);
   const css = `

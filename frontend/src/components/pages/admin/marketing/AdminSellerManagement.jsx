@@ -278,7 +278,7 @@ export default function AdminSellerManagement() {
                     </>
                   )}
                   {seller.status === "approved" && (
-                    <button onClick={() => handleSuspend(seller._id, seller.shopName)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-all" title="Suspend">
+                    <button onClick={() => handleSuspend(seller._id, seller.shopName)} className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-all" title="Suspend">
                       <FiToggleLeft className="w-4 h-4" />
                     </button>
                   )}

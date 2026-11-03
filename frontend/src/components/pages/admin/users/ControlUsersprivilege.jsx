@@ -1,30 +1,96 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
 import {
-  FiUser,
-  FiShield,
   FiTrash2,
   FiEdit2,
-  FiSearch,
   FiChevronLeft,
   FiChevronRight,
   FiCheckCircle,
   FiXCircle,
   FiMail,
-  FiPhone,
-  FiMapPin,
-  FiCalendar,
 } from "react-icons/fi";
 import { FaCrown } from "react-icons/fa";
-import { TbUserShield, TbUserOff } from "react-icons/tb";
-import { Info, ChevronDown, ChevronUp } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { TbUserShield, TbUserOff, TbSearch } from "react-icons/tb";
 import { onSocketEvent } from "@/utils/socket";
 
 const USERS_PER_PAGE = 10;
+
+/* ------------------------------------------------------------------ */
+/* Data helpers                                                        */
+/* ------------------------------------------------------------------ */
+
+function countUsersByStatus(users) {
+  const counts = { all: users.length, active: 0, suspended: 0 };
+  users.forEach((u) => {
+    if (!u) return;
+    if (u.status === "active") counts.active += 1;
+    else counts.suspended += 1;
+  });
+  return counts;
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function initialsOf(user) {
+  return user?.name?.trim()?.charAt(0)?.toUpperCase() || "U";
+}
+
+const AVATAR_HUES = [5, 12, 24, 31, 42, 200];
+function avatarHue(user) {
+  let h = 0;
+  const seed = user?._id || user?.email || "";
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_HUES[h % AVATAR_HUES.length];
+}
+
+const STATUS_STYLES = {
+  active: { dot: "bg-emerald-500", text: "text-emerald-700", hover: "hover:bg-emerald-50" },
+  suspended: { dot: "bg-red-500", text: "text-red-700", hover: "hover:bg-red-50" },
+};
+
+/* ------------------------------------------------------------------ */
+/* Slim tab filter group                                               */
+/* ------------------------------------------------------------------ */
+
+function TabGroup({ value, onChange, options }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-1">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-all ${
+            value === opt.value
+              ? "bg-brand-500 text-white border-brand-500"
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
+          }`}
+        >
+          {opt.label}
+          <span
+            className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-full tabular-nums ${
+              value === opt.value ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {opt.count}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Main page                                                           */
+/* ------------------------------------------------------------------ */
 
 export default function ControlUsersprivilege() {
   const navigate = useNavigate();
@@ -38,7 +104,7 @@ export default function ControlUsersprivilege() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [showGuide, setShowGuide] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -58,6 +124,7 @@ export default function ControlUsersprivilege() {
       localStorage.removeItem("token");
       navigate("/login");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   // Live update: the server sends admin:stats-changed on every user
@@ -73,13 +140,14 @@ export default function ControlUsersprivilege() {
         } catch {
           return;
         }
-        fetchUsers();
-        fetchUserStats();
+        setSyncing(true);
+        Promise.all([fetchUsers(), fetchUserStats()]).finally(() => setSyncing(false));
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -97,15 +165,14 @@ export default function ControlUsersprivilege() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await api.get(`/api/users/stats/summary`);
       if (response.data.success) setStats(response.data.stats);
     } catch (_error) {}
-  };
+  }, []);
 
   const handleRoleChange = (userId, currentRole) => async (event) => {
     const select = event.target;
@@ -186,6 +253,20 @@ export default function ControlUsersprivilege() {
     }
   };
 
+  const roleCount = (value) =>
+    users.filter((u) => {
+      if (!u) return false;
+      if (value === "all") return true;
+      if (value === "sellers") return u.role !== "admin"; // customers + sellers
+      return u.role === value;
+    }).length;
+
+  const statusCount = {
+    all: users.length,
+    active: users.filter((u) => u?.status === "active").length,
+    suspended: users.filter((u) => u && u.status !== "active").length,
+  };
+
   const matchesRole = (user) => {
     if (roleFilter === "all") return true;
     if (roleFilter === "sellers") return user.role !== "admin"; // customers + sellers
@@ -196,9 +277,9 @@ export default function ControlUsersprivilege() {
     if (!user) return false;
     const searchLower = searchTerm.toLowerCase().trim();
     if (searchTerm) {
-      const nameMatch = user.name?.toLowerCase().includes(searchLower) || false;
+      const nameMatch = (user.name + " " + (user.lastname || "")).toLowerCase().includes(searchLower);
       const emailMatch = user.email?.toLowerCase().includes(searchLower) || false;
-      if (!(nameMatch || emailMatch)) return false;
+      if (!nameMatch && !emailMatch) return false;
     }
     if (!matchesRole(user)) return false;
     if (statusFilter !== "all" && user.status !== statusFilter) return false;
@@ -208,6 +289,8 @@ export default function ControlUsersprivilege() {
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
   const currentUsers = filteredUsers.slice((safePage - 1) * USERS_PER_PAGE, safePage * USERS_PER_PAGE);
+  const shownStart = filteredUsers.length === 0 ? 0 : (safePage - 1) * USERS_PER_PAGE + 1;
+  const shownEnd = Math.min(safePage * USERS_PER_PAGE, filteredUsers.length);
 
   // Reset to page 1 whenever a filter or search changes
   useEffect(() => {
@@ -275,329 +358,271 @@ export default function ControlUsersprivilege() {
     }
   };
 
+  const hasFilter = searchTerm || roleFilter !== "all" || statusFilter !== "all";
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-full bg-slate-50 flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="relative">
-            <TbUserShield className="w-12 h-12 text-brand-500 animate-pulse mx-auto" />
-          </div>
-          <p className="text-slate-500 mt-4 font-medium">Loading Users...</p>
+          <TbUserShield className="w-10 h-10 text-slate-300 animate-pulse mx-auto" />
+          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-slate-400">
+            Loading users…
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <TbUserShield className="w-5 h-5 md:w-6 md:h-6 text-white" />
-              </div>
-              User Management
-            </h1>
-            <p className="text-slate-500 mt-1">Manage users, roles and permissions</p>
+    <div className="p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header — compact */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">User Privileges</h1>
+            <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+              {users.length} users
+            </p>
+            {syncing && (
+              <span className="inline-flex items-center text-[11px] font-semibold text-emerald-600">
+                syncing
+              </span>
+            )}
           </div>
-          <span
-            className="flex items-center gap-1.5 text-xs text-emerald-600"
-            title="This page updates live when users change"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Live
-          </span>
-        </div>
-
-        {/* Quick Guide */}
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden">
-          <button
-            onClick={() => setShowGuide((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-800 hover:bg-blue-100/50 transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <Info size={18} className="text-blue-500" />
-              How to use this page (quick guide)
-            </span>
-            {showGuide ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          {showGuide && (
-            <div className="px-4 pb-4 text-sm text-blue-900 space-y-4">
-              <div>
-                <p className="font-semibold mb-1.5">What you can do on this page</p>
-                <p className="leading-relaxed">
-                  Manage every user on the site — change their <strong>role</strong>, <strong>suspend or reactivate</strong>
-                  them, edit their details, or <strong>delete</strong> them. The <strong>Live</strong> badge is real: the
-                  list updates automatically when any user signs up or changes — no reload needed. Your own admin
-                  account never appears here and cannot be modified.
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold mb-1.5">Quick filters (3 steps)</p>
-                <ol className="list-decimal list-inside space-y-1 leading-relaxed">
-                  <li>Use the <strong>search box</strong> to find a user by name or email.</li>
-                  <li>Use the <strong>role tabs</strong> (All / Customers / Sellers / Admins) and the <strong>status tabs</strong> (All / Active / Suspended) to narrow the list.</li>
-                  <li>The <strong>stats cards</strong> at the top show the total, active users, and admins at a glance.</li>
-                </ol>
-              </div>
-              <div>
-                <p className="font-semibold mb-1.5">Understanding each row</p>
-                <ul className="list-disc list-inside space-y-1 leading-relaxed">
-                  <li><strong>Name + email</strong> — who the user is and their contact email.</li>
-                  <li><strong>Role dropdown</strong> — change the user between <em>customer</em>, <em>seller</em>, and <em>admin</em>. A <strong>👑 Main Admin</strong> badge marks the protected main account, and a <strong>Sub Admin</strong> badge marks other admins — their role is locked.</li>
-                  <li><strong>Status badge</strong> — click it to <strong>suspend</strong> an active user (they can no longer log in or order) or <strong>activate</strong> them again. Suspended users show a red badge.</li>
-                  <li><strong>Joined</strong> — the date the user signed up.</li>
-                  <li><strong>Actions</strong> — appear on hover: <strong>✏ Edit</strong> (name and phone; email is fixed) and <strong>🗑 Delete</strong> (permanent, no undo).</li>
-                </ul>
-              </div>
-              <div>
-                <p className="font-semibold mb-1.5">Bulk actions</p>
-                <p className="leading-relaxed">
-                  Tick the <strong>checkboxes</strong> on the users you want to affect (or the box in the header to pick
-                  everyone on this page) and a green action bar appears with <strong>Activate</strong>, <strong>Suspend</strong>,
-                  and <strong>Delete</strong>. Use it to clean up many accounts at once. Main Admin checkboxes are always disabled.
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold mb-1.5">Useful tips</p>
-                <ul className="list-disc list-inside space-y-1 leading-relaxed">
-                  <li>Every role change, suspend, and delete asks you to <strong>confirm first</strong> — nothing happens by accident.</li>
-                  <li>A <strong>suspended</strong> user keeps all their data; they just can't log in until you activate them again.</li>
-                  <li>Deleting a user is permanent — their profile and order history links are affected, so suspend first if you are unsure.</li>
-                  <li>Page through large lists with the pagination buttons at the bottom of the table.</li>
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { label: "Total Users", value: stats.totalUsers, icon: FiUser, color: "from-slate-500 to-slate-600" },
-              { label: "Active", value: stats.activeUsers, icon: FiCheckCircle, color: "from-brand-500 to-brand-600" },
-              { label: "Admins", value: stats.adminUsers, icon: FiShield, color: "from-violet-500 to-violet-600" },
-            ].map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
-                  </div>
-                  <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                    <stat.icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
               <input
                 type="text"
-                placeholder="Search by name or email..."
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm"
+                placeholder="Search name or email…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full sm:w-64 pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-2 focus:ring-brand-500/15"
               />
+              <TbSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { value: "all", label: "All" },
-                { value: "customer", label: "Customers" },
-                { value: "sellers", label: "Sellers" },
-                { value: "admin", label: "Admins" },
-              ].map((filter) => (
-                <button
-                  key={filter.value}
-                  onClick={() => setRoleFilter(filter.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    roleFilter === filter.value
-                      ? "bg-brand-500 text-white shadow-lg shadow-emerald-500/25"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-              <span className="w-px bg-slate-200 mx-1" />
-              {[
-                { value: "all", label: "All" },
-                { value: "active", label: "Active" },
-                { value: "suspended", label: "Suspended" },
-              ].map((filter) => (
-                <button
-                  key={filter.value}
-                  onClick={() => setStatusFilter(filter.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    statusFilter === filter.value
-                      ? "bg-slate-800 text-white shadow-lg shadow-slate-800/25"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
+            <span
+              className="flex items-center gap-1.5 text-xs text-emerald-600 w-fit shrink-0"
+              title="This page updates live when users change — no reload needed"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${syncing ? "bg-sky-400" : "bg-emerald-400"}`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${syncing ? "bg-sky-500" : "bg-emerald-500"}`} />
+              </span>
+              Live
+            </span>
           </div>
         </div>
 
-        {/* Bulk Actions */}
+        {/* Slim stat strip */}
+        <div className="bg-white rounded-xl border border-slate-200/80 px-4 py-2.5 flex flex-wrap items-center divide-x divide-slate-100">
+          {[
+            { label: "Total", value: stats?.totalUsers ?? users.length, dot: "bg-slate-500" },
+            { label: "Active", value: statusCount.active, dot: "bg-emerald-500" },
+            { label: "Admins", value: stats?.adminUsers ?? users.filter((u) => u?.role === "admin").length, dot: "bg-amber-500" },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-4 py-1 first:pl-0 last:pr-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+              <span className="text-sm font-semibold tabular-nums text-slate-900">{s.value}</span>
+              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Role filters — slim */}
+        <div>
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-slate-400 mb-1.5">Role</p>
+          <TabGroup
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={[
+              { value: "all", label: "All", count: roleCount("all") },
+              { value: "customer", label: "Customers", count: roleCount("customer") },
+              { value: "sellers", label: "Sellers", count: roleCount("sellers") },
+              { value: "admin", label: "Admins", count: roleCount("admin") },
+            ]}
+          />
+        </div>
+
+        {/* Status filters — slim */}
+        <div>
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-slate-400 mb-1.5">Status</p>
+          <TabGroup
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: "all", label: "All", count: statusCount.all },
+              { value: "active", label: "Active", count: statusCount.active },
+              { value: "suspended", label: "Suspended", count: statusCount.suspended },
+            ]}
+          />
+        </div>
+
+        {/* Bulk action bar */}
         {selectedUsers.length > 0 && (
-          <div className="bg-brand-50 px-5 py-3 rounded-xl border border-brand-100 flex flex-wrap items-center gap-3">
-            <span className="text-brand-700 font-medium text-sm">
-              {selectedUsers.length} user(s) selected
+          <div className="bg-slate-50/80 border border-slate-200/80 rounded-lg px-4 py-2.5 flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-2 text-[13px] font-semibold text-slate-700">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded bg-slate-900 px-1.5 font-mono text-[11px] text-white tabular-nums">
+                {selectedUsers.length}
+              </span>
+              {selectedUsers.length === 1 ? "user" : "users"} selected
             </span>
+            <span className="hidden sm:block h-4 w-px bg-slate-200" />
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => handleBulkAction("activate")}
-                className="px-3 py-1.5 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600"
+                className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
               >
                 Activate
               </button>
               <button
+                type="button"
                 onClick={() => handleBulkAction("suspend")}
-                className="px-3 py-1.5 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600"
+                className="px-2.5 py-1 rounded-md text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 Suspend
               </button>
               <button
+                type="button"
                 onClick={() => handleBulkAction("delete")}
-                className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600"
+                className="px-2.5 py-1 rounded-md text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors"
               >
                 Delete
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setSelectedUsers([])}
+              className="ml-auto font-mono text-[11px] uppercase tracking-[0.15em] text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Clear
+            </button>
           </div>
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          {filteredUsers.length === 0 ? (
-            <div className="p-16 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
-                <TbUserOff className="w-10 h-10 text-slate-300" />
-              </div>
-              <p className="text-lg font-semibold text-slate-900">No users found</p>
-              <p className="text-slate-500 mt-1">Try adjusting your search</p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50/80 border-b border-slate-100">
-                    <tr>
-                      <th className="p-4 w-12">
-                        <input
-                          type="checkbox"
-                          onChange={handleSelectAll}
-                          checked={selectedUsers.length === currentUsers.length && currentUsers.length > 0}
-                          className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                        />
-                      </th>
-                      <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">User</th>
-                      <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Contact</th>
-                      <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
-                      <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                      <th className="p-4 text-left text-xs font-semibold text-slate-500 uppercase">Joined</th>
-                      <th className="p-4 text-right text-xs font-semibold text-slate-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {currentUsers.map((user) => (
-                      <tr key={user._id} className="hover:bg-slate-50/60 transition-colors group">
-                        <td className="p-4">
+        {filteredUsers.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200/80 px-4 py-14 text-center">
+            <TbUserOff className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-sm text-slate-400">No users match</p>
+            {hasFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setRoleFilter("all");
+                  setStatusFilter("all");
+                }}
+                className="mt-3 rounded-md px-3 py-1.5 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-700 transition-colors"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead className="bg-slate-50/70 sticky top-0 z-10">
+                  <tr className="border-b border-slate-200/80">
+                    <th className="w-10 pl-4 pr-2 py-2.5">
+                      <input
+                        type="checkbox"
+                        onChange={handleSelectAll}
+                        checked={selectedUsers.length === currentUsers.length && currentUsers.length > 0}
+                        aria-label="Select all users on this page"
+                        className="h-3.5 w-3.5 accent-brand-500 cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">User</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Role</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Joined</th>
+                    <th className="px-2 py-2.5 pr-4 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {currentUsers.map((user) => {
+                    const isAdmin = user.role === "admin" || user.isMainAdmin;
+                    const hue = avatarHue(user);
+                    const s = STATUS_STYLES[user.status] || STATUS_STYLES.suspended;
+                    return (
+                      <tr
+                        key={user._id}
+                        className={`transition-colors ${
+                          selectedUsers.some((u) => u._id === user._id)
+                            ? "bg-orange-50/60 hover:bg-orange-50"
+                            : "hover:bg-slate-50/70"
+                        }`}
+                      >
+                        {/* Select */}
+                        <td className="pl-4 pr-2 py-2">
                           <input
                             type="checkbox"
                             checked={selectedUsers.some((u) => u._id === user._id)}
                             onChange={(e) => handleSelectUser(user, e.target.checked)}
                             disabled={!!user.isMainAdmin}
-                            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title={user.isMainAdmin ? "Main Admin cannot be selected for bulk actions" : undefined}
+                            aria-label={`Select ${user.name}`}
+                            title={user.isMainAdmin ? "Main Admin — protected, cannot be selected" : undefined}
+                            className="h-3.5 w-3.5 accent-brand-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                           />
                         </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
+
+                        {/* User */}
+                        <td className="px-2 py-2">
+                          <div className="flex items-center gap-2.5">
                             {user.profileImage ? (
                               <img
                                 src={user.profileImage}
                                 alt={user.name}
-                                className="w-10 h-10 rounded-full object-cover"
+                                className="h-7 w-7 shrink-0 rounded-full object-cover border border-slate-100"
                                 referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  e.target.style.display = "none";
-                                  e.target.nextSibling.style.display = "flex";
-                                }}
                               />
-                            ) : null}
-                            <div
-                              className={`w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-brand-500 flex items-center justify-center text-white font-bold text-sm ${user.profileImage ? "hidden" : ""}`}
-                            >
-                              {user.name?.charAt(0).toUpperCase() || "U"}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-semibold text-slate-900">{user.name} {user.lastname}</p>
-                                {user.isMainAdmin ? (
+                            ) : (
+                              <span
+                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-display font-bold text-[11px] text-white ${
+                                  user.isMainAdmin ? "bg-gradient-to-br from-amber-400 to-brand-500" : ""
+                                }`}
+                                style={!user.profileImage && !user.isMainAdmin ? { backgroundColor: `hsl(${hue} 62% 38%)` } : undefined}
+                              >
+                                {initialsOf(user)}
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="truncate text-xs font-semibold text-slate-800">{user.name} {user.lastname}</p>
+                                {user.isMainAdmin && (
                                   <span
-                                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-gradient-to-r from-amber-300 to-amber-500 text-amber-950 shadow-sm"
+                                    className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700"
                                     title="Main Admin — protected account"
                                   >
-                                    <FaCrown className="w-3 h-3 inline mr-1" />
-                                    Main Admin
+                                    <FaCrown size={9} />
+                                    Main
                                   </span>
-                                ) : user.role === "admin" ? (
-                                  <span
-                                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-100 text-blue-700"
-                                    title="Sub Admin — standard admin permissions"
-                                  >
-                                    <FiShield className="w-3 h-3 inline mr-1" />
-                                    Sub Admin
-                                  </span>
-                                ) : null}
+                                )}
                               </div>
-                              <p className="text-xs text-slate-500 flex items-center gap-1">
-                                <FiMail className="w-3 h-3" /> {user.email}
+                              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
+                                <FiMail className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{user.email}</span>
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-sm text-slate-600">
-                          {user.phone && user.phone !== "No phone Number" ? (
-                            <div className="flex items-center gap-1.5">
-                              <FiPhone className="w-3.5 h-3.5 text-slate-400" />
-                              {user.phone}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 italic">No phone</span>
-                          )}
-                        </td>
-                        <td className="p-4">
+
+                        {/* Role */}
+                        <td className="px-2 py-2">
                           {user.isMainAdmin ? (
-                            <span
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed bg-amber-100 text-amber-800"
-                              title="Main Admin role is protected"
-                            >
-                              <FaCrown className="w-3.5 h-3.5" />
-                              {user.role}
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700" title="Main Admin role is protected">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              admin
                             </span>
                           ) : (
                             <select
                               value={user.role}
                               onChange={handleRoleChange(user._id, user.role)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-slate-100 text-slate-700 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
+                              aria-label={`Change role for ${user.name}`}
                               title="Change user role"
+                              className="cursor-pointer rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-slate-300 focus:ring-2 focus:ring-brand-500/15"
                             >
                               <option value="customer">customer</option>
                               <option value="seller">seller</option>
@@ -605,164 +630,195 @@ export default function ControlUsersprivilege() {
                             </select>
                           )}
                         </td>
-                        <td className="p-4">
-                          <span
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                              user.status === "active"
-                                ? "bg-brand-100 text-brand-700 hover:bg-brand-200"
-                                : "bg-red-100 text-red-700 hover:bg-red-200"
-                            } ${user.role === "admin" || user.isMainAdmin ? "cursor-not-allowed" : "cursor-pointer"}`}
-                            title={user.isMainAdmin ? "Main Admin status is protected" : user.role === "admin" ? "Admin status is protected" : undefined}
-                            role="button"
-                            onClick={user.role === "admin" || user.isMainAdmin ? undefined : () => handleStatusChange(user._id, user.status)}
-                          >
-                            {user.status === "active" ? <FiCheckCircle className="w-3.5 h-3.5" /> : <FiXCircle className="w-3.5 h-3.5" />}
-                            {user.status}
-                          </span>
+
+                        {/* Status */}
+                        <td className="px-2 py-2">
+                          {isAdmin ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500"
+                              title={user.isMainAdmin ? "Main Admin status is protected" : "Admin status is protected"}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                              {user.status}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(user._id, user.status)}
+                              title={user.status === "active" ? "Click to suspend" : "Click to reactivate"}
+                              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold ${s.text} transition-colors ${s.hover}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                              {user.status}
+                            </button>
+                          )}
                         </td>
-                        <td className="p-4 text-sm text-slate-500">
-                          <div className="flex items-center gap-1.5">
-                            <FiCalendar className="w-3.5 h-3.5 text-slate-400" />
-                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
-                          </div>
+
+                        {/* Joined */}
+                        <td className="px-2 py-2 font-mono text-xs text-slate-500 whitespace-nowrap">
+                          {formatDate(user.createdAt)}
                         </td>
-                        <td className="p-4">
-                          <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                        {/* Actions */}
+                        <td className="px-2 py-2 pr-4">
+                          <div className="flex items-center justify-end gap-0.5">
                             {user.role !== "admin" && (
                               <button
+                                type="button"
                                 onClick={() => openEditModal(user)}
-                                className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg"
-                                title="Edit"
+                                title="Edit name and phone"
+                                className="p-1.5 text-slate-400 hover:text-brand-500 hover:bg-brand-50 rounded-md transition-colors"
                               >
-                                <FiEdit2 className="w-4 h-4" />
+                                <FiEdit2 size={14} />
                               </button>
                             )}
                             <button
+                              type="button"
                               onClick={() => handleDeleteUser(user._id, user.name)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              title={user.isMainAdmin ? "Main Admin cannot be deleted" : "Delete"}
                               disabled={!!user.isMainAdmin}
+                              title={user.isMainAdmin ? "Main Admin cannot be deleted" : "Delete user"}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                             >
-                              <FiTrash2 className="w-4 h-4" />
+                              <FiTrash2 size={14} />
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="border-t border-slate-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-slate-500">
-                    Showing <span className="font-semibold">{(safePage - 1) * USERS_PER_PAGE + 1}</span> to{" "}
-                    <span className="font-semibold">{Math.min(safePage * USERS_PER_PAGE, filteredUsers.length)}</span> of{" "}
-                    <span className="font-semibold">{filteredUsers.length}</span> users
-                  </p>
-                  <div className="flex items-center gap-2">
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="border-t border-slate-100 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <p className="font-mono text-xs text-slate-400">
+                  {shownStart}–{shownEnd} of {filteredUsers.length}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    aria-label="First page"
+                    className="h-7 w-7 flex items-center justify-center rounded-md ring-1 ring-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
+                  >
+                    <FiChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  {[...Array(Math.min(5, totalPages))].map((_, idx) => (
                     <button
-                      onClick={() => setCurrentPage(1)}
-                      disabled={currentPage === 1}
-                      className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentPage(idx + 1)}
+                      className={`h-7 w-7 flex items-center justify-center rounded-md text-xs font-semibold transition-colors ${
+                        currentPage === idx + 1
+                          ? "bg-slate-900 text-white"
+                          : "ring-1 ring-slate-200 hover:bg-slate-50 text-slate-600"
+                      }`}
                     >
-                      <FiChevronLeft className="w-4 h-4" />
+                      {idx + 1}
                     </button>
-                    {[...Array(Math.min(5, totalPages))].map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCurrentPage(idx + 1)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium ${
-                          currentPage === idx + 1
-                            ? "bg-brand-500 text-white shadow-lg shadow-emerald-500/25"
-                            : "border border-slate-200 hover:bg-slate-50 text-slate-600"
-                        }`}
-                      >
-                        {idx + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setCurrentPage(totalPages)}
-                      disabled={currentPage === totalPages}
-                      className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <FiChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Edit Modal */}
-      <AnimatePresence>
-        {showEditModal && selectedUser && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
-            >
-              <div className="flex items-center justify-between p-5 border-b border-slate-100">
-                <h3 className="text-lg font-bold text-slate-900">Edit User</h3>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                  <input
-                    type="text"
-                    className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm"
-                    value={selectedUser.name || ""}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm bg-slate-50"
-                    value={selectedUser.email || ""}
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
-                  <input
-                    type="text"
-                    className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm"
-                    value={selectedUser.phone || ""}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
-                  />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    aria-label="Last page"
+                    className="h-7 w-7 flex items-center justify-center rounded-md ring-1 ring-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
+                  >
+                    <FiChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-3 p-5 border-t border-slate-100">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 py-3 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveUserEdit}
-                  className="flex-1 py-3 bg-brand-500 text-white rounded-xl font-semibold hover:bg-brand-600 shadow-lg shadow-emerald-500/25"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </motion.div>
+            )}
           </div>
         )}
-      </AnimatePresence>
+
+        {/* Footer print */}
+        <p className="text-center font-mono text-[10px] uppercase tracking-[0.25em] text-slate-300">
+          Live · updates automatically when users change
+        </p>
+      </div>
+
+      {/* Edit modal */}
+      {showEditModal && selectedUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm bg-white rounded-xl shadow-xl"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div>
+                <h3 className="font-display font-bold text-base leading-tight text-slate-900">Edit User</h3>
+                <p className="mt-0.5 text-xs text-slate-400">{selectedUser.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                aria-label="Close"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              >
+                <FiXCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-5">
+              <div>
+                <label className="mb-1.5 block text-[11px] font-mono font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full h-10 rounded-lg px-3.5 text-sm border border-slate-200 focus:outline-none focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/15"
+                  value={selectedUser.name || ""}
+                  onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-mono font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  Email <span className="normal-case tracking-normal text-slate-300">(fixed)</span>
+                </label>
+                <input
+                  type="email"
+                  disabled
+                  className="w-full h-10 rounded-lg bg-slate-50 px-3.5 text-sm text-slate-500 border border-slate-200 cursor-not-allowed"
+                  value={selectedUser.email || ""}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-mono font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  Phone
+                </label>
+                <input
+                  type="text"
+                  className="w-full h-10 rounded-lg px-3.5 text-sm border border-slate-200 focus:outline-none focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/15"
+                  value={selectedUser.phone || ""}
+                  onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 border-t border-slate-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 h-10 rounded-lg ring-1 ring-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveUserEdit}
+                className="flex-1 h-10 rounded-lg bg-brand-500 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
