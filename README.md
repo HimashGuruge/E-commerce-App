@@ -102,10 +102,10 @@ This is a full-stack, production-style e-commerce site built from the ground up.
 │       │   └── ...
 │       ├── App.jsx
 │       └── main.jsx
-├── run.bat             # Windows one-click: start both servers + open browser
-├── start-app.bat       # Helper used by run.bat (runs `npm run dev` per app)
 └── README.md
 ```
+
+> `run.bat` / `start-app.bat` (Windows one-click helpers) are **git-ignored** and not part of the repo — see the Windows tip in [Setup](#setup).
 
 ---
 
@@ -116,25 +116,18 @@ This is a full-stack, production-style e-commerce site built from the ground up.
 - **Node.js 18+** (with `npm`)
 - **MongoDB** — either a local instance on `mongodb://127.0.0.1:27017` or a cloud Atlas URI
 
-### Quick start (Windows, one command)
+### Setup
 
-This repo ships a helper that checks MongoDB, installs dependencies, creates the `.env` files and starts both servers:
+Follow the two steps below (backend, then frontend). This works on Windows, macOS and Linux.
 
-```bash
-run.bat
-```
+> **Windows tip:** this project also keeps a local one-click helper, `run.bat`, which checks MongoDB, installs dependencies, creates the `.env` files and starts both servers, then opens `http://localhost:3001`. It is **git-ignored** (not part of the repo) — it only exists on the original author's machine, so it is not available after a fresh clone. Use the manual steps below instead.
 
-It then opens the app at `http://localhost:3001`. The first run copies `backend/.env.example` → `backend/.env`, so **edit `backend/.env` and set `MONGO_URI` and `JWT_SECRET`** before relying on the defaults. To stop, close the two minimized windows named `ECOM-BACKEND` and `ECOM-FRONTEND`.
-
-### Manual setup
-
-<details>
-<summary><b>1. Backend</b> (port 4000)</summary>
+#### 1. Backend (port 4000)
 
 ```bash
 cd backend
 npm install
-copy .env.example .env        # Windows: use "copy"; on macOS/Linux: cp .env.example .env
+cp .env.example .env          # Windows (cmd): copy .env.example .env
 ```
 
 Edit `backend/.env` and set at least:
@@ -146,15 +139,12 @@ Edit `backend/.env` and set at least:
 npm start                     # Start API on http://localhost:4000 (nodemon)
 ```
 
-</details>
-
-<details>
-<summary><b>2. Frontend</b> (port 3001)</summary>
+#### 2. Frontend (port 3001)
 
 ```bash
 cd frontend
 npm install
-copy .env.example .env        # Windows: use "copy"; on macOS/Linux: cp .env.example .env
+cp .env.example .env          # Windows (cmd): copy .env.example .env
 ```
 
 Set `VITE_BACKEND_URL` in `frontend/.env` (default `http://localhost:4000`).
@@ -162,8 +152,6 @@ Set `VITE_BACKEND_URL` in `frontend/.env` (default `http://localhost:4000`).
 ```bash
 npm run dev                   # Start on http://localhost:3001 (Vite)
 ```
-
-</details>
 
 ### Ports
 
