@@ -105,8 +105,6 @@ This is a full-stack, production-style e-commerce site built from the ground up.
 └── README.md
 ```
 
-> `run.bat` / `start-app.bat` (Windows one-click helpers) are **git-ignored** and not part of the repo — see the Windows tip in [Setup](#setup).
-
 ---
 
 ## Getting started
@@ -119,8 +117,6 @@ This is a full-stack, production-style e-commerce site built from the ground up.
 ### Setup
 
 Follow the two steps below (backend, then frontend). This works on Windows, macOS and Linux.
-
-> **Windows tip:** this project also keeps a local one-click helper, `run.bat`, which checks MongoDB, installs dependencies, creates the `.env` files and starts both servers, then opens `http://localhost:3001`. It is **git-ignored** (not part of the repo) — it only exists on the original author's machine, so it is not available after a fresh clone. Use the manual steps below instead.
 
 #### 1. Backend (port 4000)
 
