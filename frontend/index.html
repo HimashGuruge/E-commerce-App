@@ -78,12 +78,54 @@
           return true;
         }
 
+        var revealed = false;
+
         function reveal() {
+          if (revealed) return;
+          revealed = true;
           document.documentElement.classList.remove('boot-waiting');
           var splash = document.getElementById('boot-splash');
           if (splash) {
             splash.classList.add('boot-splash-hide');
             setTimeout(function () { splash.remove(); }, 300);
+          }
+        }
+
+        /* Turns the neutral splash into a branded one: store logo (or icon
+           letter on a brand-color tile), brand name, and a spinner in the
+           brand color. Called when cached settings exist, and right after
+           the settings fetch succeeds on a brand-new device. */
+        function decorateSplash(settings) {
+          if (!settings) return;
+          var splash = document.getElementById('boot-splash');
+          if (!splash) return;
+          var primary = settings.primaryColor;
+          if (primary) {
+            var spinner = splash.querySelector('.boot-splash-spinner');
+            if (spinner) spinner.style.borderTopColor = primary;
+          }
+          var logoEl = document.getElementById('boot-splash-logo');
+          if (logoEl) {
+            if (settings.logo) {
+              var img = document.createElement('img');
+              img.src = settings.logo;
+              img.alt = settings.brandName || 'Store logo';
+              logoEl.appendChild(img);
+            } else {
+              var letter = (settings.iconLetter && settings.iconLetter !== 'M')
+                ? settings.iconLetter.toUpperCase()
+                : ((settings.brandName || '').trim().charAt(0) || 'M').toUpperCase();
+              logoEl.textContent = letter;
+              logoEl.classList.add('boot-splash-letter');
+              logoEl.style.background = primary || '#9ca3af';
+            }
+            logoEl.classList.add('boot-splash-logo--on');
+          }
+          var nameEl = document.getElementById('boot-splash-name');
+          if (nameEl && settings.brandName) {
+            nameEl.textContent = settings.brandName;
+            nameEl.style.color = primary || '#334155';
+            nameEl.classList.add('boot-splash-name--on');
           }
         }
 
@@ -114,6 +156,8 @@
 
         if (settings) {
           applyTheme(settings);
+          /* Cached settings = we can brand the splash instantly. */
+          decorateSplash(settings);
           if (WAIT_FOR_DATA) {
             /* Theme is cached, but the splash stays up until HomeContainer
                loads the homepage data (it reveals itself). 10s safety net
@@ -140,8 +184,13 @@
             ? envUrl
             : location.protocol + '//' + (location.hostname || 'localhost') + ':4000';
           var timeoutId = setTimeout(function () {
+            /* Timed out waiting for settings (slow network).
+               Do NOT hide the splash early here: on the home route the
+               splash must stay up until the homepage data has loaded —
+               exactly like the fetch-failure path below. Otherwise the
+               user sees the raw loading page with nothing on it. */
             window.__bootThemeTimedOut = true;
-            reveal();
+            if (!WAIT_FOR_DATA) reveal();
           }, 2500);
           document.documentElement.classList.add('boot-waiting');
           fetch(BASE_URL + '/api/settings/public', { headers: { 'Content-Type': 'application/json' } })
@@ -151,6 +200,9 @@
               if (data && data.success && data.settings) {
                 try { localStorage.setItem(LS_KEY, JSON.stringify(data.settings)); } catch (e) {}
                 applyTheme(data.settings);
+                /* First visit: theme just arrived — brand the splash with
+                   the store logo + name before data loading begins. */
+                decorateSplash(data.settings);
               }
               if (WAIT_FOR_DATA) {
                 /* Theme is applied; the splash now stays up until
@@ -186,6 +238,7 @@
         inset: 0;
         z-index: 9999;
         background: #ffffff;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
       }
@@ -204,11 +257,55 @@
         animation: boot-splash-spin 0.8s linear infinite;
       }
       @keyframes boot-splash-spin { to { transform: rotate(360deg); } }
+
+      /* Branded splash content (logo tile + brand name + label) */
+      .boot-splash-logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+        margin-bottom: 12px;
+        background: #f1f5f9;
+      }
+      .boot-splash-logo--on { display: flex; }
+      .boot-splash-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .boot-splash-logo.boot-splash-letter {
+        font-size: 26px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+      }
+      .boot-splash-name {
+        display: none;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+      .boot-splash-name--on { display: block; }
+      .boot-splash-label {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #94a3b8;
+        margin-top: 2px;
+      }
     </style>
   </head>
   <body>
     <div id="boot-splash" aria-hidden="true">
+      <div class="boot-splash-logo" id="boot-splash-logo"></div>
+      <div class="boot-splash-name" id="boot-splash-name"></div>
       <div class="boot-splash-spinner"></div>
+      <div class="boot-splash-label">Loading…</div>
     </div>
     <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
       <symbol id="lazadaicon_optionChecked" viewBox="0 0 1024 1024">
