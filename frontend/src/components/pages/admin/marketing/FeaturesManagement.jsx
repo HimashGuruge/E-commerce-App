@@ -164,7 +164,7 @@ export default function FeaturesManagement() {
   const activeFeatures = features.filter((f) => f.active).length;
 
   return (
-    <div className="max-w-[1440px] mx-auto space-y-8">
+    <div className="max-w-[1440px] mx-auto p-4 md:p-6 space-y-8">
 
       {/* Toasts */}
       {(error || success) && (

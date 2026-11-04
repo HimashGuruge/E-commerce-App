@@ -577,7 +577,7 @@ export default function AdsManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 md:p-6 px-4 md:px-6 pb-20 lg:pb-6">
+      <div className="p-4 md:p-6">
         <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -593,7 +593,7 @@ export default function AdsManagement() {
   const showingAd = formMode === "edit" ? null : selectedAd;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 md:px-6 pb-20 lg:pb-6">
+    <div className="p-4 md:p-6">
       {/* top bar */}
       <div className="max-w-7xl mx-auto pt-6 mb-6">
         <div className="flex flex-wrap items-center gap-3">
