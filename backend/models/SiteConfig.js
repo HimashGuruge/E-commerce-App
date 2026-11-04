@@ -185,6 +185,18 @@ const siteConfigSchema = new mongoose.Schema(
         titleFontSize: { type: Number, default: 0 },
         countColor: { type: String, default: "" },
         countFontSize: { type: Number, default: 0 },
+        // ---- Tier-1 extras ----
+        showBadge: { type: Boolean, default: true },
+        showCount: { type: Boolean, default: true },
+        align: { type: String, default: "center" }, // center | left | right
+        badgeIcon: { type: String, default: "none" }, // none | sparkles | zap | star | truck | tag
+        badgeIconColor: { type: String, default: "" }, // '' = follow badge text color
+        titleAccent: { type: String, default: "" }, // '' = off, else hex color
+        viewAllEnabled: { type: Boolean, default: false },
+        viewAllText: { type: String, default: "View All Products" },
+        viewAllColor: { type: String, default: "" }, // '' = brand color
+        viewAllBg: { type: String, default: "" }, // '' = solid brand button
+        viewAllBorder: { type: String, default: "" },
       },
       rightSidebar: {
         // Home page right column widgets. `categories` is an ordered list of

@@ -31,6 +31,7 @@ import {
   SlidersHorizontal,
   RefreshCw,
   AlertCircle,
+  Tag,
 } from "lucide-react";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
@@ -711,37 +712,106 @@ export default function HomeContainer() {
             <div className="flex-1 w-full min-w-0 bg-white">
               <div className="px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
                 <main>
-                  <header className="text-center mb-6 lg:mb-8">
-                    <div
-                      className="inline-block px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100"
-                      style={{
-                        ...(shopHeader.badgeColor ? { color: shopHeader.badgeColor } : {}),
-                        ...(shopHeader.badgeBg ? { backgroundColor: shopHeader.badgeBg } : {}),
-                        ...(shopHeader.badgeBorder ? { borderColor: shopHeader.badgeBorder } : {}),
-                      }}
-                    >
-                      {shopHeader.badgeText || "Handpicked Styles"}
-                    </div>
-                    <h2
-                      className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-2"
-                      style={{
-                        ...(shopHeader.titleColor ? { color: shopHeader.titleColor } : {}),
-                        ...(shopHeader.fontFamily ? { fontFamily: shopHeader.fontFamily } : {}),
-                        ...(shopHeader.titleFontSize ? { fontSize: `${shopHeader.titleFontSize}px` } : {}),
-                      }}
-                    >
-                      {shopHeader.title || "All Products"}
-                    </h2>
-                    <p
-                      className="text-sm text-slate-500"
-                      style={{
-                        ...(shopHeader.countColor ? { color: shopHeader.countColor } : {}),
-                        ...(shopHeader.countFontSize ? { fontSize: `${shopHeader.countFontSize}px` } : {}),
-                      }}
-                    >
-                      {filteredProducts.length} products found
-                    </p>
-                  </header>
+                  {(() => {
+                    const align = shopHeader.align || "center";
+                    const alignClass =
+                      align === "left"
+                        ? "items-start text-left"
+                        : align === "right"
+                        ? "items-end text-right"
+                        : "items-center text-center";
+                    const badgeIconMap = {
+                      sparkles: Sparkles,
+                      zap: Zap,
+                      star: Star,
+                      truck: Truck,
+                      tag: Tag,
+                    };
+                    const BadgeIcon =
+                      shopHeader.badgeIcon && badgeIconMap[shopHeader.badgeIcon]
+                        ? badgeIconMap[shopHeader.badgeIcon]
+                        : null;
+                    const viewAllText = shopHeader.viewAllText || "View All Products";
+                    return (
+                      <header className={`flex flex-col ${alignClass} mb-6 lg:mb-8`}>
+                        {shopHeader.showBadge !== false && (
+                          <div
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100"
+                            style={{
+                              ...(shopHeader.badgeColor ? { color: shopHeader.badgeColor } : {}),
+                              ...(shopHeader.badgeBg ? { backgroundColor: shopHeader.badgeBg } : {}),
+                              ...(shopHeader.badgeBorder ? { borderColor: shopHeader.badgeBorder } : {}),
+                            }}
+                          >
+                            {BadgeIcon && (
+                              <BadgeIcon
+                                size={11}
+                                style={{
+                                  color: shopHeader.badgeIconColor || undefined,
+                                }}
+                              />
+                            )}
+                            {shopHeader.badgeText || "Handpicked Styles"}
+                          </div>
+                        )}
+                        <div>
+                          <h2
+                            className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-2"
+                            style={{
+                              ...(shopHeader.titleColor ? { color: shopHeader.titleColor } : {}),
+                              ...(shopHeader.fontFamily ? { fontFamily: shopHeader.fontFamily } : {}),
+                              ...(shopHeader.titleFontSize ? { fontSize: `${shopHeader.titleFontSize}px` } : {}),
+                            }}
+                          >
+                            {shopHeader.title || "All Products"}
+                          </h2>
+                          {shopHeader.titleAccent && (
+                            <div
+                              style={{
+                                width: 56,
+                                height: 4,
+                                borderRadius: 9999,
+                                backgroundColor: shopHeader.titleAccent,
+                                margin:
+                                  align === "left"
+                                    ? "0"
+                                    : align === "right"
+                                    ? "0 0 0 auto"
+                                    : "0 auto 4px",
+                              }}
+                            />
+                          )}
+                        </div>
+                        {shopHeader.showCount !== false && (
+                          <p
+                            className="text-sm text-slate-500"
+                            style={{
+                              ...(shopHeader.countColor ? { color: shopHeader.countColor } : {}),
+                              ...(shopHeader.countFontSize ? { fontSize: `${shopHeader.countFontSize}px` } : {}),
+                            }}
+                          >
+                            {filteredProducts.length} products found
+                          </p>
+                        )}
+                        {shopHeader.viewAllEnabled === true && (
+                          <Link
+                            to="/shop"
+                            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold border"
+                            style={{
+                              ...(shopHeader.viewAllColor ? { color: shopHeader.viewAllColor } : { color: "#ffffff" }),
+                              ...(shopHeader.viewAllBg ? { backgroundColor: shopHeader.viewAllBg } : { backgroundColor: "var(--color-brand-500, #3b82f6)" }),
+                              ...(shopHeader.viewAllBorder ? { borderColor: shopHeader.viewAllBorder, borderWidth: 1.5 } : { borderWidth: 0 }),
+                            }}
+                          >
+                            {viewAllText}
+                            <span aria-hidden="true">
+                              &rarr;
+                            </span>
+                          </Link>
+                        )}
+                      </header>
+                    );
+                  })()}
 
                   {/* Products Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">

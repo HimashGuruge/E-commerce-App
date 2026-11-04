@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api";
 import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, FiDroplet, FiSend, FiEye, FiEyeOff, FiTruck, FiMessageCircle, FiSmartphone, FiUser, FiSliders, FiDollarSign } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-icons/fa";
+import { Sparkles, Zap, Star, Truck, Tag } from "lucide-react";
 
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
@@ -2727,12 +2728,90 @@ export default function SettingsManagement() {
             <HexField label="Count text color" placeholder="#64748b" fallbackHint="default grey" value={form.shopHeader?.countColor || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, countColor: v } }))} />
           </div>
 
+          {/* Layout & extras: toggles, alignment, badge icon, accent bar, View All button */}
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <p className="text-sm font-bold text-slate-800 mb-3">Layout & extras</p>
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={form.shopHeader?.showBadge !== false} onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, showBadge: e.target.checked } }))} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
+                <span className="text-sm font-medium text-slate-700">Show badge pill</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={form.shopHeader?.showCount !== false} onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, showCount: e.target.checked } }))} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
+                <span className="text-sm font-medium text-slate-700">Show "N products found" count</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={form.shopHeader?.viewAllEnabled === true} onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, viewAllEnabled: e.target.checked } }))} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
+                <span className="text-sm font-medium text-slate-700">Show "View All" button (links to /shop)</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Header alignment</label>
+                <select
+                  value={form.shopHeader?.align || "center"}
+                  onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, align: e.target.value } }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                >
+                  <option value="center">Center</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Badge icon</label>
+                <select
+                  value={form.shopHeader?.badgeIcon || "none"}
+                  onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, badgeIcon: e.target.value } }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                >
+                  <option value="none">No icon</option>
+                  <option value="sparkles">Sparkles</option>
+                  <option value="zap">Zap (Lightning)</option>
+                  <option value="star">Star</option>
+                  <option value="truck">Truck</option>
+                  <option value="tag">Price Tag</option>
+                </select>
+              </div>
+              <HexField label="Badge icon color" placeholder="#94a3b8" fallbackHint="follows badge text color" value={form.shopHeader?.badgeIconColor || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, badgeIconColor: v } }))} />
+              <HexField label="Title accent bar color" placeholder="#10b981" fallbackHint="empty = no bar" value={form.shopHeader?.titleAccent || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, titleAccent: v } }))} />
+            </div>
+            {form.shopHeader?.viewAllEnabled === true && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-100">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Button text</label>
+                  <input
+                    type="text"
+                    value={form.shopHeader?.viewAllText || ""}
+                    onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, viewAllText: e.target.value } }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                    placeholder="View All Products"
+                  />
+                </div>
+                <HexField label="Button text color" placeholder="#ffffff" fallbackHint="default white" value={form.shopHeader?.viewAllColor || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, viewAllColor: v } }))} />
+                <HexField label="Button background" placeholder="(brand color)" fallbackHint="empty = brand color" value={form.shopHeader?.viewAllBg || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, viewAllBg: v } }))} />
+                <HexField label="Button border" placeholder="#000000" fallbackHint="empty = no border" value={form.shopHeader?.viewAllBorder || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, viewAllBorder: v } }))} />
+              </div>
+            )}
+          </div>
+
           {/* Live preview */}
           <div className="mt-6 pt-5 border-t border-slate-100">
             <p className="text-sm font-semibold text-slate-700 mb-2">Live preview</p>
-            <div className="max-w-xs">
+            <div>
               {(() => {
                 const sh = form.shopHeader || {};
+                const align = sh.align || "center";
+                const alignCls = align === "left" ? "items-start text-left" : align === "right" ? "items-end text-right" : "items-center text-center";
                 const titleSize = sh.titleFontSize ? { fontSize: `${sh.titleFontSize}px` } : {};
                 const countSize = sh.countFontSize ? { fontSize: `${sh.countFontSize}px` } : {};
                 const badgeStyle = {
@@ -2749,18 +2828,42 @@ export default function SettingsManagement() {
                   ...(sh.countColor ? { color: sh.countColor } : {}),
                   ...countSize,
                 };
+                const btnText = sh.viewAllText || "View All Products";
+                const btnStyle = {
+                  ...(sh.viewAllColor ? { color: sh.viewAllColor } : { color: "#ffffff" }),
+                  ...(sh.viewAllBg ? { backgroundColor: sh.viewAllBg } : { backgroundColor: "var(--color-brand-500, #3b82f6)" }),
+                  ...(sh.viewAllBorder ? { borderColor: sh.viewAllBorder, borderWidth: 1.5 } : {}),
+                };
                 return (
-                  <div className="text-center py-4">
-                    <div
-                      className="inline-block px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100"
-                      style={badgeStyle}
-                    >
-                      {sh.badgeText || "Handpicked Styles"}
+                  <div className={`flex flex-col ${alignCls} py-4`}>
+                    {sh.showBadge !== false && (
+                      <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase mb-3 border border-slate-100" style={badgeStyle}>
+                        {sh.badgeIcon === "sparkles" && <Sparkles size={11} style={{ color: sh.badgeIconColor || undefined }} />}
+                        {sh.badgeIcon === "zap" && <Zap size={11} style={{ color: sh.badgeIconColor || undefined }} />}
+                        {sh.badgeIcon === "star" && <Star size={11} style={{ color: sh.badgeIconColor || undefined }} />}
+                        {sh.badgeIcon === "truck" && <Truck size={11} style={{ color: sh.badgeIconColor || undefined }} />}
+                        {sh.badgeIcon === "tag" && <Tag size={11} style={{ color: sh.badgeIconColor || undefined }} />}
+                        {sh.badgeText || "Handpicked Styles"}
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900 mb-2 inline" style={titleStyle}>
+                        {sh.title || "All Products"}
+                      </h2>
+                      {sh.titleAccent ? (
+                        <div style={{ width: 56, height: 4, borderRadius: 9999, backgroundColor: sh.titleAccent, margin: align === "left" ? "0" : align === "right" ? "0 0 0 auto" : "0 auto 4px" }} />
+                      ) : (
+                        <div className="mb-2" />
+                      )}
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2" style={titleStyle}>
-                      {sh.title || "All Products"}
-                    </h2>
-                    <p className="text-sm text-slate-500" style={countStyle}>4 products found</p>
+                    {sh.showCount !== false && (
+                      <p className="text-sm text-slate-500" style={countStyle}>4 products found</p>
+                    )}
+                    {sh.viewAllEnabled === true && (
+                      <button type="button" className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold" style={{ ...btnStyle, borderStyle: "solid" }}>
+                        {btnText} <span aria-hidden="true">&rarr;</span>
+                      </button>
+                    )}
                   </div>
                 );
               })()}
