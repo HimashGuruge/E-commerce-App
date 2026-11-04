@@ -86,6 +86,9 @@ export default function Notification() {
   const suppressNextRef = useRef(false);
   const flashTimeoutRef = useRef(null);
 
+  const inputClass =
+    "bg-transparent px-3 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15";
+
   const flashUser = useCallback((userId) => {
     if (!userId) return;
     setFlashUserId(userId);
@@ -376,88 +379,96 @@ export default function Notification() {
     <div className="p-4 md:p-6 flex flex-col lg:flex-row gap-4 h-[calc(100vh-160px)] min-h-[600px] lg:h-[calc(100vh-120px)]">
       {/* Conversation list */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col w-full lg:w-80 flex-shrink-0 max-h-[420px] lg:max-h-none">
-        <div className="p-4 border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
-              Customer Support
-            </h2>
-            <button
-              onClick={markAllAsRead}
-              title="Mark all read"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
+        <div className="px-4 py-3 border-b border-slate-200/80">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2.5 min-w-0">
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight flex-shrink-0">
+                Customer Support
+              </h2>
+              <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-slate-400 truncate">
+                {filterCounts.all} chats
+                {filterCounts.unread > 0 ? ` · ${filterCounts.unread} unread` : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {newMessageArrived && (
+                <span className="flex items-center gap-1 text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-full animate-bounce">
+                  <Bell className="w-3 h-3" /> New!
+                </span>
+              )}
+              <button
+                onClick={() => setLiveUpdates((v) => !v)}
+                className="flex items-center gap-1.5 text-[11px] font-mono uppercase text-slate-400 hover:text-slate-600"
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    liveUpdates ? "bg-emerald-500 animate-pulse" : "bg-gray-400"
+                  }`}
+                />
+                {liveUpdates ? "Live" : "Paused"}
+              </button>
+              <button
+                onClick={markAllAsRead}
+                title="Mark all read"
+                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded"
+              >
+                <CheckCircle className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-sm text-slate-500">Chats with your customers</p>
-            <button
-              onClick={() => setLiveUpdates((v) => !v)}
-              className="flex items-center gap-1 text-[10px] font-medium text-slate-400 hover:text-slate-600"
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  liveUpdates ? "bg-green-500 animate-pulse" : "bg-gray-400"
+
+          {/* Stat strip — each part also works as a filter */}
+          <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-200/80">
+            {[
+              { key: "all", label: "All", value: filterCounts.all, dot: "bg-slate-400" },
+              { key: "unread", label: "Unread", value: filterCounts.unread, dot: "bg-amber-500" },
+              { key: "read", label: "Read", value: filterCounts.read, dot: "bg-emerald-500" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setActiveFilter(f.key)}
+                className={`px-3 py-2 flex items-center justify-between gap-2 transition-colors ${
+                  activeFilter === f.key ? "bg-brand-50" : "hover:bg-slate-50"
                 }`}
-              />
-              {liveUpdates ? "Live" : "Paused"}
-            </button>
-            {lastUpdated && (
-              <span className="text-[10px] text-slate-400">
-                {lastUpdated.toLocaleTimeString()}
-              </span>
-            )}
-            {newMessageArrived && (
-              <span className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full animate-bounce">
-                <Bell className="w-3 h-3" /> New!
-              </span>
-            )}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.1em] text-slate-400">
+                  <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />
+                  {f.label}
+                </span>
+                <span
+                  className={`text-sm font-bold tabular-nums ${
+                    activeFilter === f.key ? "text-brand-700" : "text-slate-700"
+                  }`}
+                >
+                  {f.value}
+                </span>
+              </button>
+            ))}
           </div>
 
           {/* Search */}
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="relative px-1 py-2.5">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search customers…"
-              className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className={`${inputClass} w-full pl-9`}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-
-          {/* Filters */}
-          <div className="flex gap-1.5 mt-2.5">
-            {[
-              { key: "all", label: `All (${filterCounts.all})` },
-              { key: "unread", label: `Unread (${filterCounts.unread})` },
-              { key: "read", label: `Read (${filterCounts.read})` },
-            ].map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setActiveFilter(f.key)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                  activeFilter === f.key
-                    ? "bg-brand-50 text-brand-700"
-                    : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* List */}
-        <div className="flex-1 overflow-auto p-2 space-y-1">
+        {/* List — dense rows */}
+        <div className="flex-1 overflow-auto">
           {error ? (
             <div className="p-4 text-center">
               <p className="text-sm text-red-500">{error}</p>
@@ -493,68 +504,73 @@ export default function Notification() {
               )}
             </div>
           ) : (
-            filteredConversations.map((c) => {
-              const unread = !c.isRead;
-              return (
-                <button
-                  key={c.userId}
-                  onClick={() => openConversation(c)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-                    flashUserId === c.userId
-                      ? "bg-green-50 ring-2 ring-green-400 animate-pulse"
-                      : activeUserId === c.userId
-                        ? "bg-brand-50"
-                        : "hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-brand-100">
-                    {c.userImage ? (
-                      <img
-                        src={c.userImage}
-                        alt={c.userName || "User"}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <UserCircle className="w-4 h-4 text-brand-600" />
-                    )}
-                    {unread && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-brand-600 border-2 border-white rounded-full" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p
-                        className={`text-sm truncate ${
-                          unread ? "font-semibold text-slate-900" : "font-medium text-slate-900"
-                        }`}
-                      >
-                        {c.userName || "Unknown User"}
-                      </p>
-                      <RoleBadge role={c.userRole} />
-                      <span className="text-[10px] text-slate-400 flex-shrink-0">
-                        {formatRelativeTime(c.sentAt || c.createdAt)}
-                      </span>
+            <div className="divide-y divide-slate-100">
+              {filteredConversations.map((c) => {
+                const unread = !c.isRead;
+                return (
+                  <button
+                    key={c.userId}
+                    onClick={() => openConversation(c)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 transition-all text-left ${
+                      flashUserId === c.userId
+                        ? "bg-brand-50 ring-2 ring-inset ring-brand-400 animate-pulse"
+                        : activeUserId === c.userId
+                          ? "bg-brand-50/70"
+                          : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-slate-100">
+                      {c.userImage ? (
+                        <img
+                          src={c.userImage}
+                          alt={c.userName || "User"}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <UserCircle className="w-4 h-4 text-slate-400" />
+                      )}
+                      {unread && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-600 border border-white rounded-full" />
+                      )}
                     </div>
-                    <p className="text-xs text-slate-500 truncate">
-                      {c.imageUrl && !c.message
-                        ? "📷 Image"
-                        : c.message || "No message"}
-                    </p>
-                  </div>
-                </button>
-              );
-            })
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p
+                          className={`text-[13px] truncate ${
+                            unread ? "font-semibold text-slate-900" : "font-medium text-slate-700"
+                          }`}
+                        >
+                          {c.userName || "Unknown User"}
+                        </p>
+                        <RoleBadge role={c.userRole} />
+                        <span className="ml-auto text-[10px] font-mono text-slate-400 flex-shrink-0 tabular-nums">
+                          {formatRelativeTime(c.sentAt || c.createdAt)}
+                        </span>
+                      </div>
+                      <p className={`text-xs truncate ${unread ? "text-slate-600" : "text-slate-400"}`}>
+                        {c.imageUrl && !c.message
+                          ? "📷 Image"
+                          : c.message || "No message"}
+                      </p>
+                    </div>
+                    {unread && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-600 flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
 
       {/* Thread */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-[420px]">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+        <div className="px-4 py-2.5 border-b border-slate-200/80 flex items-center gap-2.5">
           {activeConv ? (
             <>
-              <div className="relative w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-brand-100">
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-slate-100">
                 {activeImage ? (
                   <img
                     src={activeImage}
@@ -563,30 +579,30 @@ export default function Notification() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span className="text-xs font-bold text-brand-600">
+                  <span className="text-[11px] font-bold text-slate-500">
                     {getInitials(activeConv.userName)}
                   </span>
                 )}
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white rounded-full" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-bold text-slate-900 truncate">
-                  {activeConv.userName || "User"}
-                </h3>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 truncate">
+                    {activeConv.userName || "User"}
+                  </h3>
                   <RoleBadge role={activeConv.userRole} />
-                  <span className="text-[11px] text-slate-400">
-                    Last message {formatRelativeTime(activeConv.sentAt || activeConv.createdAt)}
-                  </span>
                 </div>
+                <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wide">
+                  Last {formatRelativeTime(activeConv.sentAt || activeConv.createdAt)}
+                </p>
               </div>
             </>
           ) : (
             <>
-              <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
-                <MessageSquare className="w-4 h-4 text-brand-600" />
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-4 h-4 text-slate-400" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900">
                 No conversation selected
               </h3>
             </>
@@ -621,13 +637,13 @@ export default function Notification() {
 
         {/* Composer */}
         {activeUserId && (
-          <div className="p-4 border-t border-slate-100">
+          <div className="px-4 py-3 border-t border-slate-200/80">
             {pendingImage && (
               <div className="flex items-center gap-2 mb-2">
                 <img
                   src={pendingImage}
                   alt="pending attachment"
-                  className="w-14 h-14 object-cover rounded-lg border border-slate-200"
+                  className="w-12 h-12 object-cover rounded-lg border border-slate-200"
                 />
                 <span className="text-xs text-slate-400">
                   Image attached — ready to send
@@ -650,7 +666,7 @@ export default function Notification() {
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach image"
                 disabled={uploadingImage}
-                className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-40 flex-shrink-0"
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-40 flex-shrink-0"
               >
                 {uploadingImage ? (
                   <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
@@ -670,17 +686,17 @@ export default function Notification() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder={`Message ${activeConv?.userName || "customer"}…`}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className={`${inputClass} flex-1`}
               />
               <button
                 type="submit"
                 disabled={sending || (!reply.trim() && !pendingImage)}
-                className="px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-40 flex items-center gap-2 flex-shrink-0"
+                className="px-3 py-2 rounded-lg bg-brand-600 text-white text-[13px] font-medium hover:bg-brand-700 disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
               >
                 {sending ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Send className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5" />
                 )}
                 Send
               </button>

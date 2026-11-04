@@ -126,12 +126,19 @@
         }
 
         try {
-          /* Backend runs on this same host as the frontend (dev: frontend :3001,
-             backend :4000). Derive the base from the page URL so the fetch
-             also works from other devices on the network (e.g. a phone
-             opening http://<pc-ip>:3001 — "localhost" would point at the
-             phone itself and fail, causing the default-color flash). */
-          var BASE_URL = location.protocol + '//' + (location.hostname || 'localhost') + ':4000';
+          /* Backend base URL. Vite substitutes %VITE_BACKEND_URL% from .env (or
+             the Vercel environment variable) at dev AND build time — the exact
+             URL the app's axios client uses, so this fetch works everywhere:
+             local dev, phones on the LAN, and Vercel. The old hardcoded
+             "hostname:4000" only worked on the dev machine; on Vercel it
+             failed, so the splash revealed the hardcoded orange default and
+             React later swapped it for the live (green) theme — the flash.
+             The regex guard falls back to that old behavior only if the env
+             var was not substituted (literal %...% or empty). */
+          var envUrl = "%VITE_BACKEND_URL%";
+          var BASE_URL = /^https?:\/\/[^\s%]+$/.test(envUrl)
+            ? envUrl
+            : location.protocol + '//' + (location.hostname || 'localhost') + ':4000';
           var timeoutId = setTimeout(function () {
             window.__bootThemeTimedOut = true;
             reveal();
