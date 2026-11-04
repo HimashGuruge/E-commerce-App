@@ -173,6 +173,31 @@ export default function HomeContainer() {
   const [categories, setCategories] = useState([]);
   const [features, setFeatures] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  // Seamless ticker: measure one copy's width and repeat it enough times to
+  // cover at least two viewports, so short messages still scroll without gaps.
+  const trackRef = useRef(null);
+  const [copyWidth, setCopyWidth] = useState(0);
+  const [numCopies, setNumCopies] = useState(4);
+
+  useEffect(() => {
+    const measure = () => {
+      const copy = trackRef.current?.querySelector("[data-announce-copy]");
+      if (!copy) return;
+      const w = copy.offsetWidth;
+      if (w > 0) {
+        setCopyWidth(w);
+        const gap = 48; // gap-12 between copies
+        const need = Math.max(2, Math.ceil((window.innerWidth * 2) / (w + gap)) + 1);
+        setNumCopies((cur) => (cur === need ? cur : need));
+      }
+    };
+    measure();
+    if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(measure);
+    }
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [announcements]);
   // Initialize from cached settings synchronously so the saved color renders
   // on the very first paint (no orange -> black flash on refresh).
   const cachedAnn = getCachedSettings()?.announcement;
@@ -588,6 +613,34 @@ export default function HomeContainer() {
     );
   }
 
+  // Active announcements, rendered as ticker items (used twice for seamless looping).
+  const tickerItems = announcements
+    .filter((a) => a.status === "active")
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((item) => {
+      const itemColor = announcementTextColor(item.style, announcementSettings);
+      return (
+        <span key={item._id} className="flex items-center gap-2.5 shrink-0 whitespace-nowrap" style={announcementItemStyle(item.style, announcementSettings)}>
+          <IconByName name={item.icon} size={15} className="shrink-0" style={{ color: itemColor, opacity: 0.7 }} />
+          <span>
+            {String(item.text).split(/(\s+)/).map((word, i) =>
+              /^[A-Z][A-Z0-9_-]{3,}$/.test(word) ? (
+                <span
+                  key={i}
+                  className="px-1.5 py-0.5 mx-0.5 rounded-md text-xl font-black bg-white/20 ring-1 ring-current"
+                  style={{ color: itemColor }}
+                >
+                  {word}
+                </span>
+              ) : (
+                word
+              )
+            )}
+          </span>
+        </span>
+      );
+    });
+
   return (
       <div className="w-full bg-white leading-none">
       {partialError && (
@@ -606,8 +659,8 @@ export default function HomeContainer() {
         <div className="relative -mt-px leading-[0] text-[0] overflow-hidden" style={barBackgroundStyle(announcementSettings)}>
           <style>{`
             @keyframes announce-scroll {
-              0% { transform: translateX(100vw); }
-              100% { transform: translateX(-100%); }
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-${copyWidth > 0 ? copyWidth + 48 : 100}px); }
             }
             .announce-track {
               animation: announce-scroll ${announcementSettings.speed}s linear infinite;
@@ -616,36 +669,26 @@ export default function HomeContainer() {
               animation-play-state: paused;
             }
           `}</style>
-          <div className="relative w-full overflow-hidden">
-            <div className="announce-track flex w-max whitespace-nowrap">
-              <div className="flex shrink-0 items-center gap-12 px-8">
-                {announcements
-                  .filter((a) => a.status === "active")
-                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                  .map((item) => {
-                    const itemColor = announcementTextColor(item.style, announcementSettings);
-                    return (
-                      <span key={item._id} className="flex items-center gap-2.5 shrink-0 whitespace-nowrap" style={announcementItemStyle(item.style, announcementSettings)}>
-                        <IconByName name={item.icon} size={15} className="shrink-0" style={{ color: itemColor, opacity: 0.7 }} />
-                        <span>
-                          {String(item.text).split(/(\s+)/).map((word, i) =>
-                            /^[A-Z][A-Z0-9_-]{3,}$/.test(word) ? (
-                              <span
-                                key={i}
-                                className="px-1.5 py-0.5 mx-0.5 rounded-md text-xl font-black bg-white/20 ring-1 ring-current"
-                                style={{ color: itemColor }}
-                              >
-                                {word}
-                              </span>
-                            ) : (
-                              word
-                            )
-                          )}
-                        </span>
-                      </span>
-                  );
-                })}
-              </div>
+          <div
+            className="relative w-full overflow-hidden"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
+              maskImage:
+                "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
+            }}
+          >
+            <div ref={trackRef} className="announce-track flex w-max whitespace-nowrap">
+              {Array.from({ length: numCopies }).map((_, i) => (
+                <div
+                  key={i}
+                  data-announce-copy={i === 0 ? "" : undefined}
+                  className="flex shrink-0 items-center gap-12 px-8"
+                  aria-hidden={i > 0 ? "true" : undefined}
+                >
+                  {tickerItems}
+                </div>
+              ))}
             </div>
           </div>
         </div>
