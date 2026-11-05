@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api";
 import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, FiDroplet, FiSend, FiEye, FiEyeOff, FiTruck, FiMessageCircle, FiSmartphone, FiUser, FiSliders, FiDollarSign } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-icons/fa";
-import { Sparkles, Zap, Star, Truck, Tag } from "lucide-react";
+import { Sparkles, Zap, Star, Truck, Tag, MapPin, Phone, Mail, Facebook, X, Instagram, Youtube, Music2 } from "lucide-react";
 
 import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
@@ -141,6 +141,7 @@ export default function SettingsManagement() {
     footerTextColor: "#cbd5e1",
     footerHeadingColor: "#ffffff",
     footerLinkHoverColor: "#ffffff",
+    footerIconColor: "var(--color-brand-400, #f97316)",
     footerFontSize: "0.875rem",
     footerFontFamily: "",
     footerLogo: "",
@@ -292,6 +293,7 @@ export default function SettingsManagement() {
           footerTextColor: s.footerTextColor || "#cbd5e1",
           footerHeadingColor: s.footerHeadingColor || "#ffffff",
           footerLinkHoverColor: s.footerLinkHoverColor || "#ffffff",
+          footerIconColor: s.footerIconColor || "var(--color-brand-400, #f97316)",
           footerFontSize: s.footerFontSize || "0.875rem",
           footerFontFamily: s.footerFontFamily || "",
           footerLogo: s.footerLogo || "",
@@ -554,6 +556,7 @@ export default function SettingsManagement() {
         footerTextColor: form.footerTextColor,
         footerHeadingColor: form.footerHeadingColor,
         footerLinkHoverColor: form.footerLinkHoverColor,
+        footerIconColor: form.footerIconColor,
         footerFontSize: form.footerFontSize,
         footerFontFamily: form.footerFontFamily,
         footerLogo: form.footerLogo,
@@ -1348,7 +1351,7 @@ export default function SettingsManagement() {
                 footerCompanyName: form.footerCompanyName, footerSupportEmail: form.footerSupportEmail,
                 footerDescription: form.footerDescription, footerAddress: form.footerAddress,
                 footerPhone: form.footerPhone, footerBg: form.footerBg, footerTextColor: form.footerTextColor,
-                footerHeadingColor: form.footerHeadingColor, footerLinkHoverColor: form.footerLinkHoverColor,
+                footerHeadingColor: form.footerHeadingColor, footerLinkHoverColor: form.footerLinkHoverColor, footerIconColor: form.footerIconColor,
                 footerFontSize: form.footerFontSize, footerFontFamily: form.footerFontFamily,
                 footerLogo: form.footerLogo, social: form.social, socialEnabled: form.socialEnabled,
               })}
@@ -1456,6 +1459,13 @@ export default function SettingsManagement() {
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Contact Icon Color (map / phone / mail)</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" name="footerIconColor" value={form.footerIconColor} onChange={handleChange} className="w-9 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5 shrink-0" />
+                  <input type="text" name="footerIconColor" value={form.footerIconColor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm font-mono" />
+                </div>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Font Size</label>
                 <select name="footerFontSize" value={form.footerFontSize} onChange={handleChange} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-white">
                   <option value="0.75rem">Small (12px)</option>
@@ -1468,12 +1478,28 @@ export default function SettingsManagement() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Font Family</label>
                 <select name="footerFontFamily" value={form.footerFontFamily} onChange={handleChange} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm bg-white">
                   <option value="">System Default</option>
-                  <option value="Inter, system-ui, sans-serif">Inter</option>
-                  <option value="'Segoe UI', system-ui, sans-serif">Segoe UI</option>
-                  <option value="'Helvetica Neue', Arial, sans-serif">Helvetica Neue</option>
-                  <option value="Georgia, serif">Georgia</option>
-                  <option value="'Times New Roman', serif">Times New Roman</option>
-                  <option value="'Courier New', monospace">Courier New</option>
+                  <optgroup label="Modern (Google Fonts)">
+                    <option value="'Poppins', sans-serif">Poppins</option>
+                    <option value="'Montserrat', sans-serif">Montserrat</option>
+                    <option value="'Roboto', sans-serif">Roboto</option>
+                    <option value="'Open Sans', sans-serif">Open Sans</option>
+                    <option value="'Lato', sans-serif">Lato</option>
+                    <option value="'Nunito', sans-serif">Nunito</option>
+                    <option value="'Raleway', sans-serif">Raleway</option>
+                    <option value="'DM Sans', sans-serif">DM Sans</option>
+                    <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+                  </optgroup>
+                  <optgroup label="Elegant (Serif)">
+                    <option value="'Playfair Display', serif">Playfair Display</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                  </optgroup>
+                  <optgroup label="System">
+                    <option value="Inter, system-ui, sans-serif">Inter</option>
+                    <option value="'Segoe UI', system-ui, sans-serif">Segoe UI</option>
+                    <option value="'Helvetica Neue', Arial, sans-serif">Helvetica Neue</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -1516,31 +1542,116 @@ export default function SettingsManagement() {
             </div>
           </div>
 
-          {/* Footer Preview */}
+          {/* Footer Preview - mirrors the real footer */}
           <div className="mt-6 pt-6 border-t border-slate-100">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Preview</p>
-            <div className="rounded-xl overflow-hidden border border-slate-200" style={{ backgroundColor: form.footerBg, fontFamily: form.footerFontFamily || form.fontFamily || undefined }}>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="font-black mb-2 tracking-wider text-xs" style={{ color: form.footerHeadingColor }}>CUSTOMER SERVICE</p>
-                    <ul className="space-y-1" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>
-                      <li className="text-xs">Track Order</li>
-                      <li className="text-xs">Returns</li>
-                      <li className="text-xs">Help Center</li>
-                    </ul>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Preview (exactly how it looks on the site)</p>
+            <div
+              className="rounded-xl overflow-hidden border border-slate-200"
+              style={{ backgroundColor: form.footerBg, fontFamily: form.footerFontFamily || undefined, color: form.footerTextColor }}
+            >
+              {/* Newsletter bar */}
+              {form.newsletter?.enabled !== false && (
+                <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-3" style={{ backgroundColor: form.newsletter?.bgColor || "var(--color-brand-500, #F85606)" }}>
+                  <div className="flex items-center gap-3">
+                    <Mail size={18} style={{ color: form.newsletter?.iconColor || "#ffffff" }} />
+                    <span className="font-bold text-sm" style={{ color: form.newsletter?.textColor || "#ffffff" }}>
+                      {form.newsletter?.title || "Subscribe & get 10% off your first order!"}
+                    </span>
                   </div>
-                  <div>
-                    <p className="font-black mb-2 tracking-wider text-xs" style={{ color: form.footerHeadingColor }}>CONTACT</p>
-                    <ul className="space-y-1" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>
-                      <li className="text-xs">{form.footerAddress || "Address"}</li>
-                      <li className="text-xs">{form.footerPhone || "Phone"}</li>
-                      <li className="text-xs">{form.footerSupportEmail || "Email"}</li>
-                    </ul>
+                  <div className="flex w-full md:w-auto">
+                    <input
+                      type="email"
+                      readOnly
+                      placeholder={form.newsletter?.placeholder || "Enter your email"}
+                      className="flex-1 md:w-52 px-3 py-2 bg-white text-gray-900 border-0 rounded-l-md text-xs placeholder:text-gray-400"
+                    />
+                    <button
+                      type="button"
+                      className="px-4 py-2 font-bold rounded-r-md text-xs"
+                      style={{ backgroundColor: form.newsletter?.buttonBg || "#0f172a", color: form.newsletter?.buttonText || "#ffffff" }}
+                    >
+                      {form.newsletter?.buttonLabel || "Subscribe"}
+                    </button>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t" style={{ borderColor: form.footerTextColor + "33" }}>
-                  <p className="text-xs" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>&copy; {new Date().getFullYear()} {form.footerCompanyName || "BrandName Inc."}. All rights reserved.</p>
+              )}
+
+              {/* Main grid */}
+              <div className="p-5">
+                {(form.footerLogo || form.logo) && (
+                  <div className="mb-5">
+                    <img src={form.footerLogo || form.logo} alt="footer logo" className="h-7 object-contain" />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                  <div>
+                    <p className="font-black mb-3 tracking-wider" style={{ color: form.footerHeadingColor, fontSize: form.footerFontSize }}>CUSTOMER SERVICE</p>
+                    <ul className="space-y-2" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>
+                      {["Track Order", "Returns & Exchanges", "Shipping Info", "Contact Us", "Help Center"].map((l) => (
+                        <li key={l} className="font-medium">{l}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-black mb-3 tracking-wider" style={{ color: form.footerHeadingColor, fontSize: form.footerFontSize }}>COMPANY</p>
+                    <ul className="space-y-2" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>
+                      {["About Us", "Sell On " + (form.brandName || "Brand"), "Careers", "Press"].map((l) => (
+                        <li key={l} className="font-medium">{l}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-black mb-3 tracking-wider" style={{ color: form.footerHeadingColor, fontSize: form.footerFontSize }}>CATEGORIES</p>
+                    <ul className="space-y-2" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>
+                      <li className="font-medium">From your live categories</li>
+                    </ul>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="font-black mb-3 tracking-wider" style={{ color: form.footerHeadingColor, fontSize: form.footerFontSize }}>CONTACT US</p>
+                    <ul className="space-y-3" style={{ color: form.footerTextColor, fontSize: form.footerFontSize }}>
+                      <li className="flex items-start gap-2">
+                        <MapPin size={16} className="mt-0.5 flex-shrink-0" style={{ color: form.footerIconColor || "var(--color-brand-400, #f97316)" }} />
+                        <span className="font-medium">{form.footerAddress || "Address"}</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Phone size={16} className="flex-shrink-0" style={{ color: form.footerIconColor || "var(--color-brand-400, #f97316)" }} />
+                        <span className="font-medium">{form.footerPhone || "Phone"}</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Mail size={16} className="flex-shrink-0" style={{ color: form.footerIconColor || "var(--color-brand-400, #f97316)" }} />
+                        <span className="font-medium">{form.footerSupportEmail || "Email"}</span>
+                      </li>
+                    </ul>
+                    <div className="flex gap-2 mt-4">
+                      {form.socialEnabled?.facebook && (
+                        <span className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ color: form.footerTextColor }}>
+                          <Facebook size={16} />
+                        </span>
+                      )}
+                      {form.socialEnabled?.twitter && (
+                        <span className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ color: form.footerTextColor }}>
+                          <X size={16} />
+                        </span>
+                      )}
+                      {form.socialEnabled?.instagram && (
+                        <span className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ color: form.footerTextColor }}>
+                          <Instagram size={16} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom bar */}
+              <div className="px-5 py-3 border-t flex flex-col md:flex-row justify-between items-center gap-2" style={{ borderColor: form.footerTextColor + "33", fontSize: form.footerFontSize }}>
+                <p className="font-medium" style={{ color: form.footerTextColor }}>
+                  &copy; {new Date().getFullYear()} {form.footerCompanyName || "Brand"}
+                </p>
+                <div className="flex items-center gap-4 font-medium" style={{ color: form.footerTextColor }}>
+                  <span>Privacy Policy</span>
+                  <span>Terms of Service</span>
+                  <span>Return Policy</span>
                 </div>
               </div>
             </div>

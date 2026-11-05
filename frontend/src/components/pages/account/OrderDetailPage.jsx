@@ -1,9 +1,85 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Tag, ShoppingBag } from "lucide-react";
+import { ArrowLeft, MapPin, Tag, ShoppingBag, RotateCcw } from "lucide-react";
 import api from "@/utils/api";
 import OrderStatusBadge from "@/components/pages/account/OrderStatusBadge";
 import OrderProgressTracker from "@/components/pages/account/OrderProgressTracker";
+import { onSocketEvent } from "@/utils/socket";
+
+const RETURN_STATUS_STYLES = {
+  pending: { cls: "bg-amber-50 text-amber-700 border-amber-200", label: "Pending review" },
+  approved: { cls: "bg-blue-50 text-blue-700 border-blue-200", label: "Approved" },
+  processing: { cls: "bg-purple-50 text-purple-700 border-purple-200", label: "Refund processing" },
+  refunded: { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Refunded" },
+  rejected: { cls: "bg-red-50 text-red-700 border-red-200", label: "Rejected" },
+};
+
+function ReturnStatusCard({ orderId }) {
+  const [returns, setReturns] = useState([]);
+
+  const fetchReturns = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/api/feedback/returns/my?orderId=${orderId}`);
+      if (data.success) setReturns(data.returns || []);
+    } catch {
+      // Not critical — the card simply stays hidden
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    fetchReturns();
+    const unsubscribe = onSocketEvent(["return:updated"], (payload) => {
+      if (payload?.returnId) fetchReturns();
+    });
+    return unsubscribe;
+  }, [fetchReturns]);
+
+  if (!returns.length) return null;
+
+  return (
+    <div className="mt-6 space-y-3">
+      {returns.map((r) => {
+        const s = RETURN_STATUS_STYLES[r.status] || RETURN_STATUS_STYLES.pending;
+        return (
+          <div key={r._id} className={`p-4 rounded-2xl border ${s.cls}`}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <p className="flex items-center gap-2 text-sm font-bold">
+                <RotateCcw size={15} />
+                Return request #{r._id?.slice(-8)}
+              </p>
+              <span className={`text-xs font-black px-2.5 py-1 rounded-lg bg-white/70 border ${s.cls}`}>
+                {s.label}
+              </span>
+            </div>
+            <p className="text-xs opacity-80">
+              Requested {new Date(r.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              {(r.approvedAt || r.refundedAt || r.rejectedAt) && (
+                <>
+                  {" "}· Last update {new Date(r.approvedAt || r.refundedAt || r.rejectedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </>
+              )}
+            </p>
+            {r.refundAmount > 0 && (
+              <p className="text-xs font-bold mt-1.5">
+                Refund amount: Rs. {Number(r.refundAmount).toLocaleString()}
+              </p>
+            )}
+            {r.rejectionReason && (
+              <p className="text-xs mt-1.5">
+                <span className="font-bold">Reason for rejection:</span> {r.rejectionReason}
+              </p>
+            )}
+            {(r.notes || r.rejectionReason || r.refundAmount > 0) && r.status === "approved" && !r.rejectionReason && (
+              <p className="text-xs mt-1.5 italic">
+                Prepare to send the item(s) back — we'll confirm once the refund is processed.
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/150?text=No+Image";
 
@@ -90,6 +166,8 @@ export default function OrderDetailPage() {
             </div>
 
             <OrderProgressTracker currentStatus={status} />
+
+            <ReturnStatusCard orderId={order._id} />
 
             <div className="border-t border-slate-100 pt-6 mt-6">
               <h2 className="font-black text-sm text-slate-700 mb-4">Items ({items.length})</h2>

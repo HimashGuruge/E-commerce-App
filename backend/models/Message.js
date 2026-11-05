@@ -9,6 +9,8 @@ const messageSchema = new mongoose.Schema(
     language: { type: String, default: "en-US" },
     isVoice: { type: Boolean, default: false },
     orderRef: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
+    // Return request this message is about (return notifications / admin seller pings)
+    returnRef: { type: mongoose.Schema.Types.ObjectId, ref: "ReturnRequest" },
     senderType: {
       type: String,
       enum: ["user", "bot", "admin"],

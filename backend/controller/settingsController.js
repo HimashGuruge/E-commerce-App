@@ -35,6 +35,7 @@ export const getPublicSettings = asyncHandler(async (req, res) => {
       footerTextColor: config.footerTextColor,
       footerHeadingColor: config.footerHeadingColor,
       footerLinkHoverColor: config.footerLinkHoverColor,
+      footerIconColor: config.footerIconColor,
       footerFontSize: config.footerFontSize,
       footerFontFamily: config.footerFontFamily,
       footerLogo: config.footerLogo,
@@ -72,7 +73,7 @@ export const updateSettings = asyncHandler(async (req, res) => {
   const allowed = [
     "brandName", "iconLetter", "logo", "primaryColor", "chatWidgetColor", "adminTheme", "fontFamily", "fontUrl", "tagline",
     "footerCompanyName", "footerSupportEmail", "footerDescription", "footerAddress", "footerPhone",
-    "footerBg", "footerTextColor", "footerHeadingColor", "footerLinkHoverColor", "footerFontSize", "footerFontFamily", "footerLogo",
+    "footerBg", "footerTextColor", "footerHeadingColor", "footerLinkHoverColor", "footerIconColor", "footerFontSize", "footerFontFamily", "footerLogo",
     "socialEnabled",
     "metaTitle", "metaDescription", "social",
     "emailFromName", "emailFromAddress", "emailProvider", "smtpHost", "smtpPort", "smtpUser", "smtpPass",

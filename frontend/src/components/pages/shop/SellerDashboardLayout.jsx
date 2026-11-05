@@ -10,6 +10,7 @@ import SellerAddProduct from "./SellerAddProduct";
 import SellerOrders from "./SellerOrders";
 import SellerOrdersFull from "./SellerOrdersFull";
 import SellerMessages from "./SellerMessages";
+import SellerReturns from "./SellerReturns";
 import SellerNotifications from "./SellerNotifications";
 import SellerEarnings from "./SellerEarnings";
 import SellerCommission from "./SellerCommission";
@@ -85,6 +86,7 @@ export default function SellerDashboardLayout() {
             <Route path="add-product" element={<SellerAddProduct />} />
             <Route path="edit-product/:productId" element={<SellerAddProduct />} />
             <Route path="orders" element={<SellerOrdersFull />} />
+            <Route path="returns" element={<SellerReturns />} />
             <Route path="messages" element={<SellerMessages />} />
             <Route path="notifications" element={<SellerNotifications />} />
             <Route path="earnings" element={<SellerEarnings />} />

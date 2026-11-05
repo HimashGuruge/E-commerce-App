@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/utils/api";
-import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiInfo, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiInfo, FiChevronDown, FiChevronUp, FiMessageSquare, FiX, FiSend } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { onSocketEvent } from "@/utils/socket";
 
 export default function ReturnsManagement() {
   const [returns, setReturns] = useState([]);
@@ -11,12 +12,13 @@ export default function ReturnsManagement() {
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
   const [showGuide, setShowGuide] = useState(false);
+  // Message-seller dialog state
+  const [msgTarget, setMsgTarget] = useState(null); // return request being messaged
+  const [msgSellerId, setMsgSellerId] = useState("");
+  const [msgText, setMsgText] = useState("");
+  const [msgSending, setMsgSending] = useState(false);
 
-  useEffect(() => {
-    fetchReturns();
-  }, [page, statusFilter]);
-
-  const fetchReturns = async () => {
+  const fetchReturns = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page, limit });
@@ -33,7 +35,16 @@ export default function ReturnsManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, limit]);
+
+  useEffect(() => {
+    fetchReturns();
+  }, [fetchReturns]);
+
+  // Live refresh: new return requests + status changes (from any admin device)
+  useEffect(() => {
+    return onSocketEvent(["returns:new", "returns:updated"], () => fetchReturns());
+  }, [fetchReturns]);
 
   const handleApprove = async (id) => {
     try {
@@ -89,6 +100,36 @@ export default function ReturnsManagement() {
     } catch (err) {
       console.error("Failed to complete:", err);
       Swal.fire({ icon: "error", title: "Error", text: "Failed to complete return" });
+    }
+  };
+
+  const openMessageSeller = (returnRequest) => {
+    setMsgTarget(returnRequest);
+    setMsgSellerId(returnRequest.sellers?.[0]?.id || "");
+    setMsgText("");
+  };
+
+  const closeMessageSeller = () => {
+    setMsgTarget(null);
+    setMsgSellerId("");
+    setMsgText("");
+  };
+
+  const handleSendMessage = async () => {
+    if (!msgTarget || !msgText.trim()) return;
+    setMsgSending(true);
+    try {
+      await api.post(`/api/feedback/returns/${msgTarget._id}/message`, {
+        sellerId: msgSellerId || undefined,
+        message: msgText.trim(),
+      });
+      closeMessageSeller();
+      fetchReturns();
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      Swal.fire({ icon: "error", title: "Error", text: "Failed to send message to seller" });
+    } finally {
+      setMsgSending(false);
     }
   };
 
@@ -204,6 +245,7 @@ export default function ReturnsManagement() {
                   <li><strong>Customer</strong> — who requested the return (name + email).</li>
                   <li><strong>Order</strong> — the order the returned items came from.</li>
                   <li><strong>Items</strong> — which products are being returned and how many.</li>
+                  <li><strong>Sellers</strong> — the seller(s) whose products are being returned. Use the <strong>Message Seller</strong> button to send them a note about the return.</li>
                   <li><strong>Reason</strong> — why the customer wants the return (e.g. Defective, Damaged on Arrival).</li>
                   <li><strong>Amount</strong> — the refund amount in Rs.</li>
                   <li><strong>Status</strong> — where the return is in the workflow (see above).</li>
@@ -216,7 +258,7 @@ export default function ReturnsManagement() {
                   <li>Only <strong>Pending</strong>, <strong>Approved</strong> and <strong>Processing</strong> rows have action buttons — finished ones just stay in the list.</li>
                   <li>The filter buttons let you view only one status at a time (e.g. click <strong>Pending</strong> to see everything waiting for you).</li>
                   <li>The stats only count the rows on the current page (10 per page), so big numbers may look smaller on page 1.</li>
-                  <li>Every approve/reject decision sends a message to the customer automatically — no separate notification needed.</li>
+                  <li>Every approve/reject decision sends a message to the customer AND the affected sellers automatically — no separate notification needed.</li>
                 </ul>
               </div>
             </div>
@@ -260,6 +302,7 @@ export default function ReturnsManagement() {
                       <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Customer</th>
                       <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Order</th>
                       <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Items</th>
+                      <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Sellers</th>
                       <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Reason</th>
                       <th className="px-2 py-2.5 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Amount</th>
                       <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
@@ -289,6 +332,17 @@ export default function ReturnsManagement() {
                               {item.product?.name?.slice(0, 20) || "Product"} ×{item.quantity}
                             </div>
                           ))}
+                        </td>
+                        <td className="px-2 py-2 text-slate-500 max-w-[180px]">
+                          {(returnRequest.sellers || []).length ? (
+                            returnRequest.sellers.map((s) => (
+                              <div key={s.id} className="text-xs truncate">
+                                <span className="font-medium text-slate-700">{s.name || "Seller"}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
                         </td>
                         <td className="px-2 py-2 text-slate-500 whitespace-nowrap">
                           {getReasonLabel(returnRequest.items?.[0]?.reason || "other")}
@@ -323,6 +377,16 @@ export default function ReturnsManagement() {
                                 className="px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
                               >
                                 Complete
+                              </button>
+                            )}
+                            {(returnRequest.sellers || []).length > 0 && (
+                              <button
+                                onClick={() => openMessageSeller(returnRequest)}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-md text-[11px] font-semibold transition-colors"
+                                title="Send a message to the seller about this return"
+                              >
+                                <FiMessageSquare size={12} />
+                                Message Seller
                               </button>
                             )}
                           </div>
@@ -366,6 +430,78 @@ export default function ReturnsManagement() {
           )}
         </div>
       </div>
+
+      {/* Message Seller modal */}
+      {msgTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeMessageSeller}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-bold text-slate-900">Message Seller</h3>
+              <button
+                onClick={closeMessageSeller}
+                className="p-1 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+            <p className="text-[12.5px] text-slate-500 mb-3">
+              Return <span className="font-mono font-semibold text-slate-700">#{msgTarget._id.slice(-8)}</span>{" "}
+              · Order <span className="font-mono font-semibold text-slate-700">#{msgTarget.order?._id?.slice(-8) || "—"}</span>
+            </p>
+
+            {(msgTarget.sellers || []).length > 1 && (
+              <div className="mb-3">
+                <label className="block text-[11px] font-mono uppercase tracking-[0.1em] text-slate-400 mb-1">
+                  Send to
+                </label>
+                <select
+                  value={msgSellerId}
+                  onChange={(e) => setMsgSellerId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                >
+                  {msgTarget.sellers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name || "Seller"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <textarea
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              rows={4}
+              placeholder="Write a message about this return (e.g. return address, deadline, questions)…"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              Delivered to the seller's dashboard inbox with a live notification.
+            </p>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={closeMessageSeller}
+                className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendMessage}
+                disabled={msgSending || !msgText.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FiSend size={13} />
+                {msgSending ? "Sending…" : "Send Message"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

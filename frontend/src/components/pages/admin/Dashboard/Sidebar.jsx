@@ -295,7 +295,9 @@ export default function Sidebar({
   // (new order / order status change / new pending feedback / new seller /
   // new admin notification from a seller activity event)
   useEffect(() => {
-    return onSocketEvent(["admin:stats-changed", "chat:unseen-user"], () => fetchBadgeData());
+    return onSocketEvent(["admin:stats-changed", "chat:unseen-user", "returns:new", "returns:updated"], () =>
+      fetchBadgeData()
+    );
   }, [fetchBadgeData]);
 
   // Get from localStorage for faster load

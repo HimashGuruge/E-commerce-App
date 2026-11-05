@@ -22,6 +22,7 @@ const siteConfigSchema = new mongoose.Schema(
     footerTextColor: { type: String, default: "#cbd5e1" },
     footerHeadingColor: { type: String, default: "#ffffff" },
     footerLinkHoverColor: { type: String, default: "#ffffff" },
+    footerIconColor: { type: String, default: "var(--color-brand-400, #f97316)" },
     footerFontSize: { type: String, default: "0.875rem" },
     footerFontFamily: { type: String, default: "" },
     footerLogo: { type: String, default: "" },

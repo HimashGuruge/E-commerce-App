@@ -13,6 +13,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
   const [pendingOrders, setPendingOrders] = useState(0);
+  const [pendingReturns, setPendingReturns] = useState(0);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [pendingCommission, setPendingCommission] = useState(0);
@@ -37,6 +38,13 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
           (p.data?.success ? p.data.totalCount || 0 : 0) +
           (pr.data?.success ? pr.data.totalCount || 0 : 0);
         setPendingOrders(total);
+      } catch {}
+    };
+    // Badge = pending return requests involving this seller
+    const fetchPendingReturns = async () => {
+      try {
+        const { data } = await api.get("/api/sellers/returns?status=pending");
+        if (data.success) setPendingReturns(data.pendingCount || 0);
       } catch {}
     };
     // Badge = unread admin alerts
@@ -67,13 +75,17 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
 
     fetchSeller();
     fetchPending();
+    fetchPendingReturns();
     fetchAlerts();
     fetchPendingCommission();
     fetchUnreadMessages();
     const refresh = () => fetchPending();
     const unsubAlert = onSocketEvent(["seller:alert"], fetchAlerts);
-    // New customer message → refresh badge live (independent of the Messages page)
-    const unsubMsg = onSocketEvent(["seller:new-message"], fetchUnreadMessages);
+    // New customer message / return update → refresh badge live (independent of the Messages page)
+    const unsubMsg = onSocketEvent(["seller:new-message"], () => {
+      fetchUnreadMessages();
+      fetchPendingReturns();
+    });
     // New buyer order → refresh the pending-orders badge live
     const unsubNewOrder = onSocketEvent(["seller:new-order"], refresh);
     window.addEventListener("seller-orders-changed", refresh);
@@ -198,6 +210,12 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
             <MdShoppingCart size={18} />
             <span>Orders</span>
             {badgePill(pendingOrders)}
+          </NavLink>
+
+          <NavLink to="/seller/dashboard/returns" className={navItemClass} onClick={() => closeMobile?.()}>
+            <TbPackages size={18} />
+            <span>Returns</span>
+            {badgePill(pendingReturns)}
           </NavLink>
 
           <NavLink to="/seller/dashboard/earnings" className={navItemClass} onClick={() => closeMobile?.()}>

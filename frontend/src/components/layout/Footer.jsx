@@ -38,6 +38,7 @@ const Footer = () => {
     footerTextColor: "#cbd5e1",
     footerHeadingColor: "#ffffff",
     footerLinkHoverColor: "#ffffff",
+    footerIconColor: "var(--color-brand-400, #f97316)",
     footerFontSize: "0.875rem",
     footerFontFamily: "",
     footerLogo: "",
@@ -68,6 +69,7 @@ const Footer = () => {
       footerTextColor: cached.footerTextColor || "#cbd5e1",
       footerHeadingColor: cached.footerHeadingColor || "#ffffff",
       footerLinkHoverColor: cached.footerLinkHoverColor || "#ffffff",
+      footerIconColor: cached.footerIconColor || base.footerIconColor,
       footerFontSize: cached.footerFontSize || "0.875rem",
       footerFontFamily: cached.footerFontFamily || "",
       footerLogo: cached.footerLogo || "",
@@ -91,6 +93,7 @@ const Footer = () => {
           footerTextColor: s.footerTextColor || "#cbd5e1",
           footerHeadingColor: s.footerHeadingColor || "#ffffff",
           footerLinkHoverColor: s.footerLinkHoverColor || "#ffffff",
+          footerIconColor: s.footerIconColor || base.footerIconColor,
           footerFontSize: s.footerFontSize || "0.875rem",
           footerFontFamily: s.footerFontFamily || "",
           footerLogo: s.footerLogo || "",
@@ -240,15 +243,15 @@ const Footer = () => {
               <h3 className="font-black mb-5 tracking-wider" style={{ color: footerSettings.footerHeadingColor, fontSize: footerSettings.footerFontSize }}>CONTACT US</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3" style={{ color: footerSettings.footerTextColor, fontSize: footerSettings.footerFontSize }}>
-                  <MapPin size={18} className="mt-0.5 flex-shrink-0" style={{ color: "var(--color-brand-400, #f97316)" }} />
+                  <MapPin size={18} className="mt-0.5 flex-shrink-0" style={{ color: footerSettings.footerIconColor || "var(--color-brand-400, #f97316)" }} />
                   <span className="font-medium">{footerSettings.footerAddress}</span>
                 </li>
                 <li className="flex items-center gap-3" style={{ color: footerSettings.footerTextColor, fontSize: footerSettings.footerFontSize }}>
-                  <Phone size={18} className="flex-shrink-0" style={{ color: "var(--color-brand-400, #f97316)" }} />
+                  <Phone size={18} className="flex-shrink-0" style={{ color: footerSettings.footerIconColor || "var(--color-brand-400, #f97316)" }} />
                   <span className="font-medium">{footerSettings.footerPhone}</span>
                 </li>
                 <li className="flex items-center gap-3" style={{ color: footerSettings.footerTextColor, fontSize: footerSettings.footerFontSize }}>
-                  <Mail size={18} className="flex-shrink-0" style={{ color: "var(--color-brand-400, #f97316)" }} />
+                  <Mail size={18} className="flex-shrink-0" style={{ color: footerSettings.footerIconColor || "var(--color-brand-400, #f97316)" }} />
                   <span className="font-medium">{footerSettings.footerSupportEmail}</span>
                 </li>
               </ul>

@@ -46,26 +46,27 @@ export default function ReturnRequestPage() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.reasonText.trim() && formData.reason !== "other") {
-      Swal.fire({ icon: "warning", title: "Missing Info", text: "Please provide more details about your return" });
+    if (formData.reason === "other" && !formData.reasonText.trim()) {
+      Swal.fire({ icon: "warning", title: "Missing Info", text: "Please specify your return reason" });
       return;
     }
-    if (formData.reasonText.length > 500 || formData.notes.length > 1000) {
-      return;
-    }
+
+    // The backend expects { order, items: [{ product, variant?, quantity, reason, description? }] }
+    const items = (order.items || []).map((item) => ({
+      product: item.product,
+      variant: item.variant || undefined,
+      quantity: item.quantity,
+      reason: formData.reason,
+      description:
+        formData.reason === "other" ? formData.reasonText : formData.notes || ""
+    }));
 
     try {
-      const payload = {
-        orderId,
-        reason: formData.reason,
-        reasonText: formData.reason === "other" ? formData.reasonText : "",
-        condition: formData.condition,
-        notes: formData.notes,
-        photos: formData.photos
-      };
+      const res = await api.post("/api/feedback/returns/initiate", {
+        order: orderId,
+        items
+      });
 
-      const res = await api.post("/api/feedback/returns/initiate", payload);
-      
       if (res.data.success) {
         Swal.fire({
           icon: "success",
@@ -74,10 +75,7 @@ export default function ReturnRequestPage() {
           timer: 3000,
           showConfirmButton: false
         });
-        
-        // Update order with return request ID
-        await api.patch(`/api/orders/${orderId}`, { returnRequestId: res.data.returnRequest._id });
-        
+
         navigate("/orders");
       }
     } catch (err) {

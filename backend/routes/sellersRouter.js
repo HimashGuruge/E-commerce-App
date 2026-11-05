@@ -20,6 +20,7 @@ import {
   getSellerOrders,
   getSellerEarnings,
   getSellerMessages,
+  getSellerReturns,
   getSellerUnreadCount,
   markSellerMessagesRead,
   sendSellerMessage,
@@ -57,6 +58,7 @@ router.get("/dashboard", sellerOnly, getSellerDashboard);
 router.get("/products", sellerOnly, getSellerProducts);
 router.get("/orders", sellerOnly, getSellerOrders);
 router.put("/orders/:orderId/status", sellerOnly, sellerUpdateOrderStatus);
+router.get("/returns", sellerOnly, getSellerReturns);
 router.get("/earnings", sellerOnly, getSellerEarnings);
 router.get("/messages", sellerOnly, getSellerMessages);
 router.get("/messages/unread", sellerOnly, getSellerUnreadCount);

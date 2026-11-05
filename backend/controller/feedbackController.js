@@ -8,8 +8,8 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { recalcParentStock } from "./productVariantController.js";
-import { emitToAdmins } from "../services/socketService.js";
-import { notifyBrandStatsChanged } from "../services/sellerMessagingService.js";
+import { emitToAdmins, emitToUser } from "../services/socketService.js";
+import { notifyBrandStatsChanged, notifyReturnToSellers } from "../services/sellerMessagingService.js";
 import { markRemindersSubmitted, hasFullyReturnedItem } from "../services/reviewReminderService.js";
 import { createReversalForReturn } from "../services/payoutService.js";
 // After restocking returned items, sync the owning parent products' totals
@@ -72,6 +72,18 @@ export const initiateReturn = asyncHandler(async (req, res) => {
   // Get shipping config
   const shippingConfig = await SiteConfig.findOne()?.shipping || { shippingCostPaidBy: "customer" };
 
+  // Work out the refund amount from the order item prices (unit price x
+  // returned quantity, matched by product + variant).
+  const orderItemMap = new Map();
+  for (const oi of orderDoc.items || []) {
+    orderItemMap.set(`${oi.product || ""}|${oi.variant || ""}`, oi);
+  }
+  let refundAmount = 0;
+  for (const ri of items) {
+    const oi = orderItemMap.get(`${ri.product || ""}|${ri.variant || ""}`);
+    if (oi) refundAmount += (Number(oi.price) || 0) * (Number(ri.quantity) || 0);
+  }
+
   // Create return request
   const returnRequest = await ReturnRequest.create({
     order,
@@ -79,6 +91,7 @@ export const initiateReturn = asyncHandler(async (req, res) => {
     items,
     status: "pending",
     shippingCostPaidBy: shippingConfig.shippingCostPaidBy || "customer",
+    refundAmount,
   });
 
   // Notify admin
@@ -99,6 +112,16 @@ export const initiateReturn = asyncHandler(async (req, res) => {
     console.error("Failed to notify admins of return request:", err);
   }
 
+  // Real-time: refresh the admin returns panel + pending badge
+  emitToAdmins("returns:new", { returnId: returnRequest._id, orderId: order });
+
+  // Notify the seller(s) whose products are being returned (live inbox ping)
+  await notifyReturnToSellers(returnRequest, {
+    text: `New return request #${String(returnRequest._id).slice(-8)} for order #${String(orderDoc._id).slice(-8)} — check your Returns tab.`,
+    senderId: req.user._id,
+    senderType: "user",
+  });
+
   res.status(201).json({ success: true, returnRequest });
 });
 
@@ -117,7 +140,8 @@ export const getReturnRequests = asyncHandler(async (req, res) => {
   const returns = await ReturnRequest.find(query)
     .populate("order", "orderStatus paymentStatus totalPrice items")
     .populate("user", "name email phone")
-    .populate("items.product", "name images")
+    .populate("items.product", "name images seller")
+    .populate("items.product.seller", "name email")
     .populate("items.variant", "sku price")
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -125,9 +149,29 @@ export const getReturnRequests = asyncHandler(async (req, res) => {
 
   const total = await ReturnRequest.countDocuments(query);
 
+  // Collect the unique seller(s) per return so the admin panel can show who
+  // is involved and let them send a message to a specific seller.
+  const rows = (returns || []).map((r) => {
+    // Convert the Mongoose document to a plain object first. Spreading a
+    // document directly would only expose its internal keys ($__, _doc, ...)
+    // and drop the real fields (_id, items, user, ...).
+    const doc = r.toObject({ virtuals: false });
+    const sellerMap = new Map();
+    for (const item of doc.items || []) {
+      const s = item?.product?.seller;
+      if (s?._id && !sellerMap.has(String(s._id))) sellerMap.set(String(s._id), s);
+    }
+    const sellers = [...sellerMap.values()].map((s) => ({
+      id: String(s._id),
+      name: s.name,
+      email: s.email,
+    }));
+    return { ...doc, sellers };
+  });
+
   res.json({
     success: true,
-    returns,
+    returns: rows,
     total,
     page: pageNum,
     pages: Math.ceil(total / limitNum),
@@ -178,6 +222,17 @@ export const approveReturn = asyncHandler(async (req, res) => {
     console.error("Failed to notify user of approval:", err);
   }
 
+  // Real-time: refresh admin panel + customer + seller surfaces
+  emitToAdmins("returns:updated", { returnId: returnRequest._id, status: returnRequest.status });
+  emitToUser(returnRequest.user, "return:updated", { returnId: returnRequest._id, status: returnRequest.status });
+
+  // Notify the seller(s) so they can prepare the items for return
+  await notifyReturnToSellers(returnRequest, {
+    text: `Your return request #${String(returnRequest._id).slice(-8)} has been APPROVED — prepare to receive the returned item(s).`,
+    senderId: req.user._id,
+    senderType: "admin",
+  });
+
   res.json({ success: true, returnRequest, message: "Return request approved" });
 });
 
@@ -214,11 +269,63 @@ export const rejectReturn = asyncHandler(async (req, res) => {
     console.error("Failed to notify user of rejection:", err);
   }
 
+  // Real-time: refresh admin panel + customer + seller surfaces
+  emitToAdmins("returns:updated", { returnId: returnRequest._id, status: returnRequest.status });
+  emitToUser(returnRequest.user, "return:updated", { returnId: returnRequest._id, status: returnRequest.status });
+
+  // Notify the seller(s)
+  await notifyReturnToSellers(returnRequest, {
+    text: `Return request #${String(returnRequest._id).slice(-8)} was REJECTED — reason: ${rejectionReason}`,
+    senderId: req.user._id,
+    senderType: "admin",
+  });
+
   res.json({ success: true, returnRequest, message: "Return request rejected" });
 });
 
 export const processRefund = asyncHandler(async (req, res) => {
-  const { refundAmount, restockingFee, returnLabelUrl } = req.body;
+  let { refundAmount, restockingFee, returnLabelUrl } = req.body;
+
+  // Load the return first so we can fall back to the order's item prices
+  // when the request has no stored refundAmount (older returns).
+  const existing = await ReturnRequest.findById(req.params.id);
+  if (!existing) {
+    res.status(404);
+    throw new Error("Return request not found");
+  }
+
+  if (!refundAmount || refundAmount <= 0) {
+    if (existing.refundAmount > 0) {
+      refundAmount = existing.refundAmount;
+    } else if (existing.order) {
+      // Prefer the order's own item prices (a snapshot of what was paid).
+      const orderDoc = await Order.findById(existing.order);
+      const orderItemMap = new Map();
+      for (const oi of orderDoc?.items || []) {
+        orderItemMap.set(`${oi.product || ""}|${oi.variant || ""}`, oi);
+      }
+      for (const ri of existing.items || []) {
+        const oi = orderItemMap.get(`${ri.product || ""}|${ri.variant || ""}`);
+        if (oi) refundAmount = (refundAmount || 0) + (Number(oi.price) || 0) * (Number(ri.quantity) || 0);
+      }
+    }
+    // Last resort: use the current product/variant price (e.g. returns whose
+    // order no longer exists).
+    if (!refundAmount || refundAmount <= 0) {
+      const productIds = [...new Set((existing.items || []).map((i) => i.product).filter(Boolean))];
+      const variantIds = [...new Set((existing.items || []).map((i) => i.variant).filter(Boolean))];
+      const products = await Product.find({ _id: { $in: productIds } }).select("price");
+      const variants = variantIds.length
+        ? await mongoose.model("Variant").find({ _id: { $in: variantIds } }).select("price")
+        : [];
+      const pMap = new Map(products.map((p) => [String(p._id), p.price]));
+      const vMap = new Map(variants.map((v) => [String(v._id), v.price]));
+      for (const ri of existing.items || []) {
+        const price = ri.variant ? (vMap.get(String(ri.variant)) ?? 0) : (pMap.get(String(ri.product)) ?? 0);
+        refundAmount = (refundAmount || 0) + Number(price || 0) * (Number(ri.quantity) || 0);
+      }
+    }
+  }
 
   if (!refundAmount || refundAmount <= 0) {
     return res.status(400).json({ success: false, message: "Valid refund amount is required" });
@@ -251,6 +358,17 @@ export const processRefund = asyncHandler(async (req, res) => {
   }
 
   await resyncParentsForItems(returnRequest.items);
+
+  // Real-time: refresh admin panel + customer + seller surfaces
+  emitToAdmins("returns:updated", { returnId: returnRequest._id, status: returnRequest.status });
+  emitToUser(returnRequest.user, "return:updated", { returnId: returnRequest._id, status: returnRequest.status });
+
+  // Notify the seller(s)
+  await notifyReturnToSellers(returnRequest, {
+    text: `Return #${String(returnRequest._id).slice(-8)} is now in REFUND PROCESSING (Rs. ${refundAmount.toLocaleString()}). Stock for the returned items has been restored.`,
+    senderId: req.user._id,
+    senderType: "admin",
+  });
 
   res.json({ success: true, returnRequest, message: "Refund processing initiated" });
 });
@@ -297,7 +415,81 @@ export const completeReturn = asyncHandler(async (req, res) => {
     console.error(`[Payout] COD reversal failed for return ${returnRequest._id}:`, revErr.message);
   }
 
+  // Real-time: refresh admin panel + customer + seller surfaces
+  emitToAdmins("returns:updated", { returnId: returnRequest._id, status: returnRequest.status });
+  emitToUser(returnRequest.user, "return:updated", { returnId: returnRequest._id, status: returnRequest.status });
+
+  // Notify the seller(s) — return flow complete
+  await notifyReturnToSellers(returnRequest, {
+    text: `Return #${String(returnRequest._id).slice(-8)} is COMPLETE — refund of Rs. ${(returnRequest.refundAmount || 0).toLocaleString()} has been processed to the customer.`,
+    senderId: req.user._id,
+    senderType: "admin",
+  });
+
   res.json({ success: true, returnRequest, message: "Return completed and refunded" });
+});
+
+// @desc    Admin sends a message to the seller(s) about a return request
+// @route   POST /api/feedback/returns/:id/message  { sellerId?, message }
+// If sellerId is given the message goes to that seller only; otherwise it
+// goes to every seller whose products are in the return.
+export const messageSellerAboutReturn = asyncHandler(async (req, res) => {
+  const { message, sellerId } = req.body;
+  if (!message || !String(message).trim()) {
+    return res.status(400).json({ success: false, message: "Message is required" });
+  }
+
+  const returnRequest = await ReturnRequest.findById(req.params.id);
+  if (!returnRequest) {
+    res.status(404);
+    throw new Error("Return request not found");
+  }
+
+  const productIds = (returnRequest.items || [])
+    .map((i) => (i.product ? String(i.product) : null))
+    .filter(Boolean);
+  let sellerIds = [];
+  if (productIds.length) {
+    const sellers = await Product.find({ _id: { $in: productIds } }).select("seller").lean();
+    sellerIds = [...new Set(sellers.map((s) => s.seller && String(s.seller)).filter(Boolean))];
+  }
+  if (sellerId) sellerIds = sellerIds.filter((id) => id === String(sellerId));
+  if (!sellerIds.length) {
+    return res.status(400).json({ success: false, message: "No seller found for this return" });
+  }
+
+  let sent = 0;
+  for (const sid of sellerIds) {
+    await Message.create({
+      sender: req.user._id,
+      recipient: sid,
+      message: String(message).trim(),
+      senderType: "admin",
+      isAdmin: true,
+      orderRef: returnRequest.order,
+      returnRef: returnRequest._id,
+      sellerRead: false,
+      adminRead: true,
+    });
+    emitToUser(sid, "seller:new-message", { id: returnRequest._id, returnRef: String(returnRequest._id) });
+    sent += 1;
+  }
+
+  res.json({ success: true, message: `Message sent to ${sent} seller(s)`, sent });
+});
+
+// @desc    Customer's own return requests (for the order-detail status card)
+// @route   GET /api/feedback/returns/my
+export const getMyReturns = asyncHandler(async (req, res) => {
+  const { orderId } = req.query;
+  const query = { user: req.user._id };
+  if (orderId && mongoose.isValidObjectId(orderId)) query.order = orderId;
+
+  const returns = await ReturnRequest.find(query)
+    .sort({ createdAt: -1 })
+    .limit(20);
+
+  res.json({ success: true, returns });
 });
 
 // ========== END RETURN CONTROLLERS ==========

@@ -5,6 +5,7 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
+import ReturnRequest from "../models/ReturnRequest.js";
 import Notification from "../models/Notification.js";
 import Feedback from "../models/Feedback.js";
 import { emitToAdmins, emitToUser } from "../services/socketService.js";
@@ -321,6 +322,40 @@ export const getSellerMessages = asyncHandler(async (req, res) => {
     };
   };
   res.json({ success: true, messages: messages.map(conversation) });
+});
+
+// @desc    Return requests involving the seller's products (read-only)
+// @route   GET /api/sellers/returns?status=pending
+export const getSellerReturns = asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  const myProducts = await Product.find({ seller: req.user._id }).select("_id").lean();
+  const productIds = myProducts.map((p) => p._id);
+  if (!productIds.length) return res.json({ success: true, returns: [] });
+
+  const query = { "items.product": { $in: productIds } };
+  if (status) query.status = status;
+
+  const returns = await ReturnRequest.find(query)
+    .populate("order", "orderStatus paymentStatus totalPrice")
+    .populate("user", "name email phone")
+    .populate("items.product", "name images")
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+
+  // Keep only the items that belong to THIS seller, with the customer's name
+  const rows = returns
+    .map((r) => {
+      const sellerItems = (r.items || []).filter(
+        (item) => item.product && String(item.product._id || item.product) && productIds.some((id) => String(id) === String(item.product._id || item.product))
+      );
+      return { ...r, sellerItems };
+    })
+    .filter((r) => r.sellerItems.length > 0);
+
+  const pendingCount = await ReturnRequest.countDocuments({ ...query, status: "pending" });
+
+  res.json({ success: true, returns: rows, pendingCount });
 });
 
 // @desc    Seller unread-message count (for the sidebar badge)

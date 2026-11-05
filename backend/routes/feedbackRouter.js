@@ -23,6 +23,8 @@ import {
   rejectReturn,
   processRefund,
   completeReturn,
+  messageSellerAboutReturn,
+  getMyReturns,
 } from "../controller/feedbackController.js";
 import authMiddleware, { adminOnly } from "../middleware/authMiddleware.js";
 
@@ -30,12 +32,14 @@ const router = express.Router();
 
 // ========== RETURN REQUEST ROUTES (must be before :id routes) ==========
 router.post("/returns/initiate", authMiddleware, initiateReturn);
+router.get("/returns/my", authMiddleware, getMyReturns);
 router.get("/returns", adminOnly, getReturnRequests);
 router.get("/returns/:id", adminOnly, getReturnRequestById);
 router.put("/returns/:id/approve", adminOnly, approveReturn);
 router.put("/returns/:id/reject", adminOnly, rejectReturn);
 router.put("/returns/:id/process-refund", adminOnly, processRefund);
 router.put("/returns/:id/complete", adminOnly, completeReturn);
+router.post("/returns/:id/message", adminOnly, messageSellerAboutReturn);
 
 // Feedback routes
 router.get("/", getFeedback);
