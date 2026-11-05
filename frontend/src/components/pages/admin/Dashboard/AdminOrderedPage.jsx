@@ -72,6 +72,229 @@ const STATUS_CONFIG = {
   },
 };
 
+const OrderStatusPicker = ({
+  order,
+  tempTracking,
+  setTempTracking,
+  editingOrderId,
+  setEditingOrderId,
+  updatingId,
+  handleStatusUpdate,
+  handleDeleteFailedOrder,
+}) => {
+  const isTerminal =
+    order.orderStatus === "failed" || order.orderStatus === "cancelled";
+  // Tracking box is always visible for active orders (also for shipped so it can be edited)
+  const canShowTracking = !isTerminal;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {isTerminal ? (
+        <button
+          onClick={() => handleDeleteFailedOrder(order._id, order.orderId)}
+          className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-md text-[11px] font-semibold transition-colors"
+        >
+          <FiTrash2 size={11} />
+          Delete
+        </button>
+      ) : (
+        <>
+          <select
+            value={order.orderStatus}
+            disabled={updatingId === order._id}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const val = e.target.value;
+              const trackingValue =
+                tempTracking[order._id] ?? order.trackingNumber ?? "";
+              if (val === "shipped" && !trackingValue.trim()) {
+                toast.error("Shipping details ඇතුළත් කරන්න.");
+                return;
+              }
+              handleStatusUpdate(order._id, val, trackingValue);
+            }}
+            className={`min-w-[104px] px-2 py-1 rounded-md text-[11px] font-semibold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_CONFIG[order.orderStatus]?.select || STATUS_CONFIG.pending.select}`}
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {updatingId === order._id ? "Updating..." : capitalize(opt)}
+              </option>
+            ))}
+          </select>
+          {canShowTracking && (
+            <input
+              type="text"
+              placeholder="Tracking No."
+              value={tempTracking[order._id] ?? order.trackingNumber ?? ""}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) =>
+                setTempTracking((prev) => ({
+                  ...prev,
+                  [order._id]: e.target.value,
+                }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              onBlur={(e) => {
+                const val = (e.target.value || "").trim();
+                const unchanged = val === (order.trackingNumber ?? "");
+                if (val && !unchanged) {
+                  handleStatusUpdate(order._id, "shipped", val);
+                }
+              }}
+              className="w-32 px-2 py-1 border border-slate-200 rounded-md text-[11px] focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          )}
+          {order.orderStatus === "shipped" && order.trackingNumber && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(
+                    `https://www.domex.lk/track?tracking=${order.trackingNumber}`,
+                    "_blank"
+                  );
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
+                title="Track on Domex"
+              >
+                <FiTruck size={11} />
+                Track
+                <FiExternalLink size={10} />
+              </button>
+              <button
+                onClick={() => setEditingOrderId(order._id)}
+                className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors"
+                title="Edit tracking"
+              >
+                <FiEdit2 size={13} />
+              </button>
+            </>
+          )}
+          {canShowTracking && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const val = (
+                  tempTracking[order._id] ?? order.trackingNumber ?? ""
+                ).trim();
+                const unchanged = val === (order.trackingNumber ?? "");
+                if (val && !unchanged) {
+                  handleStatusUpdate(order._id, "shipped", val);
+                } else if (!val && order.trackingNumber) {
+                  handleStatusUpdate(order._id, order.orderStatus, "");
+                }
+              }}
+              className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors"
+              title="Save tracking number"
+            >
+              <FiSave size={13} />
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+const OrderCard = ({ order, setTempTracking, tempTracking, ...pickerProps }) => {
+  const [expanded, setExpanded] = useState(false);
+  const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
+  const name = order.shippingAddress?.fullName || order.user?.name || "Guest";
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
+      <div className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono font-semibold text-brand-600 text-xs">
+            #{order.orderId || order._id.slice(-6)}
+          </span>
+          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${cfg.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {order.orderStatus}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-slate-900 truncate">{name}</p>
+            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+              {new Date(order.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-[13px] font-bold text-slate-900 tabular-nums">
+              Rs. {(order.totalPrice ?? 0).toLocaleString()}
+            </p>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-[11px] text-slate-400 hover:text-brand-600 inline-flex items-center gap-0.5 mt-0.5 transition-colors"
+            >
+              Details
+              {expanded ? <FiChevronUp size={11} /> : <FiChevronDown size={11} />}
+            </button>
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 mb-2">
+                Items ({order.items?.length})
+              </p>
+              <div className="space-y-1.5">
+                {order.items?.slice(0, 3).map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-md bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      <img
+                        src={item.image || item.imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-slate-800 truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        Qty: {item.quantity}
+                      </p>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-700 tabular-nums">
+                      Rs. {item.price?.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+                {order.items?.length > 3 && (
+                  <p className="text-[11px] text-slate-400 text-center">
+                    +{order.items.length - 3} more items
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {order.trackingNumber && (
+              <p className="text-[11px] text-slate-500 font-mono">
+                Tracking: {order.trackingNumber}
+              </p>
+            )}
+
+            <div className="pt-1">
+              <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 mb-2">
+                Update Status
+              </p>
+              <OrderStatusPicker order={order} tempTracking={tempTracking} setTempTracking={setTempTracking} {...pickerProps} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function AdminOrderedPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -177,193 +400,6 @@ export default function AdminOrderedPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const OrderStatusPicker = ({ order }) => {
-    const isTerminal =
-      order.orderStatus === "failed" || order.orderStatus === "cancelled";
-    const canShowTracking =
-      order.orderStatus === "processing" ||
-      editingOrderId === order._id ||
-      order.orderStatus === "shipped";
-
-    return (
-      <div className="flex items-center gap-1.5">
-        {isTerminal ? (
-          <button
-            onClick={() => handleDeleteFailedOrder(order._id, order.orderId)}
-            className="flex items-center gap-1 px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-md text-[11px] font-semibold transition-colors"
-          >
-            <FiTrash2 size={11} />
-            Delete
-          </button>
-        ) : (
-          <>
-            <select
-              value={order.orderStatus}
-              disabled={updatingId === order._id}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => {
-                const val = e.target.value;
-                const trackingValue =
-                  tempTracking[order._id] || order.trackingNumber || "";
-                if (val === "shipped" && !trackingValue.trim()) {
-                  toast.error("Shipping details ඇතුළත් කරන්න.");
-                  return;
-                }
-                handleStatusUpdate(order._id, val, trackingValue);
-              }}
-              className={`min-w-[104px] px-2 py-1 rounded-md text-[11px] font-semibold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_CONFIG[order.orderStatus]?.select || STATUS_CONFIG.pending.select}`}
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {updatingId === order._id ? "Updating..." : capitalize(opt)}
-                </option>
-              ))}
-            </select>
-            {canShowTracking && (
-              <input
-                type="text"
-                placeholder="Tracking No."
-                value={tempTracking[order._id] ?? order.trackingNumber ?? ""}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) =>
-                  setTempTracking((prev) => ({
-                    ...prev,
-                    [order._id]: e.target.value,
-                  }))
-                }
-                onBlur={(e) => {
-                  const val = (e.target.value || "").trim();
-                  const unchanged = val === (order.trackingNumber ?? "");
-                  if (val && !unchanged) {
-                    handleStatusUpdate(order._id, "shipped", val);
-                  }
-                }}
-                className="w-32 px-2 py-1 border border-slate-200 rounded-md text-[11px] focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            )}
-            {order.orderStatus === "shipped" && order.trackingNumber && (
-              <>
-                <button
-                  onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
-                  className="flex items-center gap-1 px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-md text-[11px] font-semibold transition-colors"
-                  title="Track on Domex"
-                >
-                  <FiTruck size={11} />
-                  Track
-                  <FiExternalLink size={10} />
-                </button>
-                <button
-                  onClick={() => setEditingOrderId(order._id)}
-                  className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors"
-                  title="Edit tracking"
-                >
-                  <FiEdit2 size={13} />
-                </button>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    );
-  };
-
-  const OrderCard = ({ order }) => {
-    const [expanded, setExpanded] = useState(false);
-    const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
-    const name = order.shippingAddress?.fullName || order.user?.name || "Guest";
-
-    return (
-      <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
-        <div className="p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-mono font-semibold text-brand-600 text-xs">
-              #{order.orderId || order._id.slice(-6)}
-            </span>
-            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${cfg.text}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-              {order.orderStatus}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-2 mt-2">
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium text-slate-900 truncate">{name}</p>
-              <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                {new Date(order.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-[13px] font-bold text-slate-900 tabular-nums">
-                Rs. {(order.totalPrice ?? 0).toLocaleString()}
-              </p>
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="text-[11px] text-slate-400 hover:text-brand-600 inline-flex items-center gap-0.5 mt-0.5 transition-colors"
-              >
-                Details
-                {expanded ? <FiChevronUp size={11} /> : <FiChevronDown size={11} />}
-              </button>
-            </div>
-          </div>
-
-          {expanded && (
-            <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 mb-2">
-                  Items ({order.items?.length})
-                </p>
-                <div className="space-y-1.5">
-                  {order.items?.slice(0, 3).map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                        <img
-                          src={item.image || item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-800 truncate">
-                          {item.name}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-mono">
-                          Qty: {item.quantity}
-                        </p>
-                      </div>
-                      <p className="text-xs font-semibold text-slate-700 tabular-nums">
-                        Rs. {item.price?.toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
-                  {order.items?.length > 3 && (
-                    <p className="text-[10px] text-slate-400 text-center">
-                      +{order.items.length - 3} more items
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {order.trackingNumber && (
-                <p className="text-[11px] text-slate-500 font-mono">
-                  Tracking: {order.trackingNumber}
-                </p>
-              )}
-
-              <div className="pt-1">
-                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 mb-2">
-                  Update Status
-                </p>
-                <OrderStatusPicker order={order} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="p-4 md:p-6">
@@ -454,7 +490,7 @@ export default function AdminOrderedPage() {
                 <p className="font-semibold text-slate-800 mb-1">How to manage an order (4 steps)</p>
                 <ol className="list-decimal list-inside space-y-1 leading-relaxed">
                   <li>In the <strong>Status</strong> column, pick the status from the dropdown: pending → processing → shipped → delivered.</li>
-                  <li>Before marking an order <strong>shipped</strong>, type the courier's <strong>Tracking No.</strong> into the box under the status and save — the save happens automatically when you move to another field (or press the save icon in card view).</li>
+                  <li>Before marking an order <strong>shipped</strong>, type the courier's <strong>Tracking No.</strong> into the box next to the status and save — the save happens automatically when you click away, press Enter, or click the save icon.</li>
                   <li>Once an order is shipped, you can open the <strong>Track</strong> link to check it live on Domex.</li>
                   <li>If an order fails or is cancelled, a red <strong>Delete</strong> button appears — this permanently removes the record.</li>
                 </ol>
@@ -521,7 +557,17 @@ export default function AdminOrderedPage() {
         {viewMode === "grid" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {currentOrders.map((order) => (
-              <OrderCard key={order._id} order={order} />
+              <OrderCard
+                key={order._id}
+                order={order}
+                tempTracking={tempTracking}
+                setTempTracking={setTempTracking}
+                editingOrderId={editingOrderId}
+                setEditingOrderId={setEditingOrderId}
+                updatingId={updatingId}
+                handleStatusUpdate={handleStatusUpdate}
+                handleDeleteFailedOrder={handleDeleteFailedOrder}
+              />
             ))}
           </div>
         )}
@@ -561,7 +607,16 @@ export default function AdminOrderedPage() {
                             {new Date(order.createdAt).toLocaleDateString()}
                           </td>
                           <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                            <OrderStatusPicker order={order} />
+                            <OrderStatusPicker
+                              order={order}
+                              tempTracking={tempTracking}
+                              setTempTracking={setTempTracking}
+                              editingOrderId={editingOrderId}
+                              setEditingOrderId={setEditingOrderId}
+                              updatingId={updatingId}
+                              handleStatusUpdate={handleStatusUpdate}
+                              handleDeleteFailedOrder={handleDeleteFailedOrder}
+                            />
                           </td>
                           <td className="px-2 py-2 text-right font-semibold text-slate-900 tabular-nums whitespace-nowrap">
                             Rs. {(order.totalPrice ?? 0).toLocaleString()}

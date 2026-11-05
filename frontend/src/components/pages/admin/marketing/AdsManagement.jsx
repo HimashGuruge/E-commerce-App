@@ -140,7 +140,7 @@ const statusInfo = (ad) => {
 const Input = ({ icon, required, label, hint, className = "", ...props }) => (
   <div className={className}>
     {label && (
-      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-xs font-semibold text-slate-600 mb-1">
         {label}
       </label>
     )}
@@ -152,7 +152,7 @@ const Input = ({ icon, required, label, hint, className = "", ...props }) => (
       )}
       <input
         {...props}
-        className={`w-full py-2.5 ${icon ? "pl-10 " : "pl-4 "}pr-4 bg-slate-100/60 border border-transparent rounded-lg focus:bg-white focus:border-slate-300 focus:ring-2 focus:ring-brand-100 transition-all font-medium text-slate-700 text-sm outline-none`}
+        className={`w-full py-2 px-3 ${icon ? "pl-10 " : ""}pr-4 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 transition-colors text-slate-700 text-[13px] outline-none bg-white`}
       />
     </div>
     {hint && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
@@ -597,10 +597,12 @@ export default function AdsManagement() {
       {/* top bar */}
       <div className="max-w-7xl mx-auto pt-6 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">Campaigns</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {ads.length} total • {ads.filter((a) => a.status === "active" && !isExpired(a)).length} running now
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
+              Campaigns
+            </h1>
+            <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+              {ads.length} total • {ads.filter((a) => a.status === "active" && !isExpired(a)).length} running
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -644,13 +646,13 @@ export default function AdsManagement() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search campaigns..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-transparent rounded-lg focus:bg-white focus:border-slate-300 transition-all font-medium text-slate-700 text-sm outline-none"
+                  className="w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 transition-colors text-slate-700 text-[13px] bg-white"
                 />
               </div>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-lg focus:bg-white focus:border-slate-300 transition-all font-medium text-slate-600 text-sm outline-none"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 transition-colors text-slate-600 text-[13px] outline-none bg-white"
               >
                 <option value="all">All locations</option>
                 <option value="home">Main Home</option>
@@ -661,65 +663,90 @@ export default function AdsManagement() {
             </div>
 
             {/* rows */}
-            <div className="divide-y divide-slate-100 max-h-[65vh] overflow-y-auto">
+            <div className="max-h-[65vh] overflow-y-auto">
               {active > 0 ? (
-                filteredAds.map((ad) => {
-                  const status = statusInfo(ad);
-                  const isSelected = selectedIds.has(ad._id) || showingAd?._id === ad._id;
-                  return (
-                    <div
-                      key={ad._id}
-                      onClick={() => selectAd(ad)}
-                      className={`group flex items-center gap-3 p-3 cursor-pointer transition-colors ${
-                        showingAd?._id === ad._id ? "bg-brand-50/70" : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(ad._id)}
-                        onChange={() => toggleAdSelection(ad._id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 text-brand-500 rounded border-slate-300 focus:ring-brand-500 flex-shrink-0"
-                      />
-                      <div className="w-20 h-11 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
-                        {ad.mediaType === "video" ? (
-                          <video src={ad.videoUrl} className="w-full h-full object-cover" muted loop playsInline />
-                        ) : (
-                          <img src={ad.imageUrl || ad.image} className="w-full h-full object-cover" alt={ad.title || "Ad"} />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{ad.title || "Untitled Banner"}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-slate-400">{categoryLabel(ad.category, categories)}</span>
-                          <span className={`flex items-center gap-1 text-[11px] font-semibold ${status.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                            {status.label}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleStatus(ad);
-                        }}
-                        disabled={togglingId === ad._id}
-                        className={`p-1.5 opacity-0 group-hover:opacity-100 rounded-md transition-all disabled:opacity-40 ${
-                          ad.status === "active" ? "text-emerald-500 hover:bg-emerald-50" : "text-slate-400 hover:bg-slate-100"
-                        }`}
-                        title={ad.status === "active" ? "Deactivate" : "Activate"}
-                      >
-                        {togglingId === ad._id ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : ad.status === "active" ? (
-                          <MdToggleOn size={18} />
-                        ) : (
-                          <MdToggleOff size={18} />
-                        )}
-                      </button>
-                    </div>
-                  );
-                })
+                <table className="w-full text-[13px]">
+                  <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
+                    <tr>
+                      <th className="w-8 py-2 px-2" />
+                      <th className="py-2 px-2 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">Banner</th>
+                      <th className="py-2 px-2 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">Title</th>
+                      <th className="py-2 px-2 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">Status</th>
+                      <th className="py-2 px-2 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAds.map((ad) => {
+                      const status = statusInfo(ad);
+                      return (
+                        <tr
+                          key={ad._id}
+                          onClick={() => selectAd(ad)}
+                          className={`border-b border-slate-100 cursor-pointer transition-colors ${
+                            showingAd?._id === ad._id ? "bg-brand-50/70" : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <td className="px-2 py-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(ad._id)}
+                              onChange={() => toggleAdSelection(ad._id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-4 h-4 text-brand-500 rounded border-slate-300 focus:ring-brand-500 cursor-pointer"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="w-20 h-11 rounded-md overflow-hidden bg-slate-100">
+                              {ad.mediaType === "video" ? (
+                                <video src={ad.videoUrl} className="w-full h-full object-cover" muted loop playsInline />
+                              ) : (
+                                <img src={ad.imageUrl || ad.image} className="w-full h-full object-cover" alt={ad.title || "Ad"} />
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2">
+                            <p className="font-medium text-slate-800 truncate">{ad.title || "Untitled Banner"}</p>
+                            <p className="text-xs text-slate-400 mt-0.5 truncate">{categoryLabel(ad.category, categories)}</p>
+                          </td>
+                          <td
+                            className="px-2 py-2 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStatus(ad);
+                            }}
+                            title={ad.status === "active" ? "Deactivate" : "Activate"}
+                          >
+                            <span className={`flex items-center gap-1.5 text-xs font-medium ${status.cls}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                              {status.label}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleStatus(ad);
+                              }}
+                              disabled={togglingId === ad._id}
+                              className={`p-1.5 rounded-md transition-all disabled:opacity-40 ${
+                                ad.status === "active" ? "text-emerald-500 hover:bg-emerald-50" : "text-slate-400 hover:bg-slate-100"
+                              }`}
+                              title={ad.status === "active" ? "Deactivate" : "Activate"}
+                            >
+                              {togglingId === ad._id ? (
+                                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : ad.status === "active" ? (
+                                <MdToggleOn size={14} />
+                              ) : (
+                                <MdToggleOff size={14} />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               ) : (
                 <div className="py-16 text-center">
                   <MdCampaign size={32} className="mx-auto text-slate-300 mb-2" />
@@ -743,7 +770,7 @@ export default function AdsManagement() {
                 className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6"
               >
                 <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-base font-bold text-slate-800">
+                  <h3 className="font-display font-bold text-slate-800 tracking-tight">
                     {formMode === "create" ? "New Campaign" : "Edit Campaign"}
                   </h3>
                   <button
@@ -870,7 +897,7 @@ export default function AdsManagement() {
                       maxLength={50}
                     />
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
                         Location
                       </label>
                       <div className="relative">
@@ -878,7 +905,7 @@ export default function AdsManagement() {
                         <select
                           value={targetCategory}
                           onChange={(e) => setTargetCategory(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-100/60 border border-transparent rounded-lg focus:bg-white focus:border-slate-300 focus:ring-2 focus:ring-brand-100 transition-all font-medium text-slate-700 text-sm outline-none appearance-none cursor-pointer"
+                          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 transition-colors text-slate-700 text-[13px] outline-none appearance-none cursor-pointer bg-white"
                         >
                           <option value="home">Main Home Page</option>
                           {categories.map((cat) => (
@@ -920,24 +947,24 @@ export default function AdsManagement() {
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <button
                       onClick={() => setAdStatus((s) => (s === "active" ? "inactive" : "active"))}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         adStatus === "active" ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                       }`}
                     >
-                      {adStatus === "active" ? <MdToggleOn size={18} /> : <MdToggleOff size={18} />}
+                      {adStatus === "active" ? <MdToggleOn size={16} /> : <MdToggleOff size={16} />}
                       {adStatus === "active" ? "Active" : "Inactive"}
                     </button>
                     <div className="ml-auto flex items-center gap-2">
                       <button
                         onClick={clearForm}
-                        className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700"
+                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleSave}
                         disabled={saving || uploading || !preview || !title.trim()}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
                       >
                         {saving || uploading ? (
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -962,7 +989,7 @@ export default function AdsManagement() {
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="min-w-0">
-                        <h3 className="text-base font-bold text-slate-800 truncate">{showingAd.title || "Untitled Banner"}</h3>
+                        <h3 className="font-display font-bold text-slate-800 tracking-tight truncate">{showingAd.title || "Untitled Banner"}</h3>
                         <p className="text-xs text-slate-400 mt-0.5">
                           {categoryLabel(showingAd.category, categories)} • {showingAd.mediaType === "video" ? "Video" : "Image"}
                         </p>
@@ -986,16 +1013,16 @@ export default function AdsManagement() {
                         </button>
                         <button
                           onClick={() => startEditing(showingAd)}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-sm font-semibold transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-sm font-medium transition-colors"
                         >
-                          <MdEdit size={16} /> Edit
+                          <MdEdit size={14} /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(showingAd)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
                           title="Delete"
                         >
-                          <MdDelete size={18} />
+                          <MdDelete size={14} />
                         </button>
                       </div>
                     </div>
@@ -1011,25 +1038,25 @@ export default function AdsManagement() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       {showingAd.description && (
                         <div className="sm:col-span-2 p-3 bg-slate-50 rounded-lg">
-                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">Description</p>
+                          <p className="text-xs font-semibold text-slate-600 mb-1">Description</p>
                           <p className="text-slate-700">{showingAd.description}</p>
                         </div>
                       )}
                       {showingAd.buttonText && (
                         <div className="p-3 bg-slate-50 rounded-lg">
-                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">Button</p>
+                          <p className="text-xs font-semibold text-slate-600 mb-1">Button</p>
                           <p className="text-slate-700 font-medium">{showingAd.buttonText}</p>
                         </div>
                       )}
                       <div className="p-3 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">Status</p>
+                        <p className="text-xs font-semibold text-slate-600 mb-1">Status</p>
                         <p className={`font-semibold flex items-center gap-1.5 ${statusInfo(showingAd).cls}`}>
                           <span className={`w-2 h-2 rounded-full ${statusInfo(showingAd).dot}`} />
                           {statusInfo(showingAd).label}
                         </p>
                       </div>
                       <div className="p-3 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">Live Dates</p>
+                        <p className="text-xs font-semibold text-slate-600 mb-1">Live Dates</p>
                         <p className="text-slate-700 text-xs leading-relaxed">
                           {showingAd.startDate ? new Date(showingAd.startDate).toLocaleDateString() : "Immediately"}
                           {" - "}
@@ -1038,7 +1065,7 @@ export default function AdsManagement() {
                       </div>
                       {showingAd.countdownText && (
                         <div className="p-3 bg-slate-50 rounded-lg">
-                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">Countdown Text</p>
+                          <p className="text-xs font-semibold text-slate-600 mb-1">Countdown Text</p>
                           <p className="text-slate-700">{showingAd.countdownText}</p>
                         </div>
                       )}
@@ -1055,7 +1082,7 @@ export default function AdsManagement() {
                     </p>
                     <button
                       onClick={openCreate}
-                      className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-semibold transition-colors"
+                      className="mt-5 flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition-colors"
                     >
                       <MdAdd size={16} /> New Campaign
                     </button>
@@ -1087,20 +1114,20 @@ export default function AdsManagement() {
                 onCropComplete={onCropComplete}
               />
             </div>
-            <div className="mt-6 flex gap-4">
+            <div className="mt-6 flex gap-3">
               <button
                 onClick={cancelCrop}
-                className="px-8 py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 transition-all flex items-center gap-2"
+                className="px-5 py-2.5 bg-white/10 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition-colors flex items-center gap-2"
               >
-                <MdClose size={18} />
+                <MdClose size={16} />
                 Cancel
               </button>
               <button
                 onClick={confirmCrop}
                 disabled={!croppedAreaPixels}
-                className="px-8 py-3 bg-brand-500 text-white rounded-xl font-medium hover:bg-brand-600 transition-all flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
-                <MdCheck size={18} />
+                <MdCheck size={16} />
                 Apply Crop
               </button>
             </div>

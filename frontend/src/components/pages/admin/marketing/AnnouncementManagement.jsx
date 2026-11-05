@@ -59,15 +59,15 @@ const FONT_OPTIONS = [
 
 const TEXT_PRESETS = ["#ffffff", "#0f172a", "#facc15", "#f87171", "#4ade80", "#60a5fa", "#f472b6", "#c4b5fd"];
 
-const labelCls = "block text-sm font-medium text-slate-700 mb-1.5";
+const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
 const inputCls =
-  "w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white";
+  "w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 bg-white";
 
 function SectionCard({ title, icon, action, children }) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+    <div className="bg-white rounded-xl p-5 border border-slate-200/80">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <h2 className="font-display font-bold text-lg text-slate-900 tracking-tight flex items-center gap-2">
           <span className="text-brand-500">{icon}</span>
           {title}
         </h2>
@@ -133,7 +133,7 @@ function ColorField({ label, value, onChange, placeholder, emptyAllowed = true }
               setTouched(false);
             }
           }}
-          className={`flex-1 px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 font-mono ${
+          className={`flex-1 px-3 py-2 border rounded-lg text-[13px] outline-none focus:ring-2 focus:ring-brand-500/20 font-mono ${
             touched && !valid && !isHex(localValue) && localValue ? "border-red-300 focus:ring-red-200 focus:border-red-400" : "border-slate-200 focus:border-brand-500"
           }`}
         />
@@ -301,12 +301,15 @@ export default function AnnouncementManagement() {
   const previewTextColor = announcementTextColor({}, bar);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Announcement Ticker</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage the scrolling announcement bar and its styling
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
+            Announcements
+          </h1>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+            {announcements.length} items
           </p>
         </div>
         <button onClick={fetchAnnouncements} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -362,11 +365,11 @@ export default function AnnouncementManagement() {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2.5 pt-2">
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+              className="flex-1 px-4 py-2 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium transition-colors"
             >
               {editing ? "Update" : "Add"}
             </button>
@@ -374,7 +377,7 @@ export default function AnnouncementManagement() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors"
+                className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
@@ -576,7 +579,7 @@ export default function AnnouncementManagement() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Letter Spacing</label>
+                <label className="text-xs font-semibold text-slate-600">Letter Spacing</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{style.letterSpacing}px</span>
               </div>
               <input
@@ -591,7 +594,7 @@ export default function AnnouncementManagement() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Word Spacing</label>
+                <label className="text-xs font-semibold text-slate-600">Word Spacing</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{style.wordSpacing}px</span>
               </div>
               <input
@@ -606,7 +609,7 @@ export default function AnnouncementManagement() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Line Height</label>
+                <label className="text-xs font-semibold text-slate-600">Line Height</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{style.lineHeight}</span>
               </div>
               <input
@@ -622,7 +625,7 @@ export default function AnnouncementManagement() {
           </div>
 
           <div className="mt-4 p-4 bg-slate-50 rounded-xl">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
               <input
                 type="checkbox"
                 checked={style.shadow.enabled}
@@ -642,7 +645,7 @@ export default function AnnouncementManagement() {
                 />
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-medium text-slate-700">Blur</label>
+                    <label className="text-xs font-semibold text-slate-600">Blur</label>
                     <span className="text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-md px-2 py-0.5">{style.shadow.blur}px</span>
                   </div>
                   <input
@@ -702,7 +705,7 @@ export default function AnnouncementManagement() {
           </div>
 
           <div className="mt-4 p-4 bg-slate-50 rounded-xl">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
               <input
                 type="checkbox"
                 checked={bar.gradient.enabled}
@@ -734,7 +737,7 @@ export default function AnnouncementManagement() {
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Background Opacity</label>
+                <label className="text-xs font-semibold text-slate-600">Background Opacity</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{bar.bgOpacity}%</span>
               </div>
               <input
@@ -749,7 +752,7 @@ export default function AnnouncementManagement() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Padding</label>
+                <label className="text-xs font-semibold text-slate-600">Padding</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{bar.padding}px</span>
               </div>
               <input
@@ -764,7 +767,7 @@ export default function AnnouncementManagement() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Border Width</label>
+                <label className="text-xs font-semibold text-slate-600">Border Width</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{bar.borderWidth}px</span>
               </div>
               <input
@@ -779,7 +782,7 @@ export default function AnnouncementManagement() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-700">Border Radius</label>
+                <label className="text-xs font-semibold text-slate-600">Border Radius</label>
                 <span className="text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5">{bar.borderRadius}px</span>
               </div>
               <input
@@ -874,60 +877,69 @@ export default function AnnouncementManagement() {
           {loading ? (
             <div className="text-center py-8 text-slate-400 text-sm">Loading...</div>
           ) : announcements.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-sm">
+            <div className="text-center py-12 text-sm text-slate-400">
               No announcements yet. Add one above.
             </div>
           ) : (
-            <div className="space-y-3">
-              {announcements.map((item) => (
-                <div
-                  key={item._id}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`p-2 rounded-lg ${item.status === "active" ? "bg-brand-100 text-brand-600" : "bg-slate-200 text-slate-400"}`}>
-                      {renderIcon(item.icon, 18)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{item.text}</p>
-                      <p className="text-xs text-slate-400">
-                        Order: {item.order ?? 0} &middot; {item.status}
-                        {item.style && Object.keys(item.style).length > 0 && " · custom style"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => handleToggle(item._id)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        item.status === "active"
-                          ? "text-green-600 hover:bg-green-50"
-                          : "text-slate-400 hover:bg-slate-100"
-                      }`}
-                      title={item.status === "active" ? "Deactivate" : "Activate"}
-                    >
-                      {item.status === "active" ? <MdToggleOn size={20} /> : <MdToggleOff size={20} />}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <MdEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item._id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <MdDelete size={18} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead className="bg-slate-50/70">
+                  <tr className="border-b border-slate-200/80">
+                    <th className="pl-4 pr-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Text</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Icon</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Order</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Style</th>
+                    <th className="px-2 py-2.5 pr-4 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {announcements.map((item) => (
+                    <tr key={item._id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="pl-4 pr-2 py-2">
+                        <span className="text-xs font-medium text-slate-800 truncate block max-w-[320px]">{item.text}</span>
+                      </td>
+                      <td className="px-2 py-2">
+                        <span className="text-brand-600 inline-flex">{renderIcon(item.icon, 15)}</span>
+                      </td>
+                      <td className="px-2 py-2">
+                        <button
+                          onClick={() => handleToggle(item._id)}
+                          className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                            item.status === "active" ? "text-emerald-700" : "text-slate-500"
+                          }`}
+                          title={item.status === "active" ? "Deactivate" : "Activate"}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
+                          {item.status}
+                        </button>
+                      </td>
+                      <td className="px-2 py-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">{item.order ?? 0}</td>
+                      <td className="px-2 py-2">
+                        {item.style && Object.keys(item.style).length > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-50 text-brand-600">custom</span>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 pr-4">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <button onClick={() => handleEdit(item)} className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors" title="Edit">
+                            <MdEdit size={14} />
+                          </button>
+                          <button onClick={() => handleDelete(item._id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                            <MdDelete size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </SectionCard>
+      </div>
       </div>
     </div>
   );

@@ -20,16 +20,16 @@ export default function HomeMarketing() {
 
   return (
     <div>
-      {/* Tab strip — sticky just below the dashboard topbar (h-12 mobile / h-16 desktop) */}
-      <div className="sticky top-12 lg:top-16 z-10 bg-[#f2f1ee]">
+      {/* Tab strip */}
+      <div className="bg-[#f2f1ee]">
         <div className="p-4 md:p-6 pb-0">
-          <div className="flex items-center gap-1 overflow-x-auto bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm">
+          <div className="flex items-center gap-1 overflow-x-auto bg-white rounded-xl border border-slate-200/80 p-1.5">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap px-3 md:px-4 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   activeTab === tab.id
                     ? "bg-brand-50 text-brand-700 font-semibold"
                     : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"

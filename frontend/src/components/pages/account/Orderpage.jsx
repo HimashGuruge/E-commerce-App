@@ -19,9 +19,56 @@ function getItemQty(item) {
   return item?.quantity || item?.qty || 1;
 }
 
-const OrderCard = ({ order, index }) => {
+// Buyers can cancel only within 15 minutes of placing the order.
+const CANCEL_WINDOW_MS = 15 * 60 * 1000;
+
+const OrderCard = ({ order, index, now, onRefresh }) => {
   const navigate = useNavigate();
+  const [cancelling, setCancelling] = useState(false);
   const status = order.orderStatus || order.status || "pending";
+
+  const cancellableStatuses = ["pending", "processing"];
+  const canCancelWindow = cancellableStatuses.includes(status);
+  const ageMs = new Date(order.createdAt).getTime() ? now - new Date(order.createdAt).getTime() : 0;
+  const withinWindow = ageMs <= CANCEL_WINDOW_MS;
+  const remainingMs = CANCEL_WINDOW_MS - ageMs;
+  const remainingLabel =
+    remainingMs <= 0
+      ? ""
+      : `${Math.floor(remainingMs / 60000)}m ${Math.floor((remainingMs % 60000) / 1000)}s`;
+
+  const handleCancel = () => {
+    Swal.fire({
+      title: "Cancel this order?",
+      html: `<p class="mb-2">Are you sure you want to cancel this order?</p>
+             <p class="text-sm text-gray-500">Order Total: Rs. ${totalAmount.toLocaleString()}</p>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, cancel order",
+      cancelButtonText: "Keep order",
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
+      setCancelling(true);
+      try {
+        await api.put(`/api/orders/${order._id}/cancel`, {
+          reason: "Cancelled by user",
+        });
+        Swal.fire({
+          title: "Order cancelled",
+          text: "Your order has been cancelled.",
+          icon: "success",
+        });
+        onRefresh();
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Could not cancel this order";
+        Swal.fire({ title: "Cannot cancel", text: msg, icon: "error" });
+      } finally {
+        setCancelling(false);
+      }
+    });
+  };
   const totalAmount = order.totalPrice || order.totalAmount || 0;
   const firstItem = order.items?.[0];
   const itemCount = order.items?.length || 0;
@@ -100,6 +147,33 @@ const OrderCard = ({ order, index }) => {
               Request Return
             </button>
           )}
+          {canCancelWindow && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling || !withinWindow}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl shadow-md transition-all text-[11px] font-bold ${
+                withinWindow
+                  ? "bg-rose-600 text-white hover:bg-slate-900"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+              }`}
+              title={
+                withinWindow
+                  ? "Cancel this order"
+                  : "You can only cancel within 15 minutes of placing the order"
+              }
+            >
+              <AlertCircle size={14} />
+              {withinWindow ? (
+                cancelling ? (
+                  "Cancelling..."
+                ) : (
+                  <>Cancel Order{remainingLabel && ` · ${remainingLabel}`}</>
+                )
+              ) : (
+                "Cancel Window Closed"
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -174,6 +248,19 @@ export default function OrderPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [now, setNow] = useState(Date.now());
+
+  // Tick every second only while some order is still inside its 15-min cancel window
+  useEffect(() => {
+    const needsTick = orders.some((o) => {
+      const s = o.orderStatus || o.status || "pending";
+      if (s !== "pending" && s !== "processing") return false;
+      return Date.now() - new Date(o.createdAt).getTime() <= CANCEL_WINDOW_MS;
+    });
+    if (!needsTick) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [orders]);
 
   const fetchOrders = useCallback(async (status, pageNum) => {
     setLoading(true);
@@ -262,7 +349,13 @@ export default function OrderPage() {
           <>
             <div className="grid gap-6">
               {orders.map((order, i) => (
-                <OrderCard key={order._id} order={order} index={i} />
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  index={i}
+                  now={now}
+                  onRefresh={() => fetchOrders(statusFilter, page)}
+                />
               ))}
             </div>
 

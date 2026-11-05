@@ -5,6 +5,8 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Variant from "../models/Variant.js";
 import Notification from "../models/Notification.js";
+import User from "../models/User.js";
+import Message from "../models/Message.js";
 import logger from "../utils/logger.js";
 import SiteConfig from "../models/SiteConfig.js";
 import { generateReviewReminders } from "../services/reviewReminderService.js";
@@ -20,6 +22,70 @@ const orderBrands = async (order) => {
   if (!ids.length) return [];
   const products = await Product.find({ _id: { $in: ids } }).select("brand").lean();
   return [...new Set(products.map((p) => p.brand).filter(Boolean))];
+};
+
+// Tell admins and the relevant seller(s) that an order was cancelled.
+// - Admins: one chat message per admin account (shows in the admin
+//   Notification center, same pattern as new return requests) + live ping.
+// - Sellers: one inbox message each to every seller whose product is in
+//   the order (shows in the seller Messages tab) + live badge ping.
+const notifyOrderCancelled = async (order, canceller) => {
+  const shortId = String(order._id).slice(-8);
+  try {
+    // --- Admins ---
+    const admins = await User.find({ role: "admin" }).select("_id name");
+    for (const admin of admins) {
+      if (admin._id.equals(canceller._id)) continue; // no echo to the admin who cancelled
+      await Message.create({
+        sender: canceller._id,
+        message: `❌ @admin Order #${shortId} was cancelled${
+          order.cancellationReason ? ` — ${order.cancellationReason}` : ""
+        }`,
+        senderType: canceller.role === "admin" ? "admin" : "user",
+        isAdmin: false,
+        adminRead: false,
+        userRead: true,
+        orderRef: order._id,
+      });
+    }
+    // Live refresh for the admin notification panel (existing listeners)
+    emitToAdmins("admin:stats-changed", { orderId: order._id });
+    emitToAdmins("chat:unseen-user", {
+      userId: canceller._id,
+      userName: canceller.name || "A user",
+    });
+  } catch (err) {
+    logger.error("Failed to notify admins of order cancellation:", err.message);
+  }
+
+  try {
+    // --- Relevant sellers ---
+    const productIds = (order.items || [])
+      .map((i) => (i.product ? String(i.product) : null))
+      .filter(Boolean);
+    if (!productIds.length) return;
+    const products = await Product.find({ _id: { $in: productIds } })
+      .select("seller")
+      .lean();
+    const sellerIds = [
+      ...new Set(products.map((p) => p.seller && String(p.seller)).filter(Boolean)),
+    ];
+    for (const sid of sellerIds) {
+      if (sid === String(canceller._id)) continue; // never message the canceller
+      const msg = await Message.create({
+        sender: canceller._id,
+        message: `❌ Order #${shortId} was cancelled${
+          order.cancellationReason ? ` — ${order.cancellationReason}` : ""
+        }. Check your Orders tab.`,
+        senderType: canceller.role === "admin" ? "admin" : "user",
+        orderRef: order._id,
+        sellerRead: false,
+      });
+      emitToUser(sid, "seller:new-message", { id: msg._id });
+    }
+  } catch (err) {
+    logger.error("Failed to notify sellers of order cancellation:", err.message);
+  }
 };
 
 // Legacy orders may lack item.name/image (never saved at creation).
@@ -108,6 +174,15 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     res.status(403);
     throw new Error("Not authorized to cancel this order");
   }
+  // Buyers may only cancel within 15 minutes of placing the order.
+  // Admins can cancel at any time.
+  const CANCEL_WINDOW_MS = 15 * 60 * 1000;
+  const ageMs = Date.now() - new Date(order.createdAt).getTime();
+  const isBuyer = req.user.role !== "admin";
+  if (isBuyer && ageMs > CANCEL_WINDOW_MS) {
+    res.status(403);
+    throw new Error("Sorry, you can only cancel an order within 15 minutes of placing it");
+  }
   order.orderStatus = "cancelled";
   order.cancelledBy = req.user._id;
   order.cancellationReason = req.body.reason || "Cancelled by user";
@@ -122,6 +197,8 @@ export const cancelOrder = asyncHandler(async (req, res) => {
       logger.error(`[Payout] COD cancel hook failed for order ${order._id}:`, codErr.message);
     }
   }
+  // Notify admins and the relevant seller(s) about the cancellation
+  await notifyOrderCancelled(order, req.user);
   // Real-time: notify the buyer's open orders page instantly
   emitToUser(order.user?._id || order.user, "order:update", {
     orderId: order._id,

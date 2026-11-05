@@ -314,10 +314,10 @@ export default function Sidebar({
   }, [currentUser]);
 
   const navItemClass = ({ isActive }) =>
-    `flex items-center gap-3 px-4 py-3 sm:px-4 sm:py-3 rounded-xl transition-all duration-200 min-h-[48px] ${
+    `flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-200 min-h-[40px] ${
       isActive
         ? "bg-brand-50 text-brand-700 font-medium shadow-sm"
-        : "hover:bg-brand-50 text-gray-700 hover:translate-x-1"
+        : "hover:bg-brand-50 text-slate-700 hover:translate-x-1"
     }`;
 
   const profileImageUrl = getProfileImage(currentUser?.profileImage);
@@ -347,10 +347,10 @@ export default function Sidebar({
         onTouchEnd={handleTouchEnd}
       >
         {/* Drag Handle - Visual indicator for swipe (mobile only) */}
-        <div className="lg:hidden absolute top-1/2 -right-3 transform -translate-y-1/2 w-1.5 h-16 bg-gray-300 rounded-full opacity-50 pointer-events-none"></div>
+        <div className="lg:hidden absolute top-1/2 -right-3 transform -translate-y-1/2 w-1.5 h-16 bg-slate-300 rounded-full opacity-50 pointer-events-none"></div>
 
         {/* Logo Section */}
-        <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 border-b border-slate-200">
           <Link
             to="/"
             className="flex items-center group flex-1"
@@ -360,10 +360,10 @@ export default function Sidebar({
               <RxGear className="text-white text-lg sm:text-xl" />
             </div>
             <div className="hidden sm:block">
-              <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 group-hover:text-brand-600 transition-colors">
+              <span className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 group-hover:text-brand-600 transition-colors">
                 AdminPanel
               </span>
-              <span className="block text-[8px] sm:text-[9px] md:text-[10px] text-gray-500 -mt-0.5">
+              <span className="block text-[8px] sm:text-[9px] md:text-[10px] text-slate-500 -mt-0.5">
                 Admin Dashboard
               </span>
             </div>
@@ -372,11 +372,11 @@ export default function Sidebar({
           {/* Mobile Close Button */}
           <button
             onClick={() => closeMobile && closeMobile()}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors active:scale-95"
+            className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors active:scale-95"
             aria-label="Close sidebar"
           >
             <svg
-              className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500"
+              className="h-4 w-4 sm:h-5 sm:w-5 text-slate-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -392,7 +392,7 @@ export default function Sidebar({
         </div>
 
         {/* User Info */}
-        <div className="p-3 sm:p-4 border-b border-gray-200">
+        <div className="p-3 sm:p-4 border-b border-slate-200">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-brand-100 flex items-center justify-center bg-gradient-to-r from-brand-500 to-indigo-600 shadow-sm flex-shrink-0">
               {profileImageUrl && !imageError ? (
@@ -415,7 +415,7 @@ export default function Sidebar({
               )}
             </div>
             <div className="overflow-hidden min-w-0 flex-1">
-              <div className="font-semibold text-gray-800 truncate text-xs sm:text-sm md:text-base">
+              <div className="font-semibold text-slate-800 truncate text-xs sm:text-sm md:text-base">
                 {currentUser?.name || "Admin User"}
               </div>
               <div className="text-[8px] sm:text-[9px] md:text-[10px] mt-0.5 px-1.5 sm:px-2 py-0.5 bg-brand-100 text-brand-700 rounded-full inline-block font-bold uppercase">
@@ -427,9 +427,9 @@ export default function Sidebar({
 
         {/* Navigation - Scrollable */}
         <nav
-          className="flex-1 py-4 sm:py-5 md:py-6 px-2 sm:px-3 md:px-4 space-y-1"
+          className="flex-1 py-3 sm:py-4 md:py-5 px-2 sm:px-3 md:px-4 space-y-0.5"
         >
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">
+          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.12em] mb-1.5 px-2">
             Management
           </div>
 
@@ -458,12 +458,12 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <RxDashboard size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">Overview</span>
+            <RxDashboard size={18} className="text-brand-600" />
+            <span className="text-[13px] font-medium">Overview</span>
           </NavLink>
 
           {/* PRODUCTS */}
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-3 px-2">
             Products
           </div>
 
@@ -474,10 +474,10 @@ export default function Sidebar({
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
             <MdOutlineGridView
-              size={20}
+              size={18}
               className="text-brand-600"
             />
-            <span className="text-sm font-medium">
+            <span className="text-[13px] font-medium">
               View Products
             </span>
           </NavLink>
@@ -487,8 +487,8 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <MdAddBox size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">Add Product</span>
+            <MdAddBox size={18} className="text-brand-600" />
+            <span className="text-[13px] font-medium">Add Product</span>
           </NavLink>
 
           {/* Pending Product Approvals with Badge */}
@@ -498,7 +498,7 @@ export default function Sidebar({
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
             <div className="relative">
-              <FiClock size={20} className="text-brand-600" />
+              <FiClock size={18} className="text-brand-600" />
               {pendingApprovalsCount > 0 && (
                 <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -506,7 +506,7 @@ export default function Sidebar({
                 </span>
               )}
             </div>
-            <span className="flex-1 text-sm font-medium">
+            <span className="flex-1 text-[13px] font-medium">
               Pending Approvals
             </span>
             {pendingApprovalsCount > 0 && (
@@ -517,7 +517,7 @@ export default function Sidebar({
           </NavLink>
 
           {/* SALES */}
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-3 px-2">
             Sales
           </div>
 
@@ -529,7 +529,7 @@ export default function Sidebar({
           >
             <div className="relative">
               <MdShoppingCart
-                size={20}
+                size={18}
                 className="text-brand-600"
               />
               {pendingOrdersCount > 0 && (
@@ -539,7 +539,7 @@ export default function Sidebar({
                 </span>
               )}
             </div>
-            <span className="flex-1 text-sm font-medium">Orders</span>
+            <span className="flex-1 text-[13px] font-medium">Orders</span>
             {pendingOrdersCount > 0 && (
               <span className="bg-red-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shadow-md animate-pulse">
                 {pendingOrdersCount} NEW
@@ -556,7 +556,7 @@ export default function Sidebar({
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
             <div className="relative">
-              <FiPackage size={20} className="text-brand-600" />
+              <FiPackage size={18} className="text-brand-600" />
               {pendingReturnsCount > 0 && (
                 <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
@@ -564,7 +564,7 @@ export default function Sidebar({
                 </span>
               )}
             </div>
-            <span className="flex-1 text-sm font-medium">Returns & Refunds</span>
+            <span className="flex-1 text-[13px] font-medium">Returns & Refunds</span>
             {pendingReturnsCount > 0 && (
               <span className="bg-yellow-500 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shadow-md animate-pulse">
                 {pendingReturnsCount} PENDING
@@ -578,14 +578,14 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <FiTag size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
+            <FiTag size={18} className="text-brand-600" />
+            <span className="text-[13px] font-medium">
               Coupons
             </span>
           </NavLink>
 
           {/* SUPPORT */}
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-3 px-2">
             Support
           </div>
 
@@ -597,7 +597,7 @@ export default function Sidebar({
           >
             <div className="relative">
               <MdChat
-                size={20}
+                size={18}
                 className="text-brand-600"
               />
               {unreadNotifications > 0 && (
@@ -607,7 +607,7 @@ export default function Sidebar({
                 </span>
               )}
             </div>
-            <span className="flex-1 text-sm font-medium">
+            <span className="flex-1 text-[13px] font-medium">
               Customer Support
             </span>
             {unreadNotifications > 0 && (
@@ -625,7 +625,7 @@ export default function Sidebar({
           >
             <div className="relative">
               <FiMessageSquare
-                size={20}
+                size={18}
                 className="text-brand-600"
               />
               {pendingFeedbackCount > 0 && (
@@ -635,7 +635,7 @@ export default function Sidebar({
                 </span>
               )}
             </div>
-            <span className="flex-1 text-sm font-medium">
+            <span className="flex-1 text-[13px] font-medium">
               Feedback Reviews
             </span>
             {pendingFeedbackCount > 0 && (
@@ -651,12 +651,12 @@ export default function Sidebar({
              className={navItemClass}
              onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
            >
-             <FiHelpCircle size={20} className="text-brand-600" />
-             <span className="text-sm font-medium">Q&A Management</span>
+             <FiHelpCircle size={18} className="text-brand-600" />
+             <span className="text-[13px] font-medium">Q&A Management</span>
            </NavLink>
 
           {/* PEOPLE */}
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-3 px-2">
             People
           </div>
 
@@ -666,8 +666,8 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <TbUserShield size={20} className="text-brand-600" />
-            <span className="flex-1 text-sm font-medium">
+            <TbUserShield size={18} className="text-brand-600" />
+            <span className="flex-1 text-[13px] font-medium">
               User Management
             </span>
           </NavLink>
@@ -679,7 +679,7 @@ export default function Sidebar({
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
             <div className="relative">
-              <MdStore size={20} className="text-brand-600" />
+              <MdStore size={18} className="text-brand-600" />
               {pendingSellersCount > 0 && (
                 <span className="absolute -top-1 -right-2 flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
@@ -687,7 +687,7 @@ export default function Sidebar({
                 </span>
               )}
             </div>
-            <span className="flex-1 text-sm font-medium">
+            <span className="flex-1 text-[13px] font-medium">
               Sellers
             </span>
             {pendingSellersCount > 0 && (
@@ -703,14 +703,14 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <FiDollarSign size={20} className="text-brand-600" />
-            <span className="flex-1 text-sm font-medium">
+            <FiDollarSign size={18} className="text-brand-600" />
+            <span className="flex-1 text-[13px] font-medium">
               Payouts
             </span>
           </NavLink>
 
           {/* SITE */}
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-3 px-2">
+          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-3 px-2">
             Site
           </div>
 
@@ -720,8 +720,8 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <MdCampaign size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">
+            <MdCampaign size={18} className="text-brand-600" />
+            <span className="text-[13px] font-medium">
               Home & Marketing
             </span>
           </NavLink>
@@ -732,8 +732,8 @@ export default function Sidebar({
             className={navItemClass}
             onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
           >
-            <MdSettings size={20} className="text-brand-600" />
-            <span className="text-sm font-medium">Site Settings</span>
+            <MdSettings size={18} className="text-brand-600" />
+            <span className="text-[13px] font-medium">Site Settings</span>
           </NavLink>
         </nav>
 
@@ -741,7 +741,7 @@ export default function Sidebar({
         {/* Swipe Hint - Mobile Only */}
         {isMobileOpen && (
           <div className="lg:hidden absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center pointer-events-none">
-            <p className="text-[10px] text-gray-400 flex items-center gap-1 justify-center">
+            <p className="text-[10px] text-slate-400 flex items-center gap-1 justify-center">
               <span>←</span> Swipe left to close <span>←</span>
             </p>
           </div>

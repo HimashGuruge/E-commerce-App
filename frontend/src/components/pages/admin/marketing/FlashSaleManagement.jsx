@@ -257,11 +257,13 @@ export default function FlashSaleManagement() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Flash Sale Management</h1>
-          <p className="text-slate-500 text-sm">
-            Manage the products shown in the homepage flash sale marquee
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
+            Flash Sale
+          </h1>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+            {items.length} items
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -285,7 +287,7 @@ export default function FlashSaleManagement() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Flash Sale Header Style</h2>
+            <h2 className="font-display font-bold text-slate-900 tracking-tight">Flash Sale Header Style</h2>
             <p className="text-xs text-slate-500 mt-0.5">Set the title, emoji, font, size and colors of the "On Sale Now" header on the homepage. Leave any field empty to keep the default.</p>
           </div>
           <button
@@ -486,7 +488,7 @@ export default function FlashSaleManagement() {
 
       {showHelp && (
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 space-y-4 text-sm text-slate-700">
-          <h2 className="text-base font-bold text-slate-900">How to use the Flash Sale</h2>
+          <h2 className="font-display font-bold text-slate-900 tracking-tight">How to use the Flash Sale</h2>
           <div className="space-y-3">
             <div>
               <p className="font-semibold text-slate-900">1. Add a product</p>
@@ -641,7 +643,7 @@ export default function FlashSaleManagement() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="font-display font-bold text-lg text-slate-900 tracking-tight">
                 {editingId ? "Edit Flash Sale Item" : "Add to Flash Sale"}
               </h3>
               <button onClick={closeAndReload} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">

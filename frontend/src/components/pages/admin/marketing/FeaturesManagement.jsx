@@ -36,10 +36,10 @@ const COLOR_OPTIONS = [
 ];
 
 const INPUT_CLASS =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition";
+  "w-full px-3.5 py-2.5 rounded-lg bg-transparent border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 transition";
 
 const SELECT_CLASS =
-  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition";
+  "w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15 transition";
 
 export default function FeaturesManagement() {
   const [features, setFeatures] = useState([]);
@@ -175,30 +175,14 @@ export default function FeaturesManagement() {
       )}
 
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
-            <Award size={26} />
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              Features Management
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Manage and customize homepage feature highlights.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2.5 rounded-xl bg-white border border-gray-200">
-            <p className="text-xs text-gray-500">Total Features</p>
-            <p className="text-xl font-bold text-gray-900">{totalFeatures}</p>
-          </div>
-          <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
-            <p className="text-xs text-emerald-600">Active Features</p>
-            <p className="text-xl font-bold text-emerald-700">{activeFeatures}</p>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
+            Features Management
+          </h1>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+            {totalFeatures} total · {activeFeatures} active
+          </p>
         </div>
       </div>
 
@@ -206,13 +190,13 @@ export default function FeaturesManagement() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
         {/* Create / Edit Feature */}
-        <div className="xl:col-span-7 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <div className="xl:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100">
+            <h2 className="font-display font-bold text-slate-900 text-lg tracking-tight flex items-center gap-2">
               {editingId ? <Pencil size={18} className="text-brand-600" /> : <Plus size={18} className="text-brand-600" />}
               {editingId ? "Edit Feature" : "Create New Feature"}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400 mt-1">
               {editingId
                 ? `Editing "${formData.title}" — changes apply when you press Update Feature.`
                 : "Add a highlight to your homepage."}
@@ -223,12 +207,12 @@ export default function FeaturesManagement() {
 
             {/* Basic Information */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-800">
+              <h3 className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
                 Basic Information
               </h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Feature Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -242,7 +226,7 @@ export default function FeaturesManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Description
                 </label>
                 <textarea
@@ -255,17 +239,17 @@ export default function FeaturesManagement() {
               </div>
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-slate-100" />
 
             {/* Appearance */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-800">
+              <h3 className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
                 Appearance &amp; Styling
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Select Icon
                   </label>
                   <select
@@ -280,7 +264,7 @@ export default function FeaturesManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Theme Color
                   </label>
                   <select
@@ -296,17 +280,17 @@ export default function FeaturesManagement() {
               </div>
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-slate-100" />
 
             {/* Settings */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-800">
+              <h3 className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
                 Display Settings
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Display Order
                   </label>
                   <input
@@ -318,7 +302,7 @@ export default function FeaturesManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Visibility
                   </label>
                   <select
@@ -334,15 +318,15 @@ export default function FeaturesManagement() {
             </div>
 
             {/* Preview */}
-            <div className="border-t border-gray-100 pt-5">
+            <div className="border-t border-slate-100 pt-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-800">
+                <h3 className="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
                   Feature Preview
                 </h3>
-                <span className="text-xs text-gray-400">Live Preview</span>
+                <span className="text-xs text-slate-400">Live Preview</span>
               </div>
 
-              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 flex justify-center">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 flex justify-center">
                 <div className="text-center max-w-xs">
                   <div className={`w-16 h-16 rounded-2xl ${previewColor.icon} text-white flex items-center justify-center mx-auto mb-4 shadow-lg`}>
                     {renderIcon(formData.iconName, "w-7 h-7")}
@@ -350,7 +334,7 @@ export default function FeaturesManagement() {
                   <h4 className={`font-bold text-sm uppercase tracking-wide ${previewColor.text}`}>
                     {formData.title || "Feature Title"}
                   </h4>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-slate-500 mt-2">
                     {formData.description || "Description appears here."}
                   </p>
                 </div>
@@ -363,7 +347,7 @@ export default function FeaturesManagement() {
                 type="button"
                 onClick={resetForm}
                 disabled={loading || (!editingId && formData.title === "")}
-                className="flex-1 px-5 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingId ? "Cancel Edit" : "Reset"}
               </button>
@@ -384,17 +368,17 @@ export default function FeaturesManagement() {
         </div>
 
         {/* Features List */}
-        <div className="xl:col-span-5 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="xl:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 Homepage Features
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Manage your existing features.
               </p>
             </div>
-            <span className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold">
+            <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
               {features.length} Items
             </span>
           </div>
@@ -409,10 +393,10 @@ export default function FeaturesManagement() {
                 <div className="w-20 h-20 rounded-3xl bg-brand-50 text-brand-600 flex items-center justify-center mb-5">
                   <Layers size={36} />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-slate-900">
                   No features yet
                 </h3>
-                <p className="text-sm text-gray-500 max-w-[260px] mt-2 leading-relaxed">
+                <p className="text-sm text-slate-500 max-w-[260px] mt-2 leading-relaxed">
                   Your homepage features will appear here. Create your first feature to get started.
                 </p>
                 <div className="mt-6 flex items-center gap-2 text-sm font-medium text-brand-600">
@@ -431,20 +415,20 @@ export default function FeaturesManagement() {
                       className={`rounded-xl p-4 border transition-all ${
                         isEditing
                           ? "bg-brand-50/50 border-brand-400 ring-1 ring-brand-500"
-                          : "bg-gray-50/50 border-gray-200 hover:border-gray-300"
+                          : "bg-slate-50/50 border-slate-200 hover:border-slate-300"
                       }`}
                     >
                       <div className="flex items-start gap-4">
-                        <div className={`${color.bg} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border border-gray-200`}>
-                          {renderIcon(feature.iconName || "Shield", "w-6 h-6 text-gray-700")}
+                        <div className={`${color.bg} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border border-slate-200`}>
+                          {renderIcon(feature.iconName || "Shield", "w-6 h-6 text-slate-700")}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{feature.title}</h3>
-                          <p className="text-gray-500 text-sm truncate">{feature.description}</p>
+                          <h3 className="font-semibold text-slate-900 truncate">{feature.title}</h3>
+                          <p className="text-slate-500 text-sm truncate">{feature.description}</p>
                           <div className="flex items-center gap-2 mt-1.5">
                             <span className={`inline-block w-2 h-2 rounded-full ${feature.active ? "bg-emerald-500" : "bg-red-400"}`} />
-                            <span className="text-xs text-gray-400">{feature.active ? "Active" : "Inactive"}</span>
-                            <span className="text-xs text-gray-400">| Order: {feature.order}</span>
+                            <span className="text-xs text-slate-400">{feature.active ? "Active" : "Inactive"}</span>
+                            <span className="text-xs text-slate-400">| Order: {feature.order}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${color.bg} ${color.text}`}>{feature.color}</span>
                           </div>
                         </div>
@@ -452,31 +436,31 @@ export default function FeaturesManagement() {
                           <button
                             onClick={() => moveItem(feature._id || feature.id, -1)}
                             disabled={idx === 0}
-                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+                            className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
                             title="Move up"
                           >
-                            <ChevronUp size={14} className="text-gray-600" />
+                            <ChevronUp size={14} className="text-slate-600" />
                           </button>
                           <button
                             onClick={() => moveItem(feature._id || feature.id, 1)}
                             disabled={idx === features.length - 1}
-                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+                            className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
                             title="Move down"
                           >
-                            <ChevronDown size={14} className="text-gray-600" />
+                            <ChevronDown size={14} className="text-slate-600" />
                           </button>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
                           <button
                             onClick={() => handleEdit(feature)}
-                            className="p-2 bg-white hover:bg-brand-50 rounded-lg transition-colors border border-gray-200"
+                            className="p-2 bg-white hover:bg-brand-50 rounded-lg transition-colors border border-slate-200"
                             title="Edit"
                           >
                             <Pencil size={16} className="text-brand-600" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(feature._id || feature.id)}
-                            className="p-2 bg-white hover:bg-red-50 rounded-lg transition-colors border border-gray-200"
+                            className="p-2 bg-white hover:bg-red-50 rounded-lg transition-colors border border-slate-200"
                             title="Delete"
                           >
                             <Trash2 size={16} className="text-red-600" />
@@ -495,15 +479,15 @@ export default function FeaturesManagement() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-gray-200 shadow-xl">
-            <h3 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-slate-200 shadow-xl">
+            <h3 className="text-xl font-bold mb-4 text-slate-900 flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-600" /> Confirm Delete
             </h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete this feature? This action cannot be undone.</p>
+            <p className="text-slate-600 mb-6">Are you sure you want to delete this feature? This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors border border-gray-300"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-300"
               >
                 Cancel
               </button>

@@ -111,17 +111,22 @@ export default function TrendingManagement() {
     t.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const statusColors = {
-    active: "bg-green-100 text-green-700",
-    inactive: "bg-slate-100 text-slate-500",
+  const statusStyles = {
+    active: { dot: "bg-emerald-500", text: "text-emerald-700" },
+    inactive: { dot: "bg-slate-400", text: "text-slate-500" },
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Trending Management</h1>
-          <p className="text-slate-500 text-sm">Manage trending search terms</p>
+    <div className="p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
+            Trending
+          </h1>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-[0.14em] truncate">
+            {trending.length} terms
+          </p>
         </div>
         <button
           onClick={() => { setEditingId(null); setFormData({ name: "", icon: "", status: "active", order: 0, productId: "" }); setProductSearch(""); setShowModal(true); }}
@@ -139,73 +144,73 @@ export default function TrendingManagement() {
           placeholder="Search terms..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
         />
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Term</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Icon</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Product</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Order</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+          <table className="w-full text-[13px]">
+            <thead className="bg-slate-50/70 sticky top-0 z-10">
+              <tr className="border-b border-slate-200/80">
+                <th className="pl-4 pr-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Term</th>
+                <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Icon</th>
+                <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Status</th>
+                <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Linked Product</th>
+                <th className="px-2 py-2.5 text-left text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Order</th>
+                <th className="px-2 py-2.5 pr-4 text-right text-[10px] font-mono uppercase tracking-[0.12em] text-slate-400 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-100 rounded animate-pulse" /></td>
-                    <td className="px-4 py-3"><div className="h-6 w-6 bg-slate-100 rounded animate-pulse" /></td>
-                    <td className="px-4 py-3"><div className="h-5 w-16 bg-slate-100 rounded-full animate-pulse" /></td>
-                    <td className="px-4 py-3"><div className="h-4 w-16 bg-slate-100 rounded animate-pulse" /></td>
-                    <td className="px-4 py-3"><div className="h-4 w-10 bg-slate-100 rounded animate-pulse" /></td>
-                    <td className="px-4 py-3"><div className="h-8 w-16 bg-slate-100 rounded ml-auto animate-pulse" /></td>
+                    <td className="pl-4 pr-2 py-2"><div className="h-4 w-24 bg-slate-100 rounded animate-pulse" /></td>
+                    <td className="px-2 py-2"><div className="h-6 w-6 bg-slate-100 rounded animate-pulse" /></td>
+                    <td className="px-2 py-2"><div className="h-4 w-16 bg-slate-100 rounded animate-pulse" /></td>
+                    <td className="px-2 py-2"><div className="h-4 w-16 bg-slate-100 rounded animate-pulse" /></td>
+                    <td className="px-2 py-2"><div className="h-4 w-10 bg-slate-100 rounded animate-pulse" /></td>
+                    <td className="px-2 py-2 pr-4"><div className="h-4 w-16 bg-slate-100 rounded ml-auto animate-pulse" /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-12 text-center text-slate-400">No trending terms found</td>
+                  <td colSpan="6" className="px-4 py-12 text-center text-sm text-slate-400">No trending terms found</td>
                 </tr>
               ) : (
                 filtered.map((item) => (
-                  <tr key={item._id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-medium text-slate-900">{item.name}</span>
+                  <tr key={item._id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="pl-4 pr-2 py-2">
+                      <span className="text-xs font-medium text-slate-900">{item.name}</span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-lg">{item.icon || getTrendIcon(item.name)}</span>
+                    <td className="px-2 py-2">
+                      <span className="text-base">{item.icon || getTrendIcon(item.name)}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-2">
                       <button
                         onClick={() => handleToggleStatus(item)}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[item.status] || statusColors.active}`}
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${statusStyles[item.status]?.text || statusStyles.active.text}`}
+                        title="Click to toggle on/off"
                       >
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusStyles[item.status]?.dot || statusStyles.active.dot}`} />
                         {item.status || "active"}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-2">
                       {item.productId ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-50 text-brand-600">product</span>
                       ) : (
                         <span className="text-xs text-slate-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-slate-500">{item.order || 0}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleEdit(item)} className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
-                          <FiEdit2 size={16} />
+                    <td className="px-2 py-2 text-xs text-slate-500 whitespace-nowrap tabular-nums">{item.order || 0}</td>
+                    <td className="px-2 py-2 pr-4">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <button onClick={() => handleEdit(item)} className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors" title="Edit">
+                          <FiEdit2 size={14} />
                         </button>
-                        <button onClick={() => handleDelete(item._id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                          <FiTrash2 size={16} />
+                        <button onClick={() => handleDelete(item._id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                          <FiTrash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -219,65 +224,71 @@ export default function TrendingManagement() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">{editingId ? "Edit Term" : "Add Term"}</h3>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
-                <FiX size={20} />
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <h3 className="text-base font-display font-bold text-slate-900">{editingId ? "Edit Term" : "Add Term"}</h3>
+              <button onClick={() => setShowModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-md">
+                <FiX size={18} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 space-y-3.5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Term Name</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Term Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. iPhone 15"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
                   required
                 />
-                <p className="text-xs text-slate-400 mt-1">Preview: {getTrendIcon(formData.name)}</p>
+                <p className="text-[11px] text-slate-400 mt-1">Preview: {getTrendIcon(formData.name)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Icon (optional)</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Icon <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
                 <input
                   type="text"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                   placeholder="e.g. 🔥"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] cursor-pointer focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Order</label>
+                  <input
+                    type="number"
+                    value={formData.order}
+                    onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Order</label>
-                <input
-                  type="number"
-                  value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Link to a product (optional)</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Link to a product <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
                 {productSearch ? (
                   <input
                     type="text"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     placeholder="Search products…"
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/15"
                   />
                 ) : (
                   <p className="text-xs text-slate-400">
@@ -286,10 +297,10 @@ export default function TrendingManagement() {
                 )}
 
                 {productSearch && products.length === 0 && (
-                  <p className="text-xs text-slate-400 mt-1">No products found.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">No products found.</p>
                 )}
                 {products.length > 0 && (
-                  <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+                  <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
                     {products.map((p) => (
                       <button
                         key={p._id}
@@ -330,11 +341,11 @@ export default function TrendingManagement() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+              <div className="flex gap-2.5 pt-2">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                   Cancel
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-medium transition-colors">
+                <button type="submit" className="flex-1 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition-colors">
                   {editingId ? "Update" : "Add"}
                 </button>
               </div>
@@ -342,6 +353,7 @@ export default function TrendingManagement() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
