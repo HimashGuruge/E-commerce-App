@@ -102,7 +102,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
   }, []);
 
   const navItemClass = ({ isActive }) =>
-    `flex items-center gap-3 px-3 py-3 rounded-[9px] transition-all duration-200 text-sm ${
+    `flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-all duration-200 text-[13px] ${
       isActive
         ? "bg-shopprimarylight text-shopprimary font-semibold"
         : "text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary"
@@ -110,7 +110,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
 
   const badgePill = (count) =>
     count > 0 && (
-      <span className="ml-auto bg-[#fee2e2] text-[#b91c1c] rounded-[6px] px-[7px] py-[3px] text-[11px] font-bold">{count}</span>
+      <span className="ml-auto bg-[#fee2e2] text-[#b91c1c] rounded-[5px] px-1.5 py-0.5 text-[10px] font-bold">{count}</span>
     );
 
   const handleLogout = () => {
@@ -127,14 +127,14 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
         onClick={() => closeMobile?.()}
       />
       <div
-        className={`fixed top-0 left-0 h-screen bg-white border-r border-shopborder shadow-2xl z-40 flex flex-col overflow-y-auto transition-transform duration-300 ease-out px-4 ${
+        className={`fixed top-0 left-0 h-screen bg-white border-r border-shopborder shadow-2xl z-40 flex flex-col overflow-y-auto transition-transform duration-300 ease-out px-3 ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:sticky lg:w-[245px] w-72`}
+        } lg:translate-x-0 lg:sticky lg:w-[222px] w-64`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between pt-6 pb-7 px-2.5">
+        <div className="flex items-center justify-between pt-4 pb-4 px-2">
           <Link to="/seller/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 bg-shopprimary rounded-[11px] flex items-center justify-center overflow-hidden">
+            <div className="w-8 h-8 bg-shopprimary rounded-lg flex items-center justify-center overflow-hidden">
               {seller?.shopLogo ? (
                 <img
                   src={seller.shopLogo}
@@ -150,8 +150,8 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
               )}
             </div>
             <div>
-              <span className="text-xl font-extrabold text-shoptext leading-none">Seller Center</span>
-              <span className="block text-[10px] text-shopmuted mt-1">Seller Dashboard</span>
+              <span className="text-base font-extrabold text-shoptext leading-none">Seller Center</span>
+              <span className="block text-[10px] text-shopmuted mt-0.5">Seller Dashboard</span>
             </div>
           </Link>
           <button onClick={() => closeMobile?.()} className="lg:hidden p-1 hover:bg-[#eef0f5] rounded-lg">
@@ -167,11 +167,11 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
             href={`/store/${encodeURIComponent(seller.shopName)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 my-3 px-3 py-3 rounded-xl border border-shopborder bg-white text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary transition-all font-medium text-sm"
+            className="flex items-center gap-2.5 my-2 px-2.5 py-2 rounded-lg border border-shopborder bg-white text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary transition-all font-medium text-xs"
           >
-            <MdStore size={18} />
+            <MdStore size={16} />
             <span className="flex-1 truncate">View My Store</span>
-            <FiExternalLink className="w-3.5 h-3.5 text-shopmuted" />
+            <FiExternalLink className="w-3 h-3 text-shopmuted" />
           </a>
         )}
 
@@ -180,16 +180,16 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 my-1.5 px-3 py-3 rounded-xl border border-shopborder bg-white text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary transition-all font-medium text-sm"
+          className="flex items-center gap-2.5 my-1.5 px-2.5 py-2 rounded-lg border border-shopborder bg-white text-[#677186] hover:bg-[#f5f6fc] hover:text-shopprimary transition-all font-medium text-xs"
         >
-          <MdHome size={18} />
+          <MdHome size={16} />
           <span className="flex-1">View Website</span>
-          <FiExternalLink className="w-3.5 h-3.5 text-shopmuted" />
+          <FiExternalLink className="w-3 h-3 text-shopmuted" />
         </a>
 
         {/* Navigation */}
-        <nav className="flex-1 pt-5 space-y-1">
-          <div className="text-[10px] font-bold text-[#a1a8b7] uppercase tracking-wider mb-2.5 px-3">Dashboard</div>
+        <nav className="flex-1 pt-3.5 space-y-0.5">
+          <div className="text-[10px] font-bold text-[#a1a8b7] uppercase tracking-wider mb-2 px-2.5">Dashboard</div>
 
           <NavLink to="/seller/dashboard" end className={navItemClass} onClick={() => closeMobile?.()}>
             <RxDashboard size={18} />
@@ -241,7 +241,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
             {badgePill(unreadMessages)}
           </NavLink>
 
-          <div className="text-[10px] font-bold text-[#a1a8b7] uppercase tracking-wider mt-5 mb-2.5 px-3">Settings</div>
+          <div className="text-[10px] font-bold text-[#a1a8b7] uppercase tracking-wider mt-4 mb-2 px-2.5">Settings</div>
 
           <NavLink to="/seller/dashboard/settings" className={navItemClass} onClick={() => closeMobile?.()}>
             <MdSettings size={18} />
@@ -250,9 +250,9 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
         </nav>
 
         {/* Store card */}
-        <div className="m-0 mt-auto p-4 border border-shopborder rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-shopprimarylight flex items-center justify-center text-shopprimary font-bold overflow-hidden">
+        <div className="m-0 mt-auto p-3 border border-shopborder rounded-lg">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-shopprimarylight flex items-center justify-center text-shopprimary font-bold overflow-hidden">
               {seller?.shopLogo ? (
                 <img
                   src={seller.shopLogo}
@@ -272,7 +272,7 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
               <p className="text-[11px] text-shopmuted leading-relaxed">
                 {seller?.status === "approved" ? "Seller account active." : seller?.status === "pending" ? "Seller account pending approval." : "Seller account inactive."}
               </p>
-              <span className={`inline-block text-[11px] px-2 py-1 rounded-[5px] mt-2.5 font-semibold ${
+              <span className={`inline-block text-[11px] px-1.5 py-0.5 rounded-[5px] mt-1.5 font-semibold ${
                 seller?.status === "approved" ? "bg-[#e8f8f0] text-shopgreen" :
                 seller?.status === "pending" ? "bg-[#fff3df] text-[#ad6b00]" :
                 "bg-[#fdeaea] text-shopred"
@@ -284,12 +284,12 @@ export default function SellerDashboardSidebar({ user, isMobileOpen, closeMobile
         </div>
 
         {/* Logout */}
-        <div className="p-3 mt-4 border-t border-shopborder">
+        <div className="p-2.5 mt-3 border-t border-shopborder">
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-[#fdeaea] text-shopred hover:bg-[#fbd8d8] transition-all"
+            className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium bg-[#fdeaea] text-shopred hover:bg-[#fbd8d8] transition-all"
           >
-            <RxExit size={18} /> Logout
+            <RxExit size={16} /> Logout
           </button>
         </div>
       </div>

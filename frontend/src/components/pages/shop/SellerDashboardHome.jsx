@@ -75,117 +75,117 @@ export default function SellerDashboardHome() {
   const stats = data?.stats;
   const recentOrders = data?.recentOrders || [];
 
-  const card = "bg-white border border-shopborder rounded-[13px]";
+  const card = "bg-white border border-shopborder rounded-lg";
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
+    <div className="p-3 md:p-4 max-w-[1600px] mx-auto space-y-3.5">
       {/* Welcome */}
       <div>
-        <h2 className="text-[26px] font-extrabold text-shoptext tracking-[-0.6px]">Seller Dashboard</h2>
-        <p className="text-shopmuted text-sm mt-1.5">Here's your shop performance overview</p>
+        <h2 className="text-[19px] font-extrabold text-shoptext tracking-[-0.5px]">Seller Dashboard</h2>
+        <p className="text-shopmuted text-xs mt-1">Here's your shop performance overview</p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className={`${card} p-5`}>
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-xs text-shopmuted">Total Products</span>
-            <div className="w-10 h-10 bg-[#fff3df] rounded-[10px] flex items-center justify-center">
-              <FiPackage className="w-5 h-5 text-[#b0781f]" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className={`${card} p-3`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-shopmuted">Total Products</span>
+            <div className="w-9 h-9 bg-[#fff3df] rounded-lg flex items-center justify-center">
+              <FiPackage className="w-4 h-4 text-[#b0781f]" />
             </div>
           </div>
-          <p className="text-[27px] font-bold text-shoptext tracking-[-0.5px]">{stats?.totalProducts || 0}</p>
-          <p className="text-[11px] text-shopmuted mt-2">{stats?.activeProducts || 0} active</p>
+          <p className="text-[20px] font-bold text-shoptext tracking-[-0.4px]">{stats?.totalProducts || 0}</p>
+          <p className="text-[11px] text-shopmuted mt-1.5">{stats?.activeProducts || 0} active</p>
         </div>
-        <div className={`${card} p-5`}>
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-xs text-shopmuted">Total Orders</span>
-            <div className="w-10 h-10 bg-[#e7f8ef] rounded-[10px] flex items-center justify-center">
-              <FiShoppingCart className="w-5 h-5 text-shopgreen" />
+        <div className={`${card} p-3`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-shopmuted">Total Orders</span>
+            <div className="w-9 h-9 bg-[#e7f8ef] rounded-lg flex items-center justify-center">
+              <FiShoppingCart className="w-4 h-4 text-shopgreen" />
             </div>
           </div>
-          <p className="text-[27px] font-bold text-shoptext tracking-[-0.5px]">{stats?.totalOrders || 0}</p>
-          <p className="text-[11px] text-shopmuted mt-2">{stats?.pendingOrders || 0} pending</p>
+          <p className="text-[20px] font-bold text-shoptext tracking-[-0.4px]">{stats?.totalOrders || 0}</p>
+          <p className="text-[11px] text-shopmuted mt-1.5">{stats?.pendingOrders || 0} pending</p>
         </div>
-        <div className={`${card} p-5`}>
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-xs text-shopmuted">Revenue</span>
-            <div className="w-10 h-10 bg-shopprimarylight rounded-[10px] flex items-center justify-center">
-              <FiDollarSign className="w-5 h-5 text-shopprimary" />
+        <div className={`${card} p-3`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-shopmuted">Revenue</span>
+            <div className="w-9 h-9 bg-shopprimarylight rounded-lg flex items-center justify-center">
+              <FiDollarSign className="w-4 h-4 text-shopprimary" />
             </div>
           </div>
-          <p className="text-[27px] font-bold text-shoptext tracking-[-0.5px]">Rs. {(stats?.totalRevenue || 0).toLocaleString()}</p>
-          <p className="text-[11px] text-shopmuted mt-2">Lifetime earnings</p>
+          <p className="text-[20px] font-bold text-shoptext tracking-[-0.4px]">Rs. {(stats?.totalRevenue || 0).toLocaleString()}</p>
+          <p className="text-[11px] text-shopmuted mt-1.5">Lifetime earnings</p>
         </div>
-        <div className={`${card} p-5`}>
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-xs text-shopmuted">Pending Approval</span>
-            <div className="w-10 h-10 bg-[#e7f4ff] rounded-[10px] flex items-center justify-center">
-              <MdOutlinePendingActions className="w-5 h-5 text-[#2168b5]" />
+        <div className={`${card} p-3`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-shopmuted">Pending Approval</span>
+            <div className="w-9 h-9 bg-[#e7f4ff] rounded-lg flex items-center justify-center">
+              <MdOutlinePendingActions className="w-4 h-4 text-[#2168b5]" />
             </div>
           </div>
-          <p className="text-[27px] font-bold text-shoptext tracking-[-0.5px]">{stats?.pendingApproval || 0}</p>
-          <p className="text-[11px] text-shopmuted mt-2">Products awaiting review</p>
+          <p className="text-[20px] font-bold text-shoptext tracking-[-0.4px]">{stats?.pendingApproval || 0}</p>
+          <p className="text-[11px] text-shopmuted mt-1.5">Products awaiting review</p>
         </div>
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className={`lg:col-span-2 ${card} p-6`}>
-          <div className="mb-5">
-            <h3 className="font-bold text-shoptext text-[15px]">Performance Overview</h3>
-            <p className="text-xs text-shopmuted mt-1.5">Your store's reputation metrics</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
+        <div className={`lg:col-span-2 ${card} p-3.5`}>
+          <div className="mb-3">
+            <h3 className="font-bold text-shoptext text-sm">Performance Overview</h3>
+            <p className="text-[11px] text-shopmuted mt-1">Your store's reputation metrics</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="p-4 bg-[#fafbfe] border border-shopborder rounded-[10px] text-center">
-              <p className="text-xs text-shopmuted mb-1">Rating</p>
-              <p className="text-xl font-bold text-shoptext">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="p-2.5 bg-[#fafbfe] border border-shopborder rounded-lg text-center">
+              <p className="text-[11px] text-shopmuted mb-0.5">Rating</p>
+              <p className="text-lg font-bold text-shoptext">
                 {stats?.rating != null ? `${stats.rating} ★` : "N/A"}
               </p>
             </div>
-            <div className="p-4 bg-[#fafbfe] border border-shopborder rounded-[10px] text-center">
-              <p className="text-xs text-shopmuted mb-1">Ship On Time</p>
-              <p className="text-xl font-bold text-shopgreen">
+            <div className="p-2.5 bg-[#fafbfe] border border-shopborder rounded-lg text-center">
+              <p className="text-[11px] text-shopmuted mb-0.5">Ship On Time</p>
+              <p className="text-lg font-bold text-shopgreen">
                 {stats?.shipOnTime != null ? `${stats.shipOnTime}%` : "N/A"}
               </p>
             </div>
-            <div className="p-4 bg-[#fafbfe] border border-shopborder rounded-[10px] text-center">
-              <p className="text-xs text-shopmuted mb-1">Chat Response</p>
-              <p className="text-xl font-bold text-shoptext">
+            <div className="p-2.5 bg-[#fafbfe] border border-shopborder rounded-lg text-center">
+              <p className="text-[11px] text-shopmuted mb-0.5">Chat Response</p>
+              <p className="text-lg font-bold text-shoptext">
                 {stats?.chatResponseRate != null ? `${stats.chatResponseRate}%` : "N/A"}
               </p>
             </div>
           </div>
         </div>
 
-        <div className={`${card} p-6`}>
-          <div className="mb-5">
-            <h3 className="font-bold text-shoptext text-[15px]">Quick Actions</h3>
-            <p className="text-xs text-shopmuted mt-1.5">Common tasks</p>
+        <div className={`${card} p-3.5`}>
+          <div className="mb-3">
+            <h3 className="font-bold text-shoptext text-sm">Quick Actions</h3>
+            <p className="text-[11px] text-shopmuted mt-1">Common tasks</p>
           </div>
-          <div className="space-y-3">
-            <Link to="/seller/dashboard/add-product" className="flex items-center gap-3 p-3 bg-shopprimarylight rounded-[10px] hover:bg-[#e0e7ff] transition-colors">
-              <MdStore className="w-5 h-5 text-shopprimary" />
-              <span className="text-sm font-medium text-shopprimary">Add New Product</span>
+          <div className="space-y-2">
+            <Link to="/seller/dashboard/add-product" className="flex items-center gap-2.5 p-2.5 bg-shopprimarylight rounded-lg hover:bg-[#e0e7ff] transition-colors">
+              <MdStore className="w-4 h-4 text-shopprimary" />
+              <span className="text-xs font-medium text-shopprimary">Add New Product</span>
             </Link>
-            <Link to="/seller/dashboard/orders" className="flex items-center gap-3 p-3 bg-[#e7f4ff] rounded-[10px] hover:bg-[#d8ecff] transition-colors">
-              <FiShoppingCart className="w-5 h-5 text-[#2168b5]" />
-              <span className="text-sm font-medium text-[#2168b5]">View Orders</span>
+            <Link to="/seller/dashboard/orders" className="flex items-center gap-2.5 p-2.5 bg-[#e7f4ff] rounded-lg hover:bg-[#d8ecff] transition-colors">
+              <FiShoppingCart className="w-4 h-4 text-[#2168b5]" />
+              <span className="text-xs font-medium text-[#2168b5]">View Orders</span>
             </Link>
-            <Link to="/seller/dashboard/settings" className="flex items-center gap-3 p-3 bg-[#fff3df] rounded-[10px] hover:bg-[#ffeac2] transition-colors">
-              <FiTrendingUp className="w-5 h-5 text-[#ad6b00]" />
-              <span className="text-sm font-medium text-[#ad6b00]">Update Shop Info</span>
+            <Link to="/seller/dashboard/settings" className="flex items-center gap-2.5 p-2.5 bg-[#fff3df] rounded-lg hover:bg-[#ffeac2] transition-colors">
+              <FiTrendingUp className="w-4 h-4 text-[#ad6b00]" />
+              <span className="text-xs font-medium text-[#ad6b00]">Update Shop Info</span>
             </Link>
             {sellerShopName && (
               <a
                 href={`/store/${encodeURIComponent(sellerShopName)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 bg-[#e7f8ef] rounded-[10px] hover:bg-[#d5f2e4] transition-colors"
+                className="flex items-center gap-2.5 p-2.5 bg-[#e7f8ef] rounded-lg hover:bg-[#d5f2e4] transition-colors"
               >
-                <MdStore className="w-5 h-5 text-shopgreen" />
-                <span className="flex-1 text-sm font-medium text-shopgreen">Preview My Store</span>
-                <FiExternalLink className="w-3.5 h-3.5 text-[#6fbf9a]" />
+                <MdStore className="w-4 h-4 text-shopgreen" />
+                <span className="flex-1 text-xs font-medium text-shopgreen">Preview My Store</span>
+                <FiExternalLink className="w-3 h-3 text-[#6fbf9a]" />
               </a>
             )}
           </div>
@@ -194,10 +194,10 @@ export default function SellerDashboardHome() {
 
       {/* Recent orders */}
       <div className={`${card} overflow-hidden`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-shopborder">
+        <div className="flex items-center justify-between px-3 py-3 border-b border-shopborder">
           <div>
-            <h3 className="font-bold text-shoptext text-[15px]">Recent Orders</h3>
-            <p className="text-xs text-shopmuted mt-1.5">Latest customer purchases</p>
+            <h3 className="font-bold text-shoptext text-sm">Recent Orders</h3>
+            <p className="text-[11px] text-shopmuted mt-0.5">Latest customer purchases</p>
           </div>
           <Link to="/seller/dashboard/orders" className="text-shopprimary hover:text-[#4338ca] text-xs font-semibold">View all →</Link>
         </div>
@@ -206,22 +206,22 @@ export default function SellerDashboardHome() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr>
-                  <th className="px-5 py-3.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Order ID</th>
-                  <th className="px-5 py-3.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Items</th>
-                  <th className="px-5 py-3.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Date</th>
-                  <th className="px-5 py-3.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Amount</th>
-                  <th className="px-5 py-3.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Status</th>
+                  <th className="px-3 py-2.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Order ID</th>
+                  <th className="px-3 py-2.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Items</th>
+                  <th className="px-3 py-2.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Date</th>
+                  <th className="px-3 py-2.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Amount</th>
+                  <th className="px-3 py-2.5 bg-[#fafbfe] text-[10px] uppercase tracking-[0.6px] font-bold text-[#8b94a5]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {recentOrders.slice(0, 5).map((order) => (
                   <tr key={order._id} className="border-b border-[#f0f2f6] last:border-0 hover:bg-[#fafbff]">
-                    <td className="px-5 py-4 text-xs font-bold text-shopprimary">#{order._id.toString().slice(-8)}</td>
-                    <td className="px-5 py-4 text-xs text-shoptext">{order.items?.length || 0} items</td>
-                    <td className="px-5 py-4 text-xs text-shopmuted">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—"}</td>
-                    <td className="px-5 py-4 text-xs font-semibold text-shoptext">Rs. {(order.totalPrice || 0).toLocaleString()}</td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-block px-2.5 py-1.5 rounded-[6px] text-[10px] font-semibold ${
+                    <td className="px-3 py-2.5 text-xs font-bold text-shopprimary">#{order._id.toString().slice(-8)}</td>
+                    <td className="px-3 py-2.5 text-xs text-shoptext">{order.items?.length || 0} items</td>
+                    <td className="px-3 py-2.5 text-xs text-shopmuted">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—"}</td>
+                    <td className="px-3 py-2.5 text-xs font-semibold text-shoptext">Rs. {(order.totalPrice || 0).toLocaleString()}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`inline-block px-2 py-1 rounded-md text-[10px] font-semibold ${
                         order.orderStatus === "delivered" ? "bg-[#def7e9] text-[#147c4f]" :
                         order.orderStatus === "shipped" ? "bg-[#e5f1ff] text-[#2168b5]" :
                         order.orderStatus === "pending" ? "bg-[#f0e9ff] text-[#7141b8]" :
@@ -236,8 +236,8 @@ export default function SellerDashboardHome() {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12 text-shopmuted">
-            <FiShoppingCart className="w-10 h-10 mx-auto mb-2 text-[#c4cad6]" />
+          <div className="text-center py-9 text-shopmuted">
+            <FiShoppingCart className="w-9 h-9 mx-auto mb-2 text-[#c4cad6]" />
             <p className="text-sm font-medium">No orders yet</p>
             <p className="text-xs mt-1">Orders will appear here when customers purchase your products</p>
           </div>

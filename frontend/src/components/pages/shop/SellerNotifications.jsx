@@ -149,34 +149,34 @@ export default function SellerNotifications() {
   };
 
   return (
-    <div className="min-h-full bg-[#f5f7fb] px-4 py-8 md:px-16 md:py-[35px]">
-      <div className="mx-auto max-w-[760px] overflow-hidden rounded-2xl border border-[#e7eaf0] bg-white">
+    <div className="min-h-full bg-[#f5f7fb] p-3 md:p-4">
+      <div className="mx-auto max-w-[760px] overflow-hidden rounded-lg border border-[#e7eaf0] bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#edf0f4] px-4 py-4 md:px-6 md:py-6">
+        <div className="flex items-center justify-between border-b border-[#edf0f4] p-3 md:p-4">
           <div>
-            <h2 className="text-[23px] font-bold leading-tight text-[#172033]">
+            <h2 className="text-[19px] font-bold leading-tight text-[#172033]">
               Notifications{" "}
               {filterCounts.unread > 0 && (
-                <span className="text-[15px] font-semibold text-[#5267d9]">
+                <span className="text-xs font-semibold text-[#5267d9]">
                   ({filterCounts.unread} unread)
                 </span>
               )}
             </h2>
-            <p className="mt-1.5 text-[13px] text-[#7a8496]">
+            <p className="mt-1 text-xs text-[#7a8496]">
               Stay updated with your store activity
             </p>
           </div>
           <button
             onClick={markAll}
             disabled={markingAll || filterCounts.unread === 0}
-            className="text-[13px] font-medium text-[#5267d9] hover:underline disabled:opacity-40 disabled:no-underline"
+            className="text-xs font-medium text-[#5267d9] hover:underline disabled:opacity-40 disabled:no-underline"
           >
             {markingAll ? "Marking…" : "Mark all as read"}
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-[#edf0f4] px-4 md:px-6">
+        <div className="flex gap-4 border-b border-[#edf0f4] px-3 md:px-4">
           {[
             { key: "all", label: "All" },
             { key: "unread", label: "Unread" },
@@ -185,7 +185,7 @@ export default function SellerNotifications() {
             <button
               key={t.key}
               onClick={() => setActiveFilter(t.key)}
-              className={`-mb-px border-b-2 pb-4 pt-4 text-sm transition-colors ${
+              className={`-mb-px border-b-2 pb-3 pt-3 text-xs transition-colors ${
                 activeFilter === t.key
                   ? "border-[#4258d5] font-bold text-[#4258d5]"
                   : "border-transparent text-[#7a8496] hover:text-[#4a5568]"
@@ -200,8 +200,8 @@ export default function SellerNotifications() {
         {loading ? (
           <div className="divide-y divide-[#f0f2f6]">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start gap-[15px] px-6 py-5">
-                <div className="h-[43px] w-[43px] rounded-xl bg-[#eef0f5] animate-pulse" />
+              <div key={i} className="flex items-start gap-3 px-4 py-4">
+                <div className="h-10 w-10 rounded-lg bg-[#eef0f5] animate-pulse" />
                 <div className="flex-1 space-y-2 py-1">
                   <div className="h-3.5 w-2/5 rounded bg-[#eef0f5] animate-pulse" />
                   <div className="h-3 w-4/5 rounded bg-[#eef0f5] animate-pulse" />
@@ -211,7 +211,7 @@ export default function SellerNotifications() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-10 py-10 text-center text-[#7a8496]">
+          <div className="px-8 py-8 text-center text-[#7a8496]">
             No notifications found.
           </div>
         ) : (
@@ -223,13 +223,13 @@ export default function SellerNotifications() {
                 <div
                   key={a._id}
                   onClick={() => openAlert(a._id)}
-                  className={`flex cursor-pointer items-start gap-[15px] border-b border-[#f0f2f6] px-4 py-5 transition-colors last:border-b-0 md:px-6 ${
+                  className={`flex cursor-pointer items-start gap-3 border-b border-[#f0f2f6] px-3 py-3.5 transition-colors last:border-b-0 md:px-4 ${
                     unread ? "bg-[#f4f6ff]" : "hover:bg-[#f8f9fd]"
                   }`}
                 >
                   {/* Icon tile */}
                   <div
-                    className={`grid h-[43px] w-[43px] flex-shrink-0 place-items-center rounded-xl text-[20px] ${icon.cls}`}
+                    className={`grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg text-[17px] ${icon.cls}`}
                   >
                     {icon.emoji}
                   </div>
@@ -237,23 +237,23 @@ export default function SellerNotifications() {
                   {/* Content */}
                   <div className="min-w-0 flex-1">
                     <div
-                      className={`mb-[7px] text-sm font-bold ${
+                      className={`mb-1.5 text-xs font-bold ${
                         unread ? "text-[#172033]" : "text-[#4a5568]"
                       }`}
                     >
                       {a.title}
                     </div>
-                    <div className="text-[13px] leading-relaxed text-[#697386] line-clamp-2">
+                    <div className="text-xs leading-relaxed text-[#697386] line-clamp-2">
                       {a.message}
                     </div>
-                    <div className="mt-[9px] text-[11px] text-[#929bad]">
+                    <div className="mt-1.5 text-[11px] text-[#929bad]">
                       {formatRelativeTime(a.createdAt)}
                     </div>
                   </div>
 
                   {/* Unread dot */}
                   {unread && (
-                    <span className="mt-[5px] h-2 w-2 flex-shrink-0 rounded-full bg-[#5267e8]" />
+                    <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-[#5267e8]" />
                   )}
                 </div>
               );
@@ -263,7 +263,7 @@ export default function SellerNotifications() {
 
         {/* Footer */}
         {!loading && filterCounts.unread === 0 && alerts.length > 0 && (
-          <div className="px-4 py-[18px] text-center text-[13px] font-bold text-[#5267d9]">
+          <div className="px-3 py-3 text-center text-xs font-bold text-[#5267d9]">
             You're all caught up with your store activity
           </div>
         )}
@@ -276,21 +276,21 @@ export default function SellerNotifications() {
           onClick={() => setSelectedId(null)}
         >
           <div
-            className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+            className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-lg bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-[#edf0f4] px-6 py-4">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between border-b border-[#edf0f4] px-4 py-3">
+              <div className="flex items-center gap-2.5">
                 <div
-                  className={`grid h-11 w-11 place-items-center rounded-xl text-[22px] ${iconFor(
+                  className={`grid h-9 w-9 place-items-center rounded-lg text-[18px] ${iconFor(
                     selectedAlert.title
                   ).cls}`}
                 >
                   {iconFor(selectedAlert.title).emoji}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#172033]">
+                  <h3 className="text-sm font-bold text-[#172033]">
                     {selectedAlert.title}
                   </h3>
                   <p className="text-[11px] text-[#929bad]">
@@ -301,27 +301,27 @@ export default function SellerNotifications() {
               <button
                 onClick={() => setSelectedId(null)}
                 title="Close"
-                className="rounded-lg p-1.5 text-[#7a8496] hover:bg-[#eef0f5]"
+                className="rounded-md p-1.5 text-[#7a8496] hover:bg-[#eef0f5]"
               >
-                <FiX className="h-5 w-5" />
+                <FiX className="h-4 w-4" />
               </button>
             </div>
 
             {/* Full content */}
-            <div className="flex-1 overflow-auto px-6 py-5">
-              <p className="mb-2 text-[13px] font-semibold text-[#4a5568]">
+            <div className="flex-1 overflow-auto px-4 py-4">
+              <p className="mb-1.5 text-xs font-semibold text-[#4a5568]">
                 Marketplace Admin
               </p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#31415c]">
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-[#31415c]">
                 {selectedAlert.message}
               </p>
             </div>
 
             {/* Reply to admin */}
-            <div className="border-t border-[#edf0f4] px-6 py-4">
+            <div className="border-t border-[#edf0f4] px-4 py-3">
               {replyStatus && (
                 <p
-                  className={`mb-2 rounded-lg px-3 py-2 text-xs ${
+                  className={`mb-1.5 rounded-md px-2.5 py-1.5 text-xs ${
                     replyStatus.ok ? "bg-[#def7e9] text-[#147c4f]" : "bg-[#fdeaea] text-[#b91c1c]"
                   }`}
                 >
@@ -334,12 +334,12 @@ export default function SellerNotifications() {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   placeholder="Message admin about this notification…"
-                  className="flex-1 rounded-xl border border-[#e7eaf0] bg-[#f8f9fd] px-4 py-2.5 text-sm text-[#172033] placeholder:text-[#929bad] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5267d9]/40"
+                  className="flex-1 rounded-lg border border-[#e7eaf0] bg-[#f8f9fd] px-3 py-2 text-xs text-[#172033] placeholder:text-[#929bad] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5267d9]/40"
                 />
                 <button
                   type="submit"
                   disabled={sendingReply || !reply.trim()}
-                  className="flex items-center gap-2 rounded-xl bg-[#5267d9] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#4258d5] disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-lg bg-[#5267d9] px-3 py-2 text-xs font-medium text-white hover:bg-[#4258d5] disabled:opacity-40"
                 >
                   {sendingReply ? (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

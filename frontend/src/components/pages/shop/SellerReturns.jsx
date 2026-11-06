@@ -63,11 +63,11 @@ export default function SellerReturns() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="h-9 w-44 bg-shopborder/60 rounded-lg animate-pulse mb-6" />
-        <div className="space-y-3">
+      <div className="p-3">
+        <div className="h-8 w-40 bg-shopborder/60 rounded-lg animate-pulse mb-4" />
+        <div className="space-y-2.5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-20 bg-white rounded-2xl border border-shopborder/60 animate-pulse" />
+            <div key={i} className="h-16 bg-white rounded-lg border border-shopborder/60 animate-pulse" />
           ))}
         </div>
       </div>
@@ -75,26 +75,26 @@ export default function SellerReturns() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-3 md:p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-extrabold text-shoptext">Returns</h1>
+          <h1 className="text-[19px] font-extrabold text-shoptext">Returns</h1>
           <button
             onClick={fetchReturns}
-            className="flex items-center gap-1.5 text-[13px] text-shopmuted hover:text-shopprimary transition-colors"
+            className="flex items-center gap-1.5 text-xs text-shopmuted hover:text-shopprimary transition-colors"
           >
-            <FiRefreshCw size={14} /> Refresh
+            <FiRefreshCw size={13} /> Refresh
           </button>
         </div>
-        <p className="text-[13px] text-shopmuted mb-5">
+        <p className="text-xs text-shopmuted mb-3">
           Return requests that include your products. Read-only — the admin manages the
           refund workflow and you are notified of every status change in Messages.
         </p>
 
         {/* Info strip */}
-        <div className="flex items-start gap-2.5 bg-[#e5edff] border border-[#c7d8fe] rounded-xl px-4 py-3 mb-5 text-[12.5px] text-[#1e40af]">
-          <FiInfo size={15} className="mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2 bg-[#e5edff] border border-[#c7d8fe] rounded-lg px-3 py-2.5 mb-3 text-xs text-[#1e40af]">
+          <FiInfo size={14} className="mt-0.5 shrink-0" />
           <span>
             You can't approve, reject or refund here — that's handled by the admin panel. When
             a return is <strong>Approved</strong>, prepare to receive the item(s) back.
@@ -102,12 +102,12 @@ export default function SellerReturns() {
         </div>
 
         {/* Status filter tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3">
           {["all", "pending", "approved", "processing", "refunded", "rejected"].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`shrink-0 px-3 py-1.5 rounded-[9px] text-[13px] font-medium border transition-all ${
+              className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
                 statusFilter === s
                   ? "bg-shopprimary text-white border-shopprimary"
                   : "bg-white text-shopmuted border-shopborder hover:text-shoptext"
@@ -120,33 +120,33 @@ export default function SellerReturns() {
 
         {/* List */}
         {returns.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-2xl border border-shopborder">
-            <FiPackage className="w-10 h-10 mx-auto text-shopborder mb-3" />
-            <p className="text-sm text-shopmuted">No return requests found</p>
+          <div className="py-12 text-center bg-white rounded-lg border border-shopborder">
+            <FiPackage className="w-9 h-9 mx-auto text-shopborder mb-2.5" />
+            <p className="text-xs text-shopmuted">No return requests found</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {returns.map((r) => {
               const open = openId === r._id;
               const reason = REASON_LABELS[r.items?.[0]?.reason || "other"] || "Other";
               return (
                 <div
                   key={r._id}
-                  className="bg-white rounded-2xl border border-shopborder overflow-hidden"
+                  className="bg-white rounded-lg border border-shopborder overflow-hidden"
                 >
                   <button
                     onClick={() => setOpenId(open ? null : r._id)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#f8f9fd] transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[#f8f9fd] transition-colors"
                   >
-                    <div className="w-9 h-9 rounded-[10px] bg-shopprimarylight flex items-center justify-center text-shopprimary shrink-0">
-                      <FiPackage size={16} />
+                    <div className="w-8 h-8 rounded-lg bg-shopprimarylight flex items-center justify-center text-shopprimary shrink-0">
+                      <FiPackage size={15} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-shoptext truncate">
+                      <p className="text-xs font-bold text-shoptext truncate">
                         Return #{r._id?.slice(-8)}
                         <span className="text-shopmuted font-medium"> · Order #{r.order?._id?.slice(-8) || "N/A"}</span>
                       </p>
-                      <p className="text-[12px] text-shopmuted truncate">
+                      <p className="text-[11px] text-shopmuted truncate">
                         {r.user?.name || "Customer"} · {reason} ·{" "}
                         {new Date(r.createdAt).toLocaleDateString("en-US", {
                           month: "short",
@@ -165,46 +165,46 @@ export default function SellerReturns() {
                   </button>
 
                   {open && (
-                    <div className="px-4 pb-4 pt-1 border-t border-shopborder/70">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div className="text-[12px]">
+                    <div className="px-3 pb-3 pt-1 border-t border-shopborder/70">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
+                        <div className="text-xs">
                           <span className="text-shopmuted">Customer:</span>{" "}
                           <span className="font-semibold text-shoptext">
                             {r.user?.name || "N/A"}
                           </span>
                           {r.user?.email && <span className="text-shopmuted"> · {r.user.email}</span>}
                         </div>
-                        <div className="text-[12px]">
+                        <div className="text-xs">
                           <span className="text-shopmuted">Request:</span>{" "}
                           <span className="font-semibold text-shoptext">
                             {new Date(r.createdAt).toLocaleString()}
                           </span>
                         </div>
-                        <div className="text-[12px]">
+                        <div className="text-xs">
                           <span className="text-shopmuted">Refund amount:</span>{" "}
                           <span className="font-semibold text-shoptext">
                             {r.refundAmount ? `Rs. ${Number(r.refundAmount).toLocaleString()}` : "Not set yet"}
                           </span>
                         </div>
                         {r.rejectionReason && (
-                          <div className="text-[12px] sm:col-span-2">
+                          <div className="text-xs sm:col-span-2">
                             <span className="text-shopmuted">Rejection reason:</span>{" "}
                             <span className="font-semibold text-shopred">{r.rejectionReason}</span>
                           </div>
                         )}
                       </div>
 
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-shopmuted mb-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-shopmuted mb-1.5">
                         Your items in this return
                       </p>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {(r.sellerItems || []).map((item, i) => {
                           const img =
                             item.product?.images?.[0] ||
                             item.product?.image ||
                             null;
                           return (
-                            <div key={i} className="flex items-center gap-3 p-2.5 bg-[#f8f9fd] rounded-xl border border-shopborder/60">
+                            <div key={i} className="flex items-center gap-2.5 p-2 bg-[#f8f9fd] rounded-lg border border-shopborder/60">
                               {img ? (
                                 <img src={img} alt="" className="w-10 h-10 rounded-lg object-cover" />
                               ) : (
@@ -213,14 +213,14 @@ export default function SellerReturns() {
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-semibold text-shoptext truncate">
+                                <p className="text-xs font-semibold text-shoptext truncate">
                                   {item.product?.name || "Product"}
                                 </p>
                                 <p className="text-[11px] text-shopmuted">
                                   Qty: {item.quantity} · {REASON_LABELS[item.reason] || item.reason || "No reason"}
                                 </p>
                                 {item.description && (
-                                  <p className="text-[11.5px] text-shopmuted mt-0.5 italic">
+                                  <p className="text-[11px] text-shopmuted mt-0.5 italic">
                                     “{item.description}”
                                   </p>
                                 )}

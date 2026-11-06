@@ -47,10 +47,10 @@ export default function SellerDashboardLayout() {
   if (!seller) {
     return (
       <div className="min-h-screen bg-shopbg flex items-center justify-center">
-        <div className="text-center bg-white rounded-[13px] border border-shopborder p-8 max-w-md">
-          <h2 className="text-xl font-bold text-shoptext mb-2">Seller Account Not Found</h2>
-          <p className="text-shopmuted mb-4">You need to register as a seller first.</p>
-          <a href="/become-seller/register" className="inline-flex px-5 py-2.5 bg-shopprimary text-white rounded-[9px] hover:bg-[#4338ca] font-semibold">Register as Seller</a>
+        <div className="text-center bg-white rounded-lg border border-shopborder p-5 max-w-md">
+          <h2 className="text-lg font-bold text-shoptext mb-2">Seller Account Not Found</h2>
+          <p className="text-shopmuted mb-3">You need to register as a seller first.</p>
+          <a href="/become-seller/register" className="inline-flex px-4 py-2 bg-shopprimary text-white rounded-lg hover:bg-[#4338ca] font-semibold text-sm">Register as Seller</a>
         </div>
       </div>
     );

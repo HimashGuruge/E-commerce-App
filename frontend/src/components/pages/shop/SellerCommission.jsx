@@ -159,16 +159,16 @@ export default function SellerCommission() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-8">
-        <div className="w-10 h-10 border-4 border-shopprimary border-t-transparent rounded-full animate-spin mx-auto my-16" />
+      <div className="p-3 md:p-4">
+        <div className="w-10 h-10 border-4 border-shopprimary border-t-transparent rounded-full animate-spin mx-auto my-9" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1100px] mx-auto space-y-6">
+    <div className="p-3 md:p-4 max-w-[1100px] mx-auto space-y-3.5">
       <div>
-        <h2 className="text-[26px] font-extrabold text-shoptext tracking-[-0.6px]">Commission</h2>
+        <h2 className="text-[19px] font-extrabold text-shoptext tracking-[-0.6px]">Commission</h2>
         <p className="text-sm text-shopmuted mt-1.5">
           {sellerPays
             ? "You remit your commission directly — track your balance and submit payments with proof."
@@ -178,11 +178,11 @@ export default function SellerCommission() {
 
       {/* ================= Balance (seller_pays) ================= */}
       {sellerPays && balance && (
-        <div className="bg-white rounded-[13px] p-6 border border-shopborder">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white rounded-lg p-3.5 border border-shopborder">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
             <div className="col-span-2 lg:col-span-1">
               <span className="text-xs text-shopmuted uppercase tracking-wide">Net balance</span>
-              <p className={`text-2xl font-bold mt-1 ${balance.credit ? "text-shopgreen" : "text-shoptext"}`}>
+              <p className={`text-[20px] font-bold mt-1 ${balance.credit ? "text-shopgreen" : "text-shoptext"}`}>
                 {rs(balance.balance)}
               </p>
               <p className="text-[11px] text-shopmuted mt-1">
@@ -191,19 +191,19 @@ export default function SellerCommission() {
             </div>
             <div>
               <span className="text-xs text-shopmuted uppercase tracking-wide">Gross COD (verified)</span>
-              <p className="text-lg font-semibold text-shoptext mt-1">{rs(balance.grossDue)}</p>
+              <p className="text-base font-semibold text-shoptext mt-1">{rs(balance.grossDue)}</p>
             </div>
             <div>
               <span className="text-xs text-shopmuted uppercase tracking-wide">Commission due</span>
-              <p className="text-lg font-semibold text-shoptext mt-1">{rs(balance.eligibleCommission)}</p>
+              <p className="text-base font-semibold text-shoptext mt-1">{rs(balance.eligibleCommission)}</p>
             </div>
             <div>
               <span className="text-xs text-shopmuted uppercase tracking-wide">Cut from payouts</span>
-              <p className="text-lg font-semibold text-shoptext mt-1">{rs(balance.deductedPaid)}</p>
+              <p className="text-base font-semibold text-shoptext mt-1">{rs(balance.deductedPaid)}</p>
             </div>
             <div>
               <span className="text-xs text-shopmuted uppercase tracking-wide">Verified as paid</span>
-              <p className="text-lg font-semibold text-[#ad6b00] mt-1">{rs(balance.verifiedPaid)}</p>
+              <p className="text-base font-semibold text-[#ad6b00] mt-1">{rs(balance.verifiedPaid)}</p>
             </div>
           </div>
         </div>
@@ -211,15 +211,15 @@ export default function SellerCommission() {
 
       {/* ================= Instructions (admin-written) ================= */}
       {sellerPays && (
-        <div className="bg-white rounded-[13px] p-6 border border-shopborder">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="bg-white rounded-lg p-3.5 border border-shopborder">
+          <div className="flex items-center gap-2 mb-2">
             <FiInfo className="w-4 h-4 text-shopprimary" />
             <h3 className="font-bold text-shoptext">How to pay</h3>
           </div>
           {instructions ? (
-            <p className="text-sm text-[#3d4557] whitespace-pre-line leading-relaxed">{instructions}</p>
+            <p className="text-xs text-[#3d4557] whitespace-pre-line leading-relaxed">{instructions}</p>
           ) : (
-            <p className="text-sm text-shopmuted">
+            <p className="text-xs text-shopmuted">
               Payment instructions have not been set yet. Please contact support with any questions.
             </p>
           )}
@@ -228,11 +228,11 @@ export default function SellerCommission() {
 
       {/* ================= Deduct mode notice ================= */}
       {!sellerPays && (
-        <div className="bg-white rounded-[13px] p-6 border border-shopborder flex items-start gap-3">
-          <FiCheckCircle className="w-5 h-5 text-shopgreen mt-0.5 flex-shrink-0" />
+        <div className="bg-white rounded-lg p-3.5 border border-shopborder flex items-start gap-2.5">
+          <FiCheckCircle className="w-4 h-4 text-shopgreen mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="font-bold text-shoptext">Commission handled automatically</h3>
-            <p className="text-sm text-shopmuted mt-1">
+            <h3 className="text-sm font-semibold text-shoptext">Commission handled automatically</h3>
+            <p className="text-xs text-shopmuted mt-1">
               Your commission ({seller?.commissionRate || 0}%) is deducted from each payout batch automatically.
               You do not need to remit anything separately. See <b>Earnings</b> for the details.
             </p>
@@ -243,60 +243,60 @@ export default function SellerCommission() {
       {sellerPays && (
         <>
           {/* ================= Submit form ================= */}
-          <div className="bg-white rounded-[13px] p-6 border border-shopborder">
-            <div className="flex items-center gap-2 mb-5">
+          <div className="bg-white rounded-lg p-3.5 border border-shopborder">
+            <div className="flex items-center gap-2 mb-3">
               <FiPlusCircle className="w-4 h-4 text-shopprimary" />
-              <h3 className="font-bold text-shoptext">Submit a commission payment</h3>
+              <h3 className="text-sm font-semibold text-shoptext">Submit a commission payment</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">From (inclusive)</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">From (inclusive)</label>
                 <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">To (inclusive)</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">To (inclusive)</label>
                 <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">Amount paid (Rs.)</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">Amount paid (Rs.)</label>
                 <input type="number" min="0" step="0.01" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)}
                   placeholder="e.g. 450.00"
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">Paid on (date)</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">Paid on (date)</label>
                 <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">Payment method</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">Payment method</label>
                 <input type="text" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}
                   placeholder="e.g. bank transfer, online banking"
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">Transaction / UTR reference</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">Transaction / UTR reference</label>
                 <input type="text" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)}
                   placeholder="e.g. NEFT-447192"
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white" />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">Note (optional)</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">Note (optional)</label>
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} rows="2"
                   placeholder="Anything the admin should know about this payment"
-                  className="w-full px-3.5 py-2.5 border border-shopborder rounded-lg text-sm text-[#3d4557] focus:border-shopprimary outline-none bg-white resize-y" />
+                  className="w-full px-3 py-2 border border-shopborder rounded-lg text-xs text-[#3d4557] focus:border-shopprimary outline-none bg-white resize-y" />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-shopmuted mb-1.5">Payment proof (screenshot / receipt — image or PDF)</label>
+                <label className="block text-xs font-medium text-shopmuted mb-1">Payment proof (screenshot / receipt — image or PDF)</label>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full text-sm text-shopmuted file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-shopprimarylight file:text-shopprimary file:font-medium file:cursor-pointer cursor-pointer"
+                  className="w-full text-xs text-shopmuted file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-shopprimarylight file:text-shopprimary file:font-medium file:cursor-pointer cursor-pointer"
                 />
               </div>
             </div>
@@ -304,43 +304,43 @@ export default function SellerCommission() {
             <button
               onClick={submit}
               disabled={submitting}
-              className="mt-5 px-5 py-2.5 bg-shopprimary text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              className="mt-4 px-4 py-2 bg-shopprimary text-white rounded-lg text-xs font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
               {submitting ? "Submitting…" : "Submit for verification"}
             </button>
           </div>
 
           {/* ================= My submissions ================= */}
-          <div className="bg-white rounded-[13px] p-6 border border-shopborder">
-            <h3 className="font-bold text-shoptext mb-4">My submissions</h3>
+          <div className="bg-white rounded-lg p-3.5 border border-shopborder">
+            <h3 className="text-sm font-semibold text-shoptext mb-3">My submissions</h3>
             {payments.length === 0 ? (
-              <p className="text-sm text-shopmuted">No submissions yet. Your first payment will appear here once submitted.</p>
+              <p className="text-xs text-shopmuted">No submissions yet. Your first payment will appear here once submitted.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="text-left text-xs text-shopmuted border-b border-shopborder">
-                      <th className="px-2 py-2 font-semibold">Period</th>
-                      <th className="px-2 py-2 font-semibold">Commission due</th>
-                      <th className="px-2 py-2 font-semibold">Paid</th>
-                      <th className="px-2 py-2 font-semibold">Ref</th>
-                      <th className="px-2 py-2 font-semibold">Status</th>
-                      <th className="px-2 py-2 font-semibold"></th>
+                      <th className="px-2.5 py-1.5 font-semibold">Period</th>
+                      <th className="px-2.5 py-1.5 font-semibold">Commission due</th>
+                      <th className="px-2.5 py-1.5 font-semibold">Paid</th>
+                      <th className="px-2.5 py-1.5 font-semibold">Ref</th>
+                      <th className="px-2.5 py-1.5 font-semibold">Status</th>
+                      <th className="px-2.5 py-1.5 font-semibold"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {payments.map((p) => (
                       <tr key={p._id} className="border-b border-shopborder/60">
-                        <td className="px-2 py-2.5 text-[#3d4557] whitespace-nowrap">
+                        <td className="px-2.5 py-2 text-[#3d4557] whitespace-nowrap">
                           {dstr(p.periodFrom)} → {dstr(p.periodTo)}
                         </td>
-                        <td className="px-2 py-2.5 text-[#3d4557]">{rs(p.grossCommission)}</td>
-                        <td className="px-2 py-2.5 text-[#3d4557]">{rs(p.paidAmount)}</td>
-                        <td className="px-2 py-2.5 text-[#3d4557] text-xs">
+                        <td className="px-2.5 py-2 text-[#3d4557]">{rs(p.grossCommission)}</td>
+                        <td className="px-2.5 py-2 text-[#3d4557]">{rs(p.paidAmount)}</td>
+                        <td className="px-2.5 py-2 text-[#3d4557] text-xs">
                           {p.paymentRef || "—"}
                           {p.paymentRef && p.paymentMethod && <span className="block text-[11px] text-shopmuted">{p.paymentMethod} · {dstr(p.paidAt)}</span>}
                         </td>
-                        <td className="px-2 py-2.5">
+                        <td className="px-2.5 py-2">
                           <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${statusBadge[p.status] || "bg-slate-100 text-slate-600"}`}>
                             {p.status}
                           </span>
@@ -355,10 +355,10 @@ export default function SellerCommission() {
                             </span>
                           )}
                         </td>
-                        <td className="px-2 py-2.5 text-right whitespace-nowrap">
+                        <td className="px-2.5 py-2 text-right whitespace-nowrap">
                           {p.hasProof && (
                             <button onClick={() => viewMyProof(p)}
-                              className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 inline-flex items-center gap-1"
+                              className="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 inline-flex items-center gap-1"
                               title="Open my proof (link expires soon)"
                             >
                               <FiEye className="w-3.5 h-3.5" /> Proof
@@ -366,7 +366,7 @@ export default function SellerCommission() {
                           )}
                           {p.status === "pending" && (
                             <button onClick={() => cancel(p)}
-                              className="text-xs px-2.5 py-1.5 ml-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 inline-flex items-center gap-1"
+                              className="text-xs px-2 py-1 ml-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 inline-flex items-center gap-1"
                             >
                               <FiTrash2 className="w-3.5 h-3.5" /> Cancel
                             </button>

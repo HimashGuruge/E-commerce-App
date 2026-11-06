@@ -848,76 +848,76 @@ const handleEditCategory = async (cat) => {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
+    <div className="p-3 md:p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-lg font-display font-bold text-slate-900 tracking-tight">
           {isEditMode ? "Edit Product" : "Add New Product"}
         </h1>
         {isEditMode && (
           <button
             onClick={handleDelete}
             disabled={uploading}
-            className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Delete Product
           </button>
         )}
       </div>
       
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6" style={uploading ? disabledStyle : {}}>
-        <div className="flex flex-col gap-6">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">Basic Information</h2>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3" style={uploading ? disabledStyle : {}}>
+        <div className="flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-3 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-800">Basic Information</h2>
             </div>
 
-            <div className="mb-4">
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Product Name <span className="text-red-500">*</span></label>
-              <input type="text" name="productName" value={formData.productName} onChange={handleChange} placeholder="Enter product name" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+            <div className="mb-2.5">
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Product Name <span className="text-red-500">*</span></label>
+              <input type="text" name="productName" value={formData.productName} onChange={handleChange} placeholder="Enter product name" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
             </div>
 
-            <div className="mb-4">
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Alternate Names</label>
-              <input type="text" name="altNames" value={formData.altNames} onChange={handleChange} placeholder="Separate with commas" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+            <div className="mb-2.5">
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Alternate Names</label>
+              <input type="text" name="altNames" value={formData.altNames} onChange={handleChange} placeholder="Separate with commas" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-2 mb-2.5">
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">Price (LKR) <span className="text-red-500">*</span></label>
-                <input type="number" name="price" value={formData.price} onChange={handleNumericChange} placeholder="0.00" min="0" step="0.01" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Price (LKR) <span className="text-red-500">*</span></label>
+                <input type="number" name="price" value={formData.price} onChange={handleNumericChange} placeholder="0.00" min="0" step="0.01" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
               </div>
               <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">Selling Price</label>
-                <input type="number" name="sellingPrice" value={formData.sellingPrice} onChange={handleNumericChange} placeholder="0.00" min="0" step="0.01" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Selling Price</label>
+                <input type="number" name="sellingPrice" value={formData.sellingPrice} onChange={handleNumericChange} placeholder="0.00" min="0" step="0.01" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
               </div>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-2.5">
               {isParentProduct ? (
                 <>
-                  <label className="text-sm font-semibold text-slate-700 block mb-2">Total Stock (auto)</label>
-                  <div className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-50 flex items-center justify-between text-slate-900 font-semibold">
-                    <span className="text-xs text-slate-500 font-medium">Sum of variant stocks</span>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Total Stock (auto)</label>
+                  <div className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 flex items-center justify-between text-slate-900 font-semibold">
+                    <span className="text-[11px] text-slate-500 font-medium">Sum of variant stocks</span>
                     <span className="tabular-nums">{totalVariantStock}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1.5">Enter each variant's stock below — this total updates instantly.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Enter each variant's stock below — this total updates instantly.</p>
                 </>
               ) : (
                 <>
-                  <label className="text-sm font-semibold text-slate-700 block mb-2">Stock Quantity</label>
-                  <input type="number" name="stock" value={formData.stock} onChange={handleNumericChange} placeholder="0" min="0" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Stock Quantity</label>
+                  <input type="number" name="stock" value={formData.stock} onChange={handleNumericChange} placeholder="0" min="0" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
                 </>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">Category & Brand</h2>
+          <div className="bg-white rounded-lg p-3 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-800">Category & Brand</h2>
             </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-slate-700">Category <span className="text-red-500">*</span></label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-slate-700">Category <span className="text-red-500">*</span></label>
               <button
                 type="button"
                 onClick={() => {
@@ -926,14 +926,14 @@ const handleEditCategory = async (cat) => {
                   setFormData(prev => ({ ...prev, category: newToggle ? "" : (dbCategories[0]?.name || "General") }));
                   setCategoryImage(null); setCategoryImagePreview(null);
                 }}
-                className="text-xs px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-full font-medium transition-colors"
+                className="text-[11px] px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-md font-medium transition-colors"
               >
                 {isNewCategory ? "Choose from List" : "Add New"}
               </button>
             </div>
 
             {isNewCategory ? (
-              <div className="mb-4 space-y-3">
+              <div className="mb-2.5 space-y-2">
                 <div className="relative">
                   <input
                     type="text"
@@ -941,29 +941,29 @@ const handleEditCategory = async (cat) => {
                     value={formData.category}
                     onChange={handleChange}
                     placeholder="Category name"
-                    className="w-full px-4 py-3 border border-brand-500 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20"
+                    className="w-full px-2.5 py-2 border border-brand-500 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20"
                   />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 block mb-2">Category Image (optional)</span>
+                  <span className="text-[11px] font-semibold text-slate-500 block mb-1">Category Image (optional)</span>
                   {uploadingCategoryImage ? (
-                    <div className="relative w-16 h-16 mb-2 flex items-center justify-center bg-slate-100 rounded-xl border border-slate-200">
-                      <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="relative w-12 h-12 mb-1.5 flex items-center justify-center bg-slate-100 rounded-lg border border-slate-200">
+                      <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   ) : categoryImagePreview ? (
-                    <div className="relative w-16 h-16 mb-2">
-                      <img src={categoryImagePreview} alt="Category" className="w-full h-full object-cover rounded-xl" />
+                    <div className="relative w-12 h-12 mb-1.5">
+                      <img src={categoryImagePreview} alt="Category" className="w-full h-full object-cover rounded-lg" />
                       <button
                         type="button"
                         onClick={() => { setCategoryImage(null); setCategoryImagePreview(null); }}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] leading-none"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] leading-none"
                       >
                         ✕
                       </button>
                     </div>
                   ) : null}
                   {!uploadingCategoryImage && (
-                    <label className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg cursor-pointer text-xs text-slate-500 transition-colors">
+                    <label className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-md cursor-pointer text-[11px] text-slate-500 transition-colors">
                       <span>📁</span> Choose Image
                       <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files[0]; if (file) { setCategoryImage(file); setCategoryImagePreview(URL.createObjectURL(file)); } }} className="hidden" />
                     </label>
@@ -972,50 +972,50 @@ const handleEditCategory = async (cat) => {
                 <button
                   type="button"
                   onClick={handleAddCategory}
-                  className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition-colors"
+                  className="w-full py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold transition-colors"
                 >
                   Add Category
                 </button>
               </div>
             ) : (
-              <div className="mb-4">
+              <div className="mb-2.5">
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                  className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
                 >
                   {dbCategories.map(cat => (<option key={cat._id} value={cat.name}>{cat.name}</option>))}
                   {dbCategories.length === 0 && <option value="General">General</option>}
                 </select>
                 {dbCategories.length > 0 && (
-                  <div className="mt-3 border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                  <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
                     {dbCategories.map((cat, idx) => (
                       <div
                         key={cat._id}
-                        className={`flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors group ${idx < dbCategories.length - 1 ? "border-b border-slate-100" : ""}`}
+                        className={`flex items-center justify-between px-2.5 py-1.5 hover:bg-slate-50 transition-colors group ${idx < dbCategories.length - 1 ? "border-b border-slate-100" : ""}`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           {cat.image ? (
-                            <img src={cat.image} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+                            <img src={cat.image} alt={cat.name} className="w-6 h-6 rounded-md object-cover" onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
                           ) : null}
-                          <div className={`w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold ${cat.image ? "hidden" : ""}`}>
+                          <div className={`w-6 h-6 rounded-md bg-brand-50 text-brand-600 flex items-center justify-center text-[10px] font-bold ${cat.image ? "hidden" : ""}`}>
                             {cat.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm text-slate-700 font-medium">{cat.name}</span>
+                          <span className="text-xs text-slate-700 font-medium">{cat.name}</span>
                         </div>
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
                             onClick={() => handleEditCategory(cat)}
-                            className="px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-md text-[11px] font-medium transition-colors"
+                            className="px-2 py-0.5 bg-brand-500 hover:bg-brand-600 text-white rounded-md text-[10px] font-medium transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteCategory(cat._id, cat.name)}
-                            className="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-[11px] font-medium transition-colors"
+                            className="px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-[10px] font-medium transition-colors"
                           >
                             Delete
                           </button>
@@ -1027,45 +1027,45 @@ const handleEditCategory = async (cat) => {
               </div>
             )}
 
-            <div className="pt-3 border-t border-slate-100">
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Brand</label>
+            <div className="pt-2 border-t border-slate-100">
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand</label>
               <input
                 type="text"
                 name="brand"
                 value={formData.brand}
                 onChange={handleChange}
                 placeholder="Enter brand name"
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
               />
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">Product Type</h2>
+          <div className="bg-white rounded-lg p-3 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-800">Product Type</h2>
             </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setIsParentProduct(false)}
-                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${!isParentProduct ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:border-slate-300"}`}
+                  className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${!isParentProduct ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:border-slate-300"}`}
                 >
-                  <div className={`text-sm font-semibold ${!isParentProduct ? "text-brand-600" : "text-slate-700"}`}>Simple Product</div>
-                  <div className="text-xs text-slate-500 mt-0.5">One size, one price, one stock</div>
+                  <div className={`text-xs font-semibold ${!isParentProduct ? "text-brand-600" : "text-slate-700"}`}>Simple Product</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">One size, one price, one stock</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsParentProduct(true)}
-                  className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-colors ${isParentProduct ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:border-slate-300"}`}
+                  className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${isParentProduct ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:border-slate-300"}`}
                 >
-                  <div className={`text-sm font-semibold ${isParentProduct ? "text-brand-600" : "text-slate-700"}`}>Product with Variants</div>
-                  <div className="text-xs text-slate-500 mt-0.5">Multiple sizes/colors/prices</div>
+                  <div className={`text-xs font-semibold ${isParentProduct ? "text-brand-600" : "text-slate-700"}`}>Product with Variants</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Multiple sizes/colors/prices</div>
                 </button>
               </div>
 
             {isParentProduct && (
               <div>
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5 rounded-xl bg-slate-50 ring-1 ring-slate-100 px-4 py-3 mb-4 text-xs text-slate-500">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-slate-50 ring-1 ring-slate-100 px-3 py-2 mb-2.5 text-[11px] text-slate-500">
                   <span className="font-medium text-slate-700">How it works:</span>
                   <span>1. Pick attributes</span>
                   <span>·</span>
@@ -1075,9 +1075,9 @@ const handleEditCategory = async (cat) => {
                   <span className="text-slate-400">— e.g. Color (Red, Blue) + Size (S, M, L) = 6 variants</span>
                 </div>
 
-                <div className="mb-4">
-                  <div className="text-xs font-semibold text-slate-500 mb-2">Start from a preset</div>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mb-2.5">
+                  <div className="text-[11px] font-semibold text-slate-500 mb-1.5">Start from a preset</div>
+                  <div className="flex flex-wrap gap-1.5">
                     {VARIANT_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
@@ -1086,7 +1086,7 @@ const handleEditCategory = async (cat) => {
                           setVariantAttributes([...preset.attributes]);
                           setAttributeOptions({ ...preset.options });
                         }}
-                        className="px-3 py-1.5 text-xs font-medium rounded-full bg-white border border-slate-200 text-slate-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                        className="px-2.5 py-1 text-[11px] font-medium rounded-full bg-white border border-slate-200 text-slate-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                       >
                         {preset.label}
                       </button>
@@ -1094,57 +1094,57 @@ const handleEditCategory = async (cat) => {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <div className="text-sm font-semibold text-slate-700 mb-2">Or add your own options</div>
-                  <div className="flex gap-2 mb-3">
+                <div className="mb-2.5">
+                  <div className="text-xs font-semibold text-slate-700 mb-1.5">Or add your own options</div>
+                  <div className="flex gap-2 mb-2">
                     <input
                       type="text"
                       value={newAttrName}
                       onChange={(e) => setNewAttrName(e.target.value)}
                       placeholder='Type an option name, e.g. "Color"'
-                      className="flex-1 px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                      className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
                       onKeyDown={(e) => e.key === "Enter" && addVariantAttribute()}
                     />
                     <button
                       type="button"
                       onClick={addVariantAttribute}
-                      className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-semibold transition-colors"
+                      className="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold transition-colors"
                     >
                       Add
                     </button>
                   </div>
 
                   {variantAttributes.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-5 text-center">
-                      <div className="text-sm text-slate-500">No options yet — pick a preset above or add one here.</div>
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-3 text-center">
+                      <div className="text-xs text-slate-500">No options yet — pick a preset above or add one here.</div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2">
                       {variantAttributes.map((attr) => (
-                        <div key={attr} className="rounded-xl bg-white ring-1 ring-slate-100 p-4">
-                          <div className="flex items-center justify-between mb-2.5">
-                            <span className="text-sm font-semibold text-brand-600">{attr}</span>
+                        <div key={attr} className="rounded-lg bg-white ring-1 ring-slate-100 p-2.5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-brand-600">{attr}</span>
                             <button
                               type="button"
                               onClick={() => removeVariantAttribute(attr)}
-                              className="text-xs font-medium text-slate-400 hover:text-red-600 transition-colors"
+                              className="text-[11px] font-medium text-slate-400 hover:text-red-600 transition-colors"
                             >
                               Remove
                             </button>
                           </div>
 
-                          <div className="flex flex-wrap gap-1.5 mb-2.5">
+                          <div className="flex flex-wrap gap-1 mb-2">
                             {(attributeOptions[attr] || []).map((value) => (
                               <span
                                 key={value}
-                                className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 text-xs bg-brand-50 text-brand-700 rounded-full"
+                                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-[11px] bg-brand-50 text-brand-700 rounded-full"
                               >
                                 {value}
                                 <button
                                   type="button"
                                   onClick={() => removeAttributeOption(attr, value)}
                                   aria-label={`Remove ${value}`}
-                                  className="w-4 h-4 grid place-items-center rounded-full text-brand-400 hover:bg-brand-100 hover:text-brand-600 text-[11px] leading-none"
+                                  className="w-3.5 h-3.5 grid place-items-center rounded-full text-brand-400 hover:bg-brand-100 hover:text-brand-600 text-[10px] leading-none"
                                 >
                                   ×
                                 </button>
@@ -1158,13 +1158,13 @@ const handleEditCategory = async (cat) => {
                               value={newAttrValue[attr] || ""}
                               onChange={(e) => setNewAttrValue({ ...newAttrValue, [attr]: e.target.value })}
                               placeholder={`Add a ${attr.toLowerCase()} value`}
-                              className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+                              className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
                               onKeyDown={(e) => e.key === "Enter" && addAttributeOption(attr)}
                             />
                             <button
                               type="button"
                               onClick={() => addAttributeOption(attr)}
-                              className="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold transition-colors"
+                              className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-semibold transition-colors"
                             >
                               Add
                             </button>
@@ -1176,41 +1176,41 @@ const handleEditCategory = async (cat) => {
                 </div>
 
                 {variantAttributes.length > 0 && Object.values(attributeOptions).some(arr => arr.length > 0) && (
-                  <div className="mb-4">
+                  <div className="mb-2.5">
                     {/* Variant Summary */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-2 mb-4 rounded-full bg-brand-50 ring-1 ring-brand-100">
-                      <span className={`h-2 w-2 rounded-full ${generateVariants().length > 0 ? "bg-emerald-500" : "bg-amber-400"}`}></span>
-                      <span className="text-xs font-semibold text-brand-700">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-3 rounded-full bg-brand-50 ring-1 ring-brand-100">
+                      <span className={`h-1.5 w-1.5 rounded-full ${generateVariants().length > 0 ? "bg-emerald-500" : "bg-amber-400"}`}></span>
+                      <span className="text-[11px] font-semibold text-brand-700">
                         {generateVariants().length} variants · grouped by {variantAttributes[0]}
                       </span>
-                      <span className="text-xs text-slate-400">total stock updates automatically</span>
+                      <span className="text-[11px] text-slate-400">total stock updates automatically</span>
                     </div>
 
                     {/* Grouped Variant UI */}
-                    <div className="text-sm font-semibold text-slate-700 mb-3">
+                    <div className="text-xs font-semibold text-slate-700 mb-2">
                       Set price & stock for each combination
                     </div>
 
                     {Object.entries(getGroupedVariants()).map(([groupName, variants]) => {
                       const isExpanded = expandedGroups[groupName] !== false;
                       return (
-                        <div key={groupName} className="mb-3 rounded-xl bg-white ring-1 ring-slate-100 overflow-hidden">
+                        <div key={groupName} className="mb-2 rounded-lg bg-white ring-1 ring-slate-100 overflow-hidden">
                           {/* Group Header */}
                           <div
                             onClick={() => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
-                            className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${isExpanded ? "bg-slate-50" : "bg-white hover:bg-slate-50/60"}`}
+                            className={`flex items-center justify-between px-3 py-2 cursor-pointer transition-colors ${isExpanded ? "bg-slate-50" : "bg-white hover:bg-slate-50/60"}`}
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => e.key === "Enter" && setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
                           >
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-2">
                               <span className="text-xs text-slate-400 transition-transform duration-200" style={{ transform: isExpanded ? "rotate(0deg)" : "" }}>{isExpanded ? "▾" : "▸"}</span>
-                              <span className="text-sm font-semibold text-brand-600">{variantAttributes[0]}: {groupName}</span>
-                              <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{variants.length}</span>
+                              <span className="text-xs font-semibold text-brand-600">{variantAttributes[0]}: {groupName}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{variants.length}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               {(groupImages[groupName] || []).length > 0 ? (
-                                <img src={groupImages[groupName][0].preview} alt="" className="w-8 h-8 object-cover rounded-md ring-1 ring-slate-100" />
+                                <img src={groupImages[groupName][0].preview} alt="" className="w-6 h-6 object-cover rounded-md ring-1 ring-slate-100" />
                               ) : (
                                 <span className="text-[10px] text-slate-300">no image</span>
                               )}
@@ -1219,16 +1219,16 @@ const handleEditCategory = async (cat) => {
 
                           {/* Expanded Group Content */}
                           {isExpanded && (
-                            <div className="p-4">
+                            <div className="p-2.5">
                               {/* Group Image Upload */}
-                              <div className="mb-4 pb-4 border-b border-dashed border-slate-200">
-                                <div className="text-xs font-medium text-slate-500 mb-2">
+                              <div className="mb-2.5 pb-2.5 border-b border-dashed border-slate-200">
+                                <div className="text-[11px] font-medium text-slate-500 mb-1.5">
                                   Images for {variantAttributes[0]}: {groupName} <span className="text-slate-400">(applies to all in this group)</span>
                                 </div>
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="flex gap-1.5 flex-wrap">
                                   {(groupImages[groupName] || []).map((img, i) => (
                                     <div key={i} className="relative">
-                                      <img src={img.preview} alt="" className="w-14 h-14 object-cover rounded-lg ring-1 ring-slate-200" />
+                                      <img src={img.preview} alt="" className="w-10 h-10 object-cover rounded-md ring-1 ring-slate-200" />
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -1236,13 +1236,13 @@ const handleEditCategory = async (cat) => {
                                           setGroupImages(prev => ({ ...prev, [groupName]: updated }));
                                         }}
                                         aria-label={`Remove image ${i + 1}`}
-                                        className="absolute -top-1.5 -right-1.5 w-5 h-5 grid place-items-center bg-red-500 text-white rounded-full text-[10px] hover:bg-red-600"
+                                        className="absolute -top-1 -right-1 w-4 h-4 grid place-items-center bg-red-500 text-white rounded-full text-[9px] hover:bg-red-600"
                                       >
                                         ×
                                       </button>
                                     </div>
                                   ))}
-                                  <label className="w-14 h-14 grid place-items-center cursor-pointer border-2 border-dashed border-slate-200 rounded-lg hover:border-brand-300 transition-colors">
+                                  <label className="w-10 h-10 grid place-items-center cursor-pointer border-2 border-dashed border-slate-200 rounded-md hover:border-brand-300 transition-colors">
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                                       const files = Array.from(e.target.files);
                                       if (files.length > 0) {
@@ -1250,13 +1250,13 @@ const handleEditCategory = async (cat) => {
                                         setGroupImages(prev => ({ ...prev, [groupName]: [...(prev[groupName] || []), ...newImgs] }));
                                       }
                                     }} />
-                                    <span className="text-lg leading-none text-slate-300">+</span>
+                                    <span className="text-base leading-none text-slate-300">+</span>
                                   </label>
                                 </div>
                               </div>
 
                               {/* Individual Variants */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                                 {variants.map((variant, idx) => {
                                   const variantKey = Object.values(variant).join("-");
                                   const variantImg = variantImages[variantKey] || groupImages[groupName] || [];
@@ -1265,17 +1265,17 @@ const handleEditCategory = async (cat) => {
                                   const basePrice = formData.sellingPrice || formData.price || 0;
                                   
                                   return (
-                                    <div key={idx} className="rounded-xl bg-slate-50/70 p-3">
-                                      <div className="text-xs font-semibold text-brand-600 text-center mb-2">
+                                    <div key={idx} className="rounded-lg bg-slate-50/70 p-2">
+                                      <div className="text-[11px] font-semibold text-brand-600 text-center mb-1.5">
                                         {Object.values(variant).join(" / ")}
                                       </div>
-                                      
+                                     
                                       {/* Variant Image */}
-                                      <div className="mb-2.5 flex justify-center">
-                                        <div className="flex gap-1.5 flex-wrap justify-center relative">
+                                      <div className="mb-2 flex justify-center">
+                                        <div className="flex gap-1 flex-wrap justify-center relative">
                                           {(variantImg || []).map((img, i) => (
                                             <div key={i} className="relative">
-                                              <img src={img.preview || img} alt="" className="w-9 h-9 object-cover rounded-md ring-1 ring-slate-200" />
+                                              <img src={img.preview || img} alt="" className="w-8 h-8 object-cover rounded-md ring-1 ring-slate-200" />
                                               <button
                                                 type="button"
                                                 onClick={() => {
@@ -1283,7 +1283,7 @@ const handleEditCategory = async (cat) => {
                                                   setVariantImages(prev => ({ ...prev, [variantKey]: newImgs }));
                                                 }}
                                                 aria-label={`Remove image ${i + 1}`}
-                                                className="absolute -top-1 -right-1 w-4 h-4 grid place-items-center bg-red-500 text-white rounded-full text-[9px] leading-none hover:bg-red-600"
+                                                className="absolute -top-1 -right-1 w-3.5 h-3.5 grid place-items-center bg-red-500 text-white rounded-full text-[9px] leading-none hover:bg-red-600"
                                               >
                                                 ×
                                               </button>
@@ -1297,13 +1297,13 @@ const handleEditCategory = async (cat) => {
                                                 setVariantImages(prev => ({ ...prev, [variantKey]: [...(prev[variantKey] || []), ...newImgs] }));
                                               }
                                             }} />
-                                            <span className="inline-block px-2 py-1 text-[10px] font-medium text-brand-600 border border-dashed border-brand-300 rounded-md hover:bg-brand-50 transition-colors">{variantImg && variantImg.length > 0 ? `+ Image (${variantImg.length})` : "+ Image"}</span>
+                                            <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium text-brand-600 border border-dashed border-brand-300 rounded-md hover:bg-brand-50 transition-colors">{variantImg && variantImg.length > 0 ? `+ Image (${variantImg.length})` : "+ Image"}</span>
                                           </label>
                                         </div>
                                       </div>
 
                                       {/* Stock & Price */}
-                                      <div className="grid grid-cols-2 gap-1.5">
+                                      <div className="grid grid-cols-2 gap-1">
                                         <div>
                                           <label className="block text-[10px] text-slate-500 mb-0.5">Stock</label>
                                           <input
@@ -1338,7 +1338,7 @@ const handleEditCategory = async (cat) => {
                     })}
 
                     {/* Quick: Expand All / Collapse All */}
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-2">
                       <button 
                         type="button"
                         onClick={() => {
@@ -1347,14 +1347,14 @@ const handleEditCategory = async (cat) => {
                           groups.forEach(g => allExpanded[g] = true);
                           setExpandedGroups(allExpanded);
                         }}
-                        className="px-3 py-1.5 text-[11px] font-medium bg-white border border-slate-200 text-slate-600 rounded-md hover:border-slate-300 hover:text-slate-900 transition-colors"
+                        className="px-2.5 py-1 text-[11px] font-medium bg-white border border-slate-200 text-slate-600 rounded-md hover:border-slate-300 hover:text-slate-900 transition-colors"
                       >
                         Expand All
                       </button>
                       <button 
                         type="button"
                         onClick={() => setExpandedGroups({})}
-                        className="px-3 py-1.5 text-[11px] font-medium bg-white border border-slate-200 text-slate-600 rounded-md hover:border-slate-300 hover:text-slate-900 transition-colors"
+                        className="px-2.5 py-1 text-[11px] font-medium bg-white border border-slate-200 text-slate-600 rounded-md hover:border-slate-300 hover:text-slate-900 transition-colors"
                       >
                         Collapse All
                       </button>
@@ -1366,36 +1366,36 @@ const handleEditCategory = async (cat) => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">Product Images <span className="text-red-500">*</span></h2>
+        <div className="flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-3 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-800">Product Images <span className="text-red-500">*</span></h2>
             </div>
 
             {imagePreviews.length > 0 && (
-              <div className="flex flex-wrap gap-2.5 mb-4">
+              <div className="flex flex-wrap gap-2 mb-3">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative w-[90px] h-[90px]">
-                    <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover rounded-xl border border-slate-200" />
-                    <button type="button" onClick={() => removeImage(index)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600 transition-colors">✕</button>
+                  <div key={index} className="relative w-[72px] h-[72px]">
+                    <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover rounded-lg border border-slate-200" />
+                    <button type="button" onClick={() => removeImage(index)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center hover:bg-red-600 transition-colors">✕</button>
                   </div>
                 ))}
               </div>
             )}
 
-            <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/40 transition-colors">
+            <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-brand-400 hover:bg-brand-50/40 transition-colors">
               <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" id="file-upload" />
-              <div className="text-[40px] leading-none text-slate-300 mb-2">+</div>
-              <div className="text-sm text-slate-700 font-medium">Click to upload images</div>
-              <div className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP up to 5MB</div>
+              <div className="text-3xl leading-none text-slate-300 mb-1.5">+</div>
+              <div className="text-xs text-slate-700 font-medium">Click to upload images</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">PNG, JPG, WEBP up to 5MB</div>
             </label>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">Product Description</h2>
+          <div className="bg-white rounded-lg p-3 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-800">Product Description</h2>
             </div>
-            <div className="mb-4">
+            <div className="mb-3">
               <QuillEditor
                 value={formData.description}
                 onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
@@ -1403,24 +1403,24 @@ const handleEditCategory = async (cat) => {
               />
             </div>
 
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-700 block mb-2">Key Features (Highlights)</label>
-              <input type="text" name="highlights" value={formData.highlights} onChange={handleChange} placeholder="e.g., Waterproof, Durable, Fast Shipping (separate with commas)" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
-              <span className="text-[11px] text-slate-400 mt-1.5 block">Separate each feature with a comma</span>
+            <div className="mt-3">
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Key Features (Highlights)</label>
+              <input type="text" name="highlights" value={formData.highlights} onChange={handleChange} placeholder="e.g., Waterproof, Durable, Fast Shipping (separate with commas)" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+              <span className="text-[11px] text-slate-400 mt-1 block">Separate each feature with a comma</span>
             </div>
 
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-700 block mb-2">What's in the Box</label>
-              <input type="text" name="whatsInTheBox" value={formData.whatsInTheBox} onChange={handleChange} placeholder="e.g., 1x Hot Water Bottle, 1x Cover" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
+            <div className="mt-3">
+              <label className="text-xs font-semibold text-slate-700 block mb-1">What's in the Box</label>
+              <input type="text" name="whatsInTheBox" value={formData.whatsInTheBox} onChange={handleChange} placeholder="e.g., 1x Hot Water Bottle, 1x Cover" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white" />
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {isEditMode && (
               <button
                 onClick={() => navigate("/admin/dashboard/adminviewproducts")}
-                className="w-full px-4 py-3 bg-white text-slate-500 hover:text-slate-900 border border-slate-200 rounded-xl text-sm font-semibold hover:border-slate-300 transition-colors"
+                className="w-full px-3 py-2 bg-white text-slate-500 hover:text-slate-900 border border-slate-200 rounded-lg text-xs font-semibold hover:border-slate-300 transition-colors"
               >
                 ← Back to Products
               </button>
@@ -1429,7 +1429,7 @@ const handleEditCategory = async (cat) => {
             <button
               onClick={isEditMode ? handleUpdate : handleUpload}
               disabled={uploading}
-              className="w-full px-5 py-4 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-[15px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {uploading
                 ? (isEditMode ? "Updating..." : "Uploading...")
@@ -1437,12 +1437,12 @@ const handleEditCategory = async (cat) => {
             </button>
 
             {uploading && (
-              <div className="mt-2">
-                <div className="flex justify-between mb-1.5">
+              <div className="mt-1.5">
+                <div className="flex justify-between mb-1">
                   <span className="text-xs text-slate-500">{isEditMode ? "Updating..." : "Uploading..."}</span>
                   <span className="text-xs text-slate-500 font-semibold tabular-nums">{progress}%</span>
                 </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-brand-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
                 </div>
               </div>

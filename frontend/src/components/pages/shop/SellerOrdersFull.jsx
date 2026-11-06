@@ -178,16 +178,16 @@ export default function SellerOrdersFull() {
 
   const MobileFilters = () => {
     return (
-      <div className="lg:hidden mb-4">
+      <div className="lg:hidden mb-3">
         <button
           onClick={() => {
             setTempSearch(searchTerm);
             setShowMobileFilters(true);
           }}
-          className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-shopprimary to-[#4338ca] text-white rounded-xl shadow-lg hover:from-[#4338ca] hover:to-[#3730a3] transition-all"
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-shopprimary to-[#4338ca] text-white rounded-lg shadow-sm hover:from-[#4338ca] hover:to-[#3730a3] transition-all"
         >
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <FiFilter size={18} />
+          <span className="flex items-center gap-2 text-xs font-semibold">
+            <FiFilter size={15} />
             Search & Filter Orders
           </span>
           {searchTerm && (
@@ -198,8 +198,8 @@ export default function SellerOrdersFull() {
         </button>
 
         {searchTerm && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-shopprimarylight text-shopprimary rounded-full text-xs">
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-shopprimarylight text-shopprimary rounded-full text-xs">
               Search: {searchTerm}
               <button
                 onClick={() => setSearchTerm("")}
@@ -212,13 +212,13 @@ export default function SellerOrdersFull() {
         )}
 
         {showMobileFilters && (
-          <div className="bg-white rounded-lg p-3 mt-3 space-y-2">
+          <div className="bg-white rounded-lg p-2.5 mt-2.5 space-y-1.5">
             <input
               type="text"
               placeholder="Search orders..."
               value={tempSearch}
               onChange={(e) => setTempSearch(e.target.value)}
-              className="w-full px-3 py-2 border border-[#dfe3ec] rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-[#dfe3ec] rounded-lg text-xs"
             />
           </div>
         )}
@@ -230,9 +230,9 @@ export default function SellerOrdersFull() {
     const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     return (
-      <div className={`bg-white rounded-xl border shadow-sm overflow-hidden mb-3 ${isNewOrder(order) ? "border-[#f5d98c] ring-2 ring-[#f5d98c]/70" : "border-[#dfe3ec]"}`}>
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
+      <div className={`bg-white rounded-lg border shadow-sm overflow-hidden mb-2.5 ${isNewOrder(order) ? "border-[#f5d98c] ring-2 ring-[#f5d98c]/70" : "border-[#dfe3ec]"}`}>
+        <div className="p-3">
+          <div className="flex items-center justify-between mb-2.5">
             <div>
               <span className="inline-flex items-center gap-1.5 font-mono font-bold text-shopprimary text-xs">
                 #{order.orderId || order._id.slice(-6)}
@@ -247,7 +247,7 @@ export default function SellerOrdersFull() {
               </p>
             </div>
             <div
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${STATUS_CONFIG[order.orderStatus]?.color || STATUS_CONFIG.pending.color}`}
             >
               {STATUS_CONFIG[order.orderStatus]?.icon || <FiClock />}{" "}
               {order.orderStatus}
@@ -260,26 +260,26 @@ export default function SellerOrdersFull() {
             </p>
             <button
               onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
-              className="p-2 bg-[#eef0f5] rounded-lg"
+              className="p-1.5 bg-[#eef0f5] rounded-md"
             >
               {expandedOrderId === order._id ? (
-                <FiChevronUp size={16} />
+                <FiChevronUp size={14} />
               ) : (
-                <FiChevronDown size={16} />
+                <FiChevronDown size={14} />
               )}
             </button>
           </div>
 
           {expandedOrderId === order._id && (
-            <div className="mt-4 pt-4 border-t border-shopborder space-y-4">
+            <div className="mt-3 pt-3 border-t border-shopborder space-y-3">
               <div>
-                <p className="text-[10px] font-bold text-[#a1a8b7] mb-2">
+                <p className="text-[10px] font-bold text-[#a1a8b7] mb-1.5">
                   Items ({order.items?.length})
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {order.items?.slice(0, 2).map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-[#eef0f5] overflow-hidden flex-shrink-0">
+                      <div className="w-7 h-7 rounded-md bg-[#eef0f5] overflow-hidden flex-shrink-0">
                         <img
                           src={item.image || item.imageUrl}
                           alt={item.name}
@@ -308,8 +308,8 @@ export default function SellerOrdersFull() {
                 </div>
               </div>
 
-              <div className="border-t border-shopborder pt-3">
-                <p className="text-[10px] font-bold text-[#a1a8b7] mb-2">
+              <div className="border-t border-shopborder pt-2.5">
+                <p className="text-[10px] font-bold text-[#a1a8b7] mb-1.5">
                   Update Status
                 </p>
 
@@ -330,7 +330,7 @@ export default function SellerOrdersFull() {
                           tempTracking[order._id] || order.trackingNumber,
                         );
                       }}
-                      className="w-full bg-[#f7f8fc] border border-[#dfe3ec] rounded-lg px-3 py-2 text-xs font-bold text-[#5b6577] outline-none mb-2"
+                      className="w-full bg-[#f7f8fc] border border-[#dfe3ec] rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-[#5b6577] outline-none mb-1.5"
                     >
                       {STATUS_OPTIONS.map((opt) => (
                         <option
@@ -348,7 +348,7 @@ export default function SellerOrdersFull() {
                       <div className="relative flex items-center">
                         <input
                           placeholder="Tracking ID..."
-                          className="w-full bg-white border-2 border-shopprimary rounded-lg px-3 py-2 text-xs font-bold outline-none pr-10"
+                          className="w-full bg-white border-2 border-shopprimary rounded-lg px-2.5 py-1.5 text-[11px] font-bold outline-none pr-9"
                           value={tempTracking[order._id] || order.trackingNumber || ""}
                           onChange={(e) =>
                             setTempTracking({
@@ -376,16 +376,16 @@ export default function SellerOrdersFull() {
                       <div className="flex items-center justify-between">
                         <button
                           onClick={(e) => handleTrackOnDomex(e, order.trackingNumber)}
-                          className="flex items-center gap-1 bg-shopprimary text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-[#4338ca]"
+                          className="flex items-center gap-1 bg-shopprimary text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold hover:bg-[#4338ca]"
                         >
-                          <FiTruck size={12} /> Track{" "}
+                          <FiTruck size={11} /> Track{" "}
                           <FiExternalLink size={10} />
                         </button>
                         <button
                           onClick={() => setEditingOrderId(order._id)}
-                          className="p-2 bg-[#eef0f5] rounded-lg text-shopmuted"
+                          className="p-1.5 bg-[#eef0f5] rounded-md text-shopmuted"
                         >
-                          <FiEdit2 size={14} />
+                          <FiEdit2 size={13} />
                         </button>
                       </div>
                     )}
@@ -401,20 +401,20 @@ export default function SellerOrdersFull() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-shopprimary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="w-10 h-10 border-4 border-shopprimary border-t-transparent rounded-full animate-spin mb-3"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f8fc] p-4 md:p-6 pb-20 lg:pb-6 font-sans text-shoptext">
-      <div className="max-w-7xl mx-auto mb-6 sm:mb-10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="min-h-screen bg-[#f7f8fc] p-3 md:p-4 pb-16 lg:pb-4 font-sans text-shoptext">
+      <div className="max-w-7xl mx-auto mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-shoptext">
+            <h1 className="text-[19px] md:text-[22px] font-bold text-shoptext">
               Orders <span className="text-shopprimary">Central</span>
             </h1>
-            <p className="text-xs sm:text-sm text-shopmuted font-medium mt-1">
+            <p className="text-xs text-shopmuted font-medium mt-0.5">
               Manage and track your customer orders in real-time.
             </p>
           </div>
@@ -426,31 +426,31 @@ export default function SellerOrdersFull() {
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#dfe3ec] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-shopprimary"
+                className="w-full sm:w-60 pl-9 pr-3 py-2 bg-white border border-[#dfe3ec] rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-shopprimary"
               />
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a1a8b7]" size={16} />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a1a8b7]" size={14} />
             </div>
 
-            <div className="flex items-center gap-1 bg-white border border-[#dfe3ec] rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-white border border-[#dfe3ec] rounded-lg p-1">
               <button
                 onClick={() => setViewMode("table")}
                 title="Table view"
-                className={`p-2 rounded-lg transition-colors ${viewMode === "table" ? "bg-shopprimary text-white" : "text-[#a1a8b7] hover:text-[#5b6577]"}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === "table" ? "bg-shopprimary text-white" : "text-[#a1a8b7] hover:text-[#5b6577]"}`}
               >
-                <FiList size={16} />
+                <FiList size={14} />
               </button>
               <button
                 onClick={() => setViewMode("grid")}
                 title="Card view (status management)"
-                className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-shopprimary text-white" : "text-[#a1a8b7] hover:text-[#5b6577]"}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-shopprimary text-white" : "text-[#a1a8b7] hover:text-[#5b6577]"}`}
               >
-                <FiGrid size={16} />
+                <FiGrid size={14} />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3">
           {[
             { key: "all", label: "All", count: orders.length },
             { key: "new", label: "New", count: newOrderCount, isNew: true },
@@ -466,7 +466,7 @@ export default function SellerOrdersFull() {
                 setStatusFilter(tab.key);
                 setCurrentPage(1);
               }}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 statusFilter === tab.key
                   ? tab.isNew
                     ? "bg-[#d99a2b] text-white border-[#d99a2b] shadow-md"
@@ -487,7 +487,7 @@ export default function SellerOrdersFull() {
         </div>
 
         {viewMode === "grid" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {currentOrders.map((order, index) => (
               <MobileOrderCard key={order._id} order={order} index={index} />
             ))}
@@ -495,17 +495,17 @@ export default function SellerOrdersFull() {
         )}
 
         {viewMode === "table" && (
-          <div className="bg-white rounded-xl border border-[#dfe3ec] overflow-hidden">
+          <div className="bg-white rounded-lg border border-[#dfe3ec] overflow-hidden">
             <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#f7f8fc] sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 font-bold text-[#5b6577]">#</th>
-                    <th className="px-4 py-3 font-bold text-[#5b6577]">Customer</th>
-                    <th className="px-4 py-3 font-bold text-[#5b6577]">Date</th>
-                    <th className="px-4 py-3 font-bold text-[#5b6577]">Status</th>
-                    <th className="px-4 py-3 font-bold text-[#5b6577]">Amount</th>
-                    <th className="px-4 py-3 font-bold text-[#5b6577]">Actions</th>
+                    <th className="px-3 py-2.5 font-bold text-[#5b6577]">#</th>
+                    <th className="px-3 py-2.5 font-bold text-[#5b6577]">Customer</th>
+                    <th className="px-3 py-2.5 font-bold text-[#5b6577]">Date</th>
+                    <th className="px-3 py-2.5 font-bold text-[#5b6577]">Status</th>
+                    <th className="px-3 py-2.5 font-bold text-[#5b6577]">Amount</th>
+                    <th className="px-3 py-2.5 font-bold text-[#5b6577]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-shopborder">
@@ -519,7 +519,7 @@ export default function SellerOrdersFull() {
                       }`}
                     >
                       <td
-                        className={`px-4 py-3 font-mono text-shopprimary font-bold ${
+                        className={`px-3 py-2.5 font-mono text-shopprimary font-bold ${
                           isNewOrder(order) ? "border-l-4 border-l-[#d99a2b]" : ""
                         }`}
                       >
@@ -532,13 +532,13 @@ export default function SellerOrdersFull() {
                           )}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2.5">
                         {order.shippingAddress?.fullName || order.user?.name || "Guest"}
                       </td>
-                      <td className="px-4 py-3 text-shopmuted">
+                      <td className="px-3 py-2.5 text-shopmuted">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2.5">
                         <div className="flex flex-col gap-1">
                           <select
                             value={order.orderStatus}
@@ -584,7 +584,7 @@ export default function SellerOrdersFull() {
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-bold text-[#3d4557]">
+                      <td className="px-3 py-2.5 font-bold text-[#3d4557]">
                         Rs. {(order.totalPrice ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}></td>
@@ -595,15 +595,15 @@ export default function SellerOrdersFull() {
             </div>
 
             {filteredOrders.length > itemsPerPage && (
-              <div className="p-4 border-t border-[#dfe3ec] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="p-3 border-t border-[#dfe3ec] flex flex-col sm:flex-row items-center justify-between gap-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="px-3 sm:px-4 py-2 bg-white border border-[#dfe3ec] rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f6fc] transition"
+                  className="px-2.5 sm:px-3 py-1.5 bg-white border border-[#dfe3ec] rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f6fc] transition"
                   disabled={currentPage === 1}
                 >
                   Previous
                 </button>
-                <span className="px-3 sm:px-4 py-2 bg-shopprimary text-white rounded-xl text-xs sm:text-sm font-bold">
+                <span className="px-2.5 sm:px-3 py-1.5 bg-shopprimary text-white rounded-lg text-xs font-bold">
                   {currentPage} / {totalPages}
                 </span>
                 <button
@@ -611,7 +611,7 @@ export default function SellerOrdersFull() {
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-3 sm:px-4 py-2 bg-white border border-[#dfe3ec] rounded-xl text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f6fc] transition"
+                  className="px-2.5 sm:px-3 py-1.5 bg-white border border-[#dfe3ec] rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f6fc] transition"
                 >
                   Next
                 </button>
@@ -621,9 +621,9 @@ export default function SellerOrdersFull() {
         )}
 
         {filteredOrders.length === 0 && (
-          <div className="text-center py-12">
-            <FiPackage className="mx-auto text-[#c9cfda] mb-3" size={48} />
-            <p className="text-sm text-shopmuted font-medium">No orders found</p>
+          <div className="text-center py-9">
+            <FiPackage className="mx-auto text-[#c9cfda] mb-2.5" size={40} />
+            <p className="text-xs text-shopmuted font-medium">No orders found</p>
           </div>
         )}
       </div>
