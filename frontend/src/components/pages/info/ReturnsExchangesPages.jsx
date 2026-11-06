@@ -21,6 +21,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showWarning, confirm, swalTheme } from "@/utils/notify";
 import api from "@/utils/api";
 import { getPublicSettings } from "@/utils/siteSettings";
 
@@ -137,15 +138,10 @@ const ReturnsExchanges = () => {
   const contactAdminSupport = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      const result = await Swal.fire({
+      const result = await confirm({
         title: "Login Required",
-        text: "Please login to contact our support team.",
-        icon: "info",
-        showCancelButton: true,
-        confirmButtonText: "Login Now",
-        cancelButtonText: "Cancel",
-        confirmButtonColor: "#22c55e",
-        cancelButtonColor: "#64748b",
+        text: "Please log in to contact our support team.",
+        confirmText: "Login Now",
       });
       if (result.isConfirmed) {
         navigate("/login", { state: { from: "/returns" } });
@@ -163,6 +159,7 @@ const ReturnsExchanges = () => {
     }
 
     const result = await Swal.fire({
+      ...swalTheme,
       title: "Contact Support Team",
       html: `
         <div class="text-left">
@@ -208,15 +205,7 @@ const ReturnsExchanges = () => {
           },
         })
       );
-      Swal.fire({
-        title: "Connected!",
-        text: "You are now connected to our support team. Please check the chat window.",
-        icon: "success",
-        timer: 2000,
-        showConfirmButton: false,
-        toast: true,
-        position: "top-end",
-      });
+      showSuccess("You are now connected to our support team. Please check the chat window.");
     }, 1500);
   };
 
@@ -284,11 +273,7 @@ const ReturnsExchanges = () => {
     const items = eligibleOrder.items.map((item, idx) => {
       const f = itemForm[idx] || { quantity: 1, reason: "other", description: "" };
       if (f.reason === "other" && !f.description.trim()) {
-        Swal.fire({
-          icon: "warning",
-          title: "Missing Info",
-          text: `Please describe the issue for "${item.name || "this item"}".`,
-        });
+        showWarning(`Please describe the issue for "${item.name || "this item"}".`);
         return null;
       }
       return {
@@ -312,10 +297,7 @@ const ReturnsExchanges = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        "Failed to submit return request. Please try again.";
-      Swal.fire({ icon: "error", title: "Could not submit", text: msg });
+      apiError(err, "Could not submit your return request. Please try again.");
     } finally {
       setSubmitting(false);
     }

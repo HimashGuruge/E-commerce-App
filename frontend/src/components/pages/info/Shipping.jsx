@@ -8,7 +8,7 @@ import {
   Clock, ArrowLeft, User, Building, Mail, Heart,
   Star, Award, Gift, Zap, ShieldCheck, Info
 } from "lucide-react";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showInfo, showWarning } from "@/utils/notify";
 
 const DISTRICTS = [
   "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
@@ -145,13 +145,10 @@ export default function Shipping() {
       : shippingSettings.standardCost;
 
   const handleProceed = async () => {
-    const toast = (icon, title, text) =>
-      Swal.fire({ icon, title, text, confirmButtonColor: '#2563eb' });
-
     // No active order (direct URL / refresh): still show the address page,
     // but block payment.
     if (!orderData) {
-      toast('info', 'Your Cart is Empty', 'Please add items to your cart before proceeding to payment.');
+      showInfo("Your cart is empty. Please add items to your cart before proceeding to payment.");
       navigate("/viewcart");
       return;
     }
@@ -161,7 +158,7 @@ export default function Shipping() {
     if (addressMode === "saved") {
       const selected = savedAddresses.find(a => a._id === selectedAddressId);
       if (!selected) {
-        toast('error', 'No Address Selected', 'Please select a saved address or enter a new one below.');
+        showError("No address selected. Please select a saved address or enter a new one below.");
         return;
       }
       finalData = {
@@ -173,7 +170,7 @@ export default function Shipping() {
     } else {
       finalData = { ...newShippingInfo };
       if (!finalData.address?.trim() || !finalData.phone?.trim() || !finalData.customerName?.trim()) {
-        toast('error', 'Missing Information', 'Please fill in all required delivery details.');
+        showError("Missing information. Please fill in all required delivery details.");
         return;
       }
 
@@ -198,10 +195,10 @@ export default function Shipping() {
             setAddressMode("saved");
             setSelectedAddressId(newAddress._id);
           }
-          toast('success', 'Address Saved', 'Your new address has been saved to your account.');
+          showSuccess("Address saved. Your new address has been saved to your account.");
         } catch (_err) {
           console.error("Failed to save address:", _err);
-          toast('error', 'Save Failed', 'Could not save your address. You can still continue to payment.');
+          showError("Could not save your address. You can still continue to payment.");
         } finally {
           setSavingAddress(false);
         }

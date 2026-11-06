@@ -5,6 +5,7 @@ import {
 import { MdPayment } from "react-icons/md";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showInfo, confirm, swalTheme } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 // Status → badge color
@@ -63,7 +64,7 @@ export default function AdminSellerPayouts() {
       if (payRes.data.success) setPayouts(payRes.data.payouts || []);
     } catch (err) {
       console.error("Fetch payouts error:", err);
-      Swal.fire({ icon: "error", title: "Failed to load payout data" });
+      apiError(err, "Could not load payout data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function AdminSellerPayouts() {
       if (res.data.success) setCommissionPayments(res.data.payments || []);
     } catch (err) {
       console.error("Fetch commission payments error:", err);
-      Swal.fire({ icon: "error", title: "Failed to load commission payments" });
+      apiError(err, "Could not load commission payments. Please try again.");
     } finally {
       setCommissionLoading(false);
     }
@@ -103,6 +104,7 @@ export default function AdminSellerPayouts() {
 
   const verifyCommission = async (p) => {
     const res = await Swal.fire({
+      ...swalTheme,
       title: `Verify commission payment — ${p.sellerInfo?.shopName || "seller"}`,
       icon: "question",
       html: `
@@ -114,23 +116,23 @@ export default function AdminSellerPayouts() {
       `,
       showCancelButton: true,
       confirmButtonText: "Verify",
-      confirmButtonColor: "#16a34a",
       reverseButtons: true,
     });
     if (!res.isConfirmed) return;
     try {
       await api.post(`/api/sellers/admin/commission/payments/${p._id}/verify`, {});
-      Swal.fire({ icon: "success", title: "Commission payment verified", timer: 1500, showConfirmButton: false });
+      showSuccess("Commission payment verified.");
       fetchCommission();
       // The verified total also moves the payout board.
       fetchData();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || err.response?.data?.message || "Failed to verify" });
+      apiError(err, "Could not verify this commission payment. Please try again.");
     }
   };
 
   const rejectCommission = async (p) => {
     const res = await Swal.fire({
+      ...swalTheme,
       title: `Reject commission payment — ${p.sellerInfo?.shopName || "seller"}`,
       html: `
         Period: <b>${dstr(p.periodFrom)} → ${dstr(p.periodTo)}</b><br/>
@@ -147,10 +149,10 @@ export default function AdminSellerPayouts() {
     if (!res.isConfirmed) return;
     try {
       await api.post(`/api/sellers/admin/commission/payments/${p._id}/reject`, { reason: res.value });
-      Swal.fire({ icon: "success", title: "Rejected", timer: 1500, showConfirmButton: false });
+      showSuccess("Commission payment rejected.");
       fetchCommission();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || err.response?.data?.message || "Failed to reject" });
+      apiError(err, "Could not reject this commission payment. Please try again.");
     }
   };
 
@@ -159,13 +161,14 @@ export default function AdminSellerPayouts() {
       const res = await api.get(`/api/sellers/admin/commission/proof/${p._id}`);
       window.open(res.data.proof.signedUrl, "_blank", "noopener");
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.message || "Could not open the proof" });
+      apiError(err, "Could not open the proof. Please try again.");
     }
   };
 
   // ---- Verify a pending collection ----
   const verifyCollection = async (c) => {
     const res = await Swal.fire({
+      ...swalTheme,
       title: `Verify collection for order #${String(c.order?._id || c.order).slice(-8)}`,
       icon: "question",
       html: `
@@ -189,10 +192,10 @@ export default function AdminSellerPayouts() {
         courier: res.value.courier || "",
         settlementRef: res.value.settlementRef,
       });
-      Swal.fire({ icon: "success", title: "Collection verified", timer: 1500, showConfirmButton: false });
+      showSuccess("Collection verified.");
       fetchData();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || err.response?.data?.message || "Failed to verify" });
+      apiError(err, "Could not verify this collection. Please try again.");
     }
   };
 
@@ -204,10 +207,11 @@ export default function AdminSellerPayouts() {
         ["collected", "eligible_for_payout"].includes(c.status) && !c.allocatedPayout
     );
     if (!sellerCollections.length) {
-      Swal.fire({ icon: "info", title: "No verified collections to pay out yet" });
+      showInfo("No verified collections to pay out yet.");
       return;
     }
     const res = await Swal.fire({
+      ...swalTheme,
       title: `Create payout for ${seller?.shopName || "seller"}`,
       icon: "question",
       html: `
@@ -229,16 +233,17 @@ export default function AdminSellerPayouts() {
         collectionIds: sellerCollections.map((c) => c._id),
         deductions: Number(res.value) || 0,
       });
-      Swal.fire({ icon: "success", title: "Payout batch created", timer: 1500, showConfirmButton: false });
+      showSuccess("Payout batch created.");
       fetchData();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || err.response?.data?.message || "Failed to create payout" });
+      apiError(err, "Could not create the payout. Please try again.");
     }
   };
 
   // ---- Mark payout paid ----
   const markPaid = async (p) => {
     const res = await Swal.fire({
+      ...swalTheme,
       title: `Confirm payout paid`,
       text: `Net payable: ${rs(p.netPayable)} to ${p.seller?.shopName || "seller"}`,
       icon: "warning",
@@ -254,16 +259,17 @@ export default function AdminSellerPayouts() {
     if (!res.isConfirmed) return;
     try {
       await api.put(`/api/sellers/admin/payouts/${p._id}/mark-paid`, { paymentRef: res.value });
-      Swal.fire({ icon: "success", title: "Payout marked paid", timer: 1500, showConfirmButton: false });
+      showSuccess("Payout marked as paid.");
       fetchData();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || "Failed", text: "A payout can only be paid once. The original reference is preserved." });
+      apiError(err, "A payout can only be paid once. The original reference is preserved.");
     }
   };
 
   // ---- Mark payout failed ----
   const markFailed = async (p) => {
     const res = await Swal.fire({
+      ...swalTheme,
       title: "Mark payout failed",
       input: "text",
       inputLabel: "Reason (required)",
@@ -275,29 +281,27 @@ export default function AdminSellerPayouts() {
     if (!res.isConfirmed) return;
     try {
       await api.put(`/api/sellers/admin/payouts/${p._id}/mark-failed`, { reason: res.value });
-      Swal.fire({ icon: "success", title: "Payout marked failed", timer: 1500, showConfirmButton: false });
+      showSuccess("Payout marked as failed.");
       fetchData();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || "Failed to mark payout failed" });
+      apiError(err, "Could not mark this payout as failed. Please try again.");
     }
   };
 
   // ---- Backfill snapshot for a single old order ----
   const backfillOrder = async (orderId) => {
-    const yes = await Swal.fire({
+    const yes = await confirm({
       title: "Backfill commission snapshot?",
       text: "This stores the seller's current rate as the historical snapshot for this COD order. Only the affected collection row is changed.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Backfill",
+      confirmText: "Backfill",
     });
     if (!yes.isConfirmed) return;
     try {
       const r = await api.post(`/api/sellers/admin/payouts/backfill/${orderId}`);
-      Swal.fire({ icon: "success", title: "Backfilled", text: r.data.message || "Snapshot stored", timer: 1500, showConfirmButton: false });
+      showSuccess(r.data.message || "Snapshot stored.");
       fetchData();
     } catch (err) {
-      Swal.fire({ icon: "info", title: err.response?.data?.message || "No backfill needed", timer: 1500, showConfirmButton: false });
+      showInfo(err.response?.data?.message || "No backfill needed.");
     }
   };
 
@@ -310,6 +314,7 @@ export default function AdminSellerPayouts() {
       (a) => `${dstr(a.at)} — <b>${a.action}</b> by ${a.by?.name || "admin"}${a.note ? ` — ${a.note}` : ""}`
     ).join("<br/>") || "No audit entries";
     Swal.fire({
+      ...swalTheme,
       title: `Payout audit — ${p.seller?.shopName || p.seller}`,
       html: lines,
       confirmButtonText: "Close",

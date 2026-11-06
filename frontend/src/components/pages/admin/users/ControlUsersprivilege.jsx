@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 import {
   FiTrash2,
   FiEdit2,
@@ -161,7 +161,7 @@ export default function ControlUsersprivilege() {
       setUsers(filtered);
       setSelectedUsers([]);
     } catch (error) {
-      Swal.fire("Error", "Failed to fetch users", "error");
+      apiError(error, "Could not load the user list. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -179,13 +179,10 @@ export default function ControlUsersprivilege() {
     const newRole = select.value;
     if (!newRole || newRole === currentRole) return;
 
-    const result = await Swal.fire({
+    const result = await confirm({
       title: `Change role to ${newRole}?`,
       text: `User role will be changed from ${currentRole} to ${newRole}.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#10b981",
-      confirmButtonText: "Yes, proceed",
+      confirmText: "Yes, proceed",
     });
 
     if (result.isConfirmed) {
@@ -195,10 +192,10 @@ export default function ControlUsersprivilege() {
           { role: newRole }
         );
         await fetchUsers();
-        Swal.fire("Success", `User is now ${newRole}`, "success");
+        showSuccess(`User is now ${newRole}.`);
       } catch (e) {
         select.value = currentRole;
-        Swal.fire("Error", e.response?.data?.message || e.message, "error");
+        apiError(e, "Could not change the user role. Please try again.");
       }
     } else {
       select.value = currentRole;
@@ -209,13 +206,11 @@ export default function ControlUsersprivilege() {
     const newStatus = currentStatus === "active" ? "suspended" : "active";
     const label = newStatus === "active" ? "Activate" : "Suspend";
 
-    const result = await Swal.fire({
+    const result = await confirm({
       title: `${label} User`,
       text: `${label} this user?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: newStatus === "active" ? "#10b981" : "#ef4444",
-      confirmButtonText: `Yes, ${label}`,
+      danger: newStatus === "suspended",
+      confirmText: `Yes, ${label}`,
     });
 
     if (result.isConfirmed) {
@@ -225,30 +220,28 @@ export default function ControlUsersprivilege() {
           { status: newStatus }
         );
         await fetchUsers();
-        Swal.fire("Success", `User is now ${newStatus}`, "success");
+        showSuccess(`User is now ${newStatus}.`);
       } catch (e) {
-        Swal.fire("Error", e.response?.data?.message || e.message, "error");
+        apiError(e, "Could not update the user status. Please try again.");
       }
     }
   };
 
   const handleDeleteUser = async (userId, name) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete User",
       html: `Delete <strong>${name}</strong>?<p class="text-red-500 text-sm mt-2">This cannot be undone!</p>`,
-      icon: "error",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Delete",
+      danger: true,
+      confirmText: "Delete",
     });
 
     if (result.isConfirmed) {
       try {
         await api.delete(`/api/users/${userId}`);
         await fetchUsers();
-        Swal.fire("Deleted!", "User removed", "success");
+        showSuccess("User removed.");
       } catch (e) {
-        Swal.fire("Error", e.response?.data?.message || e.message, "error");
+        apiError(e, "Could not delete this user. Please try again.");
       }
     }
   };
@@ -314,13 +307,11 @@ export default function ControlUsersprivilege() {
       delete: { text: "Delete", color: "#ef4444" },
     };
 
-    const result = await Swal.fire({
+    const result = await confirm({
       title: `${actionLabels[action].text} Users`,
       text: `Apply to ${selectedUsers.length} selected user(s)?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: actionLabels[action].color,
-      confirmButtonText: `Yes, ${actionLabels[action].text}`,
+      danger: action === "delete" || action === "suspend",
+      confirmText: `Yes, ${actionLabels[action].text}`,
     });
 
     if (result.isConfirmed) {
@@ -331,9 +322,9 @@ export default function ControlUsersprivilege() {
         const res = await api.post(`/api/users/bulk-action`, payload);
         await fetchUsers();
         setSelectedUsers([]);
-        Swal.fire("Success", res.data?.message || `Bulk ${actionLabels[action].text} completed`, "success");
+        showSuccess(res.data?.message || `Bulk ${actionLabels[action].text} completed.`);
       } catch (e) {
-        Swal.fire("Error", e.response?.data?.message || e.message, "error");
+        apiError(e, "Could not apply the bulk action. Please try again.");
       }
     }
   };
@@ -352,9 +343,9 @@ export default function ControlUsersprivilege() {
       );
       setShowEditModal(false);
       await fetchUsers();
-      Swal.fire("Success", "User updated", "success");
+      showSuccess("User updated.");
     } catch (e) {
-      Swal.fire("Error", e.response?.data?.message || e.message, "error");
+      apiError(e, "Could not save this user. Please try again.");
     }
   };
 

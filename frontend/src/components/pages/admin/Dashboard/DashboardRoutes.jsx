@@ -20,6 +20,7 @@ import SettingsManagement from "@/components/pages/admin/marketing/SettingsManag
 import AdminSellerManagement from "@/components/pages/admin/marketing/AdminSellerManagement.jsx";
 import AdminSellerDetail from "@/components/pages/admin/marketing/AdminSellerDetail.jsx";
 import AdminSellerPayouts from "@/components/pages/admin/marketing/AdminSellerPayouts.jsx";
+import AdminDomexDashboard from "@/components/pages/admin/Dashboard/AdminDomexDashboard.jsx";
 import QuestionsManagement from "@/components/pages/admin/marketing/QuestionsManagement.jsx";
 import ReturnsManagement from "@/components/pages/admin/returns/ReturnsManagement.jsx";
 import { FiPackage, FiUsers, FiDollarSign, FiShoppingCart, FiTrendingUp, FiTrendingDown, FiArrowRight, FiClock } from "react-icons/fi";
@@ -393,6 +394,7 @@ export default function DashboardRoutes() {
       <Route path="editproducts/:productId" element={<EditProducts />} />
       <Route path="notification" element={<Notification />} />
       <Route path="orders" element={<OrderedPage />} />
+      <Route path="domex" element={<AdminDomexDashboard />} />
       <Route path="coupons" element={<CouponManagement />} />
       <Route path="home-marketing" element={<HomeMarketing />} />
       <Route path="user-privileges" element={<ControllerUsersPrevilegepage />} />

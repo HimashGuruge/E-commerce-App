@@ -3,6 +3,7 @@ import api from "@/utils/api";
 import Cropper from "react-easy-crop";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { showSuccess, showError, showWarning, showInfo, confirm, swalTheme } from "@/utils/notify";
 import uploadToMedia from "@/components/utils/Mediaupload";
 import {
   MdCloudUpload,
@@ -117,8 +118,11 @@ const getCroppedImg = async (imageSrc, pixelCrop) => {
   });
 };
 
-const toast = (icon, title, timer = 2000) => {
-  Swal.fire({ icon, title, timer, showConfirmButton: false });
+const toast = (icon, message) => {
+  if (icon === "success") showSuccess(message);
+  else if (icon === "warning") showWarning(message);
+  else if (icon === "info") showInfo(message);
+  else showError(message);
 };
 
 const categoryLabel = (category, categories) => {
@@ -364,14 +368,11 @@ export default function AdsManagement() {
   }, [preview, title, startDate, endDate, mediaType, description, buttonText, adStatus, targetCategory, countdownText, file, formMode, selectedAd, clearForm, fetchAds]);
 
   const handleDelete = useCallback(async (ad) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Campaign?",
       text: `"${ad.title || "Untitled"}" will be removed permanently.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, Delete",
+      danger: true,
+      confirmText: "Yes, Delete",
     });
     if (!result.isConfirmed) return;
 
@@ -388,13 +389,11 @@ export default function AdsManagement() {
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return;
-    const result = await Swal.fire({
+    const result = await confirm({
       title: `Delete ${selectedIds.size} Campaigns?`,
       text: "This action cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: `Delete ${selectedIds.size} Items`,
+      danger: true,
+      confirmText: `Delete ${selectedIds.size} Items`,
     });
     if (!result.isConfirmed) return;
 
@@ -463,6 +462,7 @@ export default function AdsManagement() {
 
         if (validation.warnings.length > 0) {
           await Swal.fire({
+            ...swalTheme,
             icon: "info",
             title: "Video Info",
             html: `<div class="text-left text-sm">${validation.warnings.map((w) => `<p>${w}</p>`).join("")}</div>`,
@@ -498,6 +498,7 @@ export default function AdsManagement() {
 
       if (!validation.isValid) {
         const result = await Swal.fire({
+          ...swalTheme,
           icon: "warning",
           title: "Image Optimization Needed",
           html: `

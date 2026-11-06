@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiCheck, FiChevronLeft, FiChevronRight, FiUpload, FiFileText, FiBriefcase, FiUser, FiMapPin, FiCreditCard, FiShield } from "react-icons/fi";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import { apiError, swalTheme } from "@/utils/notify";
 
 const steps = [
   { label: "Account Type", icon: FiBriefcase },
@@ -88,18 +89,15 @@ export default function SellerRegister() {
       const { data } = await api.post("/api/sellers/register", form);
       if (data.success) {
         Swal.fire({
+          ...swalTheme,
           icon: "success",
           title: "Application Submitted!",
           text: "We'll review your application within 24-72 hours. You'll be notified once approved.",
-          confirmButtonColor: "#F85606",
+          confirmButtonText: "Continue",
         }).then(() => navigate("/become-seller"));
       }
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Submission Failed",
-        text: err.response?.data?.error || "Something went wrong",
-      });
+      apiError(err, "Could not submit your application. Please try again.");
     } finally {
       setLoading(false);
     }

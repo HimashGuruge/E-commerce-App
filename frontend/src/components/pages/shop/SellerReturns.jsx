@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { FiRefreshCw, FiInfo, FiPackage } from "react-icons/fi";
 import api from "@/utils/api";
-import toast from "react-hot-toast";
-import getApiError from "@/utils/errors";
+import { apiError } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 const REASON_LABELS = {
@@ -45,7 +44,7 @@ export default function SellerReturns() {
       if (data.success) setReturns(data.returns || []);
     } catch (err) {
       console.error("Fetch returns error:", err);
-      toast.error(getApiError(err) || "Failed to load returns");
+      apiError(err, "Failed to load returns. Please try again.");
     } finally {
       setLoading(false);
     }

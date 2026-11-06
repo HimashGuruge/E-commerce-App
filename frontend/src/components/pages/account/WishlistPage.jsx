@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, Trash2, ShoppingCart, ArrowLeft } from "lucide-react";
 import api from "@/utils/api";
-import toast from "react-hot-toast";
-import getApiError from "@/utils/errors";
+import { apiError } from "@/utils/notify";
 
 const formatPrice = (price) => {
   return (price || 0).toLocaleString();
@@ -86,7 +85,7 @@ export default function WishlistPage() {
       await handleRemove(productId);
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toast.error(getApiError(error, "Failed to update wishlist"));
+      apiError(error, "Could not move this item to your cart. Please try again.");
     }
   };
 

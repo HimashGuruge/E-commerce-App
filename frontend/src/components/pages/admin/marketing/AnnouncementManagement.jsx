@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import api from "@/utils/api";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, showError, showWarning, confirm } from "@/utils/notify";
 import {
   MdDelete,
   MdEdit,
@@ -199,7 +199,7 @@ export default function AnnouncementManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim()) {
-      Swal.fire({ icon: "warning", title: "Required", text: "Announcement text is required" });
+      showWarning("Announcement text is required.");
       return;
     }
     setSubmitting(true);
@@ -207,15 +207,15 @@ export default function AnnouncementManagement() {
     try {
       if (editing) {
         await api.put(`/api/announcements/${editing._id}`, { text: text.trim(), icon, order, style: cleanStyle });
-        Swal.fire({ icon: "success", title: "Updated", timer: 1500, showConfirmButton: false });
+        showSuccess("Announcement updated.");
       } else {
         await api.post("/api/announcements", { text: text.trim(), icon, order, style: cleanStyle });
-        Swal.fire({ icon: "success", title: "Created", timer: 1500, showConfirmButton: false });
+        showSuccess("Announcement created.");
       }
       resetForm();
       fetchAnnouncements();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: err.response?.data?.message || "Failed to save" });
+      apiError(err, "Could not save the announcement. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -233,21 +233,19 @@ export default function AnnouncementManagement() {
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete?",
-      text: "This announcement will be removed",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Delete",
+      text: "This announcement will be removed.",
+      danger: true,
+      confirmText: "Delete",
     });
     if (!result.isConfirmed) return;
     try {
       await api.delete(`/api/announcements/${id}`);
       fetchAnnouncements();
-      Swal.fire({ icon: "success", title: "Deleted", timer: 1500, showConfirmButton: false });
+      showSuccess("Announcement deleted.");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to delete" });
+      showError("Could not delete this announcement. Please try again.");
     }
   };
 
@@ -256,7 +254,7 @@ export default function AnnouncementManagement() {
       await api.patch(`/api/announcements/${id}/status`);
       fetchAnnouncements();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to toggle status" });
+      showError("Could not toggle the announcement status. Please try again.");
     }
   };
 
@@ -266,9 +264,9 @@ export default function AnnouncementManagement() {
     setBar(clean);
     try {
       await api.put("/api/settings", { announcement: clean });
-      Swal.fire({ icon: "success", title: "Saved", text: "Background styling applied to the homepage ticker", timer: 1800, showConfirmButton: false });
+      showSuccess("Background styling applied to the homepage ticker.");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: err.response?.data?.message || "Failed to save background" });
+      apiError(err, "Could not save the ticker background. Please try again.");
     } finally {
       setSavingBar(false);
     }

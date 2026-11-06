@@ -12,7 +12,7 @@ import {
   FiPackage,
 } from "react-icons/fi";
 import { TbUserOff } from "react-icons/tb";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, showError, confirm } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 const ITEMS_PER_PAGE = 12;
@@ -54,7 +54,7 @@ export default function AdminAllProductView() {
       setProducts(productsData);
     } catch (err) {
       console.error("Error fetching products:", err);
-      Swal.fire("Error", "Failed to load products", "error");
+      apiError(err, "Could not load the products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -108,35 +108,31 @@ export default function AdminAllProductView() {
   );
 
   const handleDelete = async (productId, productName) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Product?",
       html: `Delete <strong>"${productName}"</strong>?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Delete",
+      danger: true,
+      confirmText: "Delete",
     });
 
     if (result.isConfirmed) {
       try {
         await api.delete(`/api/products/${productId}`);
         setProducts((prev) => prev.filter((p) => p.productId !== productId));
-        Swal.fire("Deleted!", "Product removed", "success");
+        showSuccess("Product removed.");
       } catch (err) {
-        Swal.fire("Error", "Failed to delete", "error");
+        apiError(err, "Could not delete this product. Please try again.");
       }
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedProducts.size === 0) return;
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Bulk Delete",
       html: `Delete ${selectedProducts.size} product(s)?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Delete",
+      danger: true,
+      confirmText: "Delete",
     });
 
     if (result.isConfirmed) {
@@ -144,9 +140,9 @@ export default function AdminAllProductView() {
         await api.delete("/api/products/bulk", { data: { ids: [...selectedProducts] } });
         setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.productId)));
         setSelectedProducts(new Set());
-        Swal.fire("Success!", "Products deleted", "success");
+        showSuccess("Products deleted.");
       } catch (err) {
-        Swal.fire("Error", "Failed to delete", "error");
+        apiError(err, "Could not delete these products. Please try again.");
       }
     }
   };
@@ -171,7 +167,7 @@ export default function AdminAllProductView() {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    Swal.fire({ icon: "success", title: "Copied!", timer: 1500, showConfirmButton: false });
+    showSuccess("Copied.");
   };
 
   // Compact stat values

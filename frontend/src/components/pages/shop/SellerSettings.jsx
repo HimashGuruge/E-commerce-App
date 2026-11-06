@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { FiSave, FiUser, FiMapPin, FiCreditCard, FiShoppingBag, FiUpload, FiImage } from "react-icons/fi";
 import api from "@/utils/api";
-import Swal from "sweetalert2";
 import uploadToMedia from "@/components/utils/Mediaupload";
-import getApiError from "@/utils/errors";
+import { apiError, showSuccess, showError } from "@/utils/notify";
 
 export default function SellerSettings() {
   const [form, setForm] = useState({
@@ -65,7 +64,7 @@ export default function SellerSettings() {
   const handleImageUpload = async (field, file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      Swal.fire({ icon: "error", title: "Invalid file", text: "Please choose an image file." });
+      showError("Please choose an image file.");
       return;
     }
     const setUploading = field === "shopLogo" ? setLogoUploading : setBannerUploading;
@@ -75,11 +74,7 @@ export default function SellerSettings() {
       if (!url) throw new Error("Upload failed");
       setForm((f) => ({ ...f, [field]: url }));
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Upload failed",
-        text: err.response?.data?.error || err.message || "Could not upload the image. Try again.",
-      });
+      apiError(err, "Could not upload this image. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -90,9 +85,9 @@ export default function SellerSettings() {
     setSaving(true);
     try {
       await api.put("/api/sellers/me", form);
-      Swal.fire({ icon: "success", title: "Settings saved!", timer: 1500, showConfirmButton: false });
+      showSuccess("Settings saved!");
     } catch (err) {
-      Swal.fire({ icon: "error", title: getApiError(err, "Failed to save settings") });
+      apiError(err, "Could not save your settings. Please try again.");
     } finally {
       setSaving(false);
     }

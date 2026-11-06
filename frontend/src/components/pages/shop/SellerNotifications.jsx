@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { FiX, FiSend } from "react-icons/fi";
 import api from "@/utils/api";
-import toast from "react-hot-toast";
-import getApiError from "@/utils/errors";
+import { apiError } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 const formatRelativeTime = (date) => {
@@ -113,7 +112,7 @@ export default function SellerNotifications() {
           const unread = alerts.filter((a) => !a.read && a._id !== id).length;
           window.dispatchEvent(new CustomEvent("seller-alerts-changed", { detail: unread }));
         })
-        .catch((err) => toast.error(getApiError(err, "Could not mark as read. Try again.")));
+        .catch((err) => apiError(err, "Could not mark as read. Try again."));
     }
   };
 
@@ -123,7 +122,7 @@ export default function SellerNotifications() {
       await api.post("/api/notifications/seller/mark-all-read");
       setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
     } catch (err) {
-      toast.error(getApiError(err, "Failed to mark all as read"));
+      apiError(err, "Failed to mark all as read. Please try again.");
     } finally {
       setMarkingAll(false);
     }
@@ -142,7 +141,7 @@ export default function SellerNotifications() {
       setReply("");
       setReplyStatus({ ok: true, text: "Message sent to admin" });
     } catch (err) {
-      toast.error(getApiError(err, "Failed to send"));
+      apiError(err, "Failed to send your reply. Please try again.");
     } finally {
       setSendingReply(false);
     }

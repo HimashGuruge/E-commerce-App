@@ -6,6 +6,7 @@ import { jwtDecode } from "jwt-decode";
 import { v4 as uuidv4 } from "uuid";
 import { FiArrowLeft, FiTrash2 } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showWarning, showError, confirm, swalTheme } from "@/utils/notify";
 import QuillEditor from "@/components/shared/QuillEditor.jsx";
 
 const Colors = {
@@ -310,14 +311,11 @@ export default function EditProduct() {
     const label = Object.entries(getVariantAttributes(variant))
       .map(([k, v]) => `${k}: ${v}`)
       .join(" / ") || variant.variantSku || "this variant";
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Variant?",
       text: `Delete "${label}"? This cannot be undone.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: Colors.danger,
-      cancelButtonColor: Colors.gray,
-      confirmButtonText: "Delete",
+      danger: true,
+      confirmText: "Delete",
     });
     if (!result.isConfirmed) return;
     try {
@@ -338,9 +336,9 @@ export default function EditProduct() {
         delete next[variant._id];
         return next;
       });
-      Swal.fire({ icon: "success", title: "Deleted", text: "Variant deleted", timer: 1200, showConfirmButton: false });
+      showSuccess("Variant deleted!");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Delete Failed", text: err.response?.data?.message || err.message });
+      apiError(err, "Could not delete this variant. Please try again.");
     }
   };
 
@@ -380,6 +378,7 @@ export default function EditProduct() {
       .join("");
 
     const result = await Swal.fire({
+      ...swalTheme,
       title: "Edit Variant Values",
       html: fieldHtml,
       showCancelButton: true,
@@ -403,9 +402,9 @@ export default function EditProduct() {
     try {
       await api.patch(`/api/products/variants/${variant._id}`, { attributes: newAttrs });
       setVariants((prev) => prev.map((v) => (v._id === variant._id ? { ...v, attributes: newAttrs } : v)));
-      Swal.fire({ icon: "success", title: "Updated", text: "Variant values updated", timer: 1200, showConfirmButton: false });
+      showSuccess("Variant values updated!");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.message || err.message });
+      apiError(err, "Could not update this variant. Please try again.");
     }
   };
 
@@ -439,8 +438,8 @@ export default function EditProduct() {
     try {
       const decoded = jwtDecode(token);
       if (decoded.role !== "admin") {
-        Swal.fire({ icon: 'error', title: 'Access Denied', text: 'Only administrators can edit products.' })
-          .then(() => navigate("/"));
+        showError("Only administrators can edit products.");
+        navigate("/");
       }
     } catch {
       localStorage.removeItem("token");
@@ -460,14 +459,14 @@ export default function EditProduct() {
         if (!cancelled && res.data?.success && res.data?.product) {
           setFetchedProduct(res.data.product);
         } else if (!cancelled) {
-          Swal.fire({ icon: 'error', title: 'No Product Data', text: 'Product information not found' })
-            .then(() => navigate("/admin/dashboard/adminviewproducts"));
+          showError("Product information not found.");
+          navigate("/admin/dashboard/adminviewproducts");
           setLoading(false);
         }
       } catch {
         if (!cancelled) {
-          Swal.fire({ icon: 'error', title: 'No Product Data', text: 'Product information not found' })
-            .then(() => navigate("/admin/dashboard/adminviewproducts"));
+          showError("Product information not found.");
+          navigate("/admin/dashboard/adminviewproducts");
           setLoading(false);
         }
       }
@@ -551,7 +550,7 @@ export default function EditProduct() {
   const handleAddCategory = async () => {
     const categoryName = formData.category.trim();
     if (!categoryName) {
-      Swal.fire({ icon: 'warning', title: 'Error', text: 'Category name is required' });
+      showWarning("Category name is required.");
       return;
     }
     try {
@@ -577,9 +576,9 @@ export default function EditProduct() {
       setSelectedCatPreview(createdCat.image);
       setCategoryImage(null);
       setCategoryImagePreview(null);
-      Swal.fire({ icon: 'success', title: 'Success', text: 'Category added!' });
+      showSuccess("Category added!");
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || "Failed to add category" });
+      apiError(err, "Could not add this category. Please try again.");
     } finally {
       setUploadingCategoryImage(false);
     }
@@ -587,6 +586,7 @@ export default function EditProduct() {
 
   const handleEditCategory = async (cat) => {
     const { value: formValues } = await Swal.fire({
+      ...swalTheme,
       title: 'Edit Category',
       html: `
         <div id="swal-edit-overlay" style="display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9999; border-radius: 12px; flex-direction: column; align-items: center; justify-content: center;">
@@ -658,21 +658,18 @@ export default function EditProduct() {
         setSelectedCatPreview(updatedCat.image || "");
       }
       fetchCats();
-      Swal.fire({ icon: 'success', title: 'Updated', text: 'Category updated' });
+      showSuccess("Category updated!");
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || "Failed to update category" });
+      apiError(err, "Could not update this category. Please try again.");
     }
   };
 
   const handleDeleteCategory = async (catId, catName) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: 'Delete Category?',
       text: `Delete "${catName}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: Colors.danger,
-      cancelButtonColor: Colors.gray,
-      confirmButtonText: 'Delete',
+      danger: true,
+      confirmText: 'Delete',
     });
     if (!result.isConfirmed) return;
 
@@ -683,36 +680,28 @@ export default function EditProduct() {
         setSelectedCatPreview("");
       }
       fetchCats();
-      Swal.fire({ icon: 'success', title: 'Deleted', text: 'Category deleted' });
+      showSuccess("Category deleted!");
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || "Failed to delete category" });
+      apiError(err, "Could not delete this category. Please try again.");
     }
   };
 
   const handleDeleteProduct = async () => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: 'Delete Product?',
-      html: `<p>This will permanently delete this product${isParent ? " and all its variants" : ""}.</p><p>This action cannot be undone.</p>`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: Colors.danger,
-      cancelButtonColor: Colors.gray,
-      confirmButtonText: 'Yes, delete it',
+      text: `This will permanently delete this product${isParent ? " and all its variants" : ""}. This action cannot be undone.`,
+      danger: true,
+      confirmText: 'Yes, delete it',
     });
     if (!result.isConfirmed) return;
 
     setSaving(true);
     try {
       await api.delete(`/api/products/${data.productId}`);
-      Swal.fire({
-        icon: 'success',
-        title: 'Deleted!',
-        text: 'Product deleted successfully',
-        timer: 1500,
-        showConfirmButton: false,
-      }).then(() => navigate("/admin/dashboard/adminviewproducts"));
+      showSuccess("Product deleted!");
+      navigate("/admin/dashboard/adminviewproducts");
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Delete Failed', text: err.response?.data?.message || err.message });
+      apiError(err, "Could not delete this product. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -720,23 +709,23 @@ export default function EditProduct() {
 
   const validateForm = () => {
     if (!formData.productName.trim()) {
-      Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Product name is required' });
+      showWarning("Product name is required.");
       return false;
     }
     if (!formData.category.trim()) {
-      Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Category is required' });
+      showWarning("Category is required.");
       return false;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Please enter a valid price' });
+      showWarning("Please enter a valid price.");
       return false;
     }
     if (imagePreviews.length === 0) {
-      Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Please upload at least one image' });
+      showWarning("Please upload at least one image.");
       return false;
     }
     if (!isParent && (!formData.stock || parseInt(formData.stock) <= 0)) {
-      Swal.fire({ icon: 'error', title: 'Validation Error', text: 'Please enter a valid stock quantity' });
+      showWarning("Please enter a valid stock quantity.");
       return false;
     }
     return true;
@@ -745,14 +734,10 @@ export default function EditProduct() {
   const handleSave = async () => {
     if (!validateForm()) return;
 
-    const confirmResult = await Swal.fire({
+    const confirmResult = await confirm({
       title: 'Update Product?',
       text: "Are you sure you want to save these changes?",
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: Colors.primary,
-      cancelButtonColor: Colors.danger,
-      confirmButtonText: 'Yes, update it'
+      confirmText: 'Yes, update it'
     });
 
     if (!confirmResult.isConfirmed) return;
@@ -851,12 +836,12 @@ export default function EditProduct() {
       }
 
       setProgress(100);
-      Swal.fire({ icon: 'success', title: 'Success!', text: 'Product updated successfully', timer: 1500, showConfirmButton: false })
-        .then(() => navigate("/admin/dashboard/adminviewproducts"));
+      showSuccess("Product updated successfully!");
+      navigate("/admin/dashboard/adminviewproducts");
 
     } catch (err) {
       console.error("Update failed:", err);
-      Swal.fire({ icon: 'error', title: 'Update Failed', text: err.response?.data?.message || err.message });
+      apiError(err, "Could not save this product. Please try again.");
     } finally {
       setSaving(false);
       setProgress(0);
@@ -1249,14 +1234,10 @@ export default function EditProduct() {
               <button 
                   onClick={async () => {
                     if (!validateForm()) return;
-                    const confirmResult = await Swal.fire({
+                    const confirmResult = await confirm({
                       title: 'Add New Variants?',
                       text: `This will add ${generateNewVariants().length} new variants to this product.`,
-                      icon: 'question',
-                      showCancelButton: true,
-                      confirmButtonColor: Colors.primary,
-                      cancelButtonColor: Colors.danger,
-                      confirmButtonText: 'Yes, add them'
+                      confirmText: 'Yes, add them'
                     });
                     if (!confirmResult.isConfirmed) return;
 
@@ -1311,7 +1292,7 @@ export default function EditProduct() {
                         { variants: variantsPayload }
                       );
 
-                    Swal.fire({ icon: 'success', title: 'Success!', text: `Added ${generatedVariants.length} new variants!`, timer: 1500, showConfirmButton: false });
+                    showSuccess(`Added ${generatedVariants.length} new variants!`);
 
                     // Reset and reload
                     setNewVariantAttributes([]);
@@ -1326,7 +1307,7 @@ export default function EditProduct() {
                     fetchVariants(data.productId);
                   } catch (err) {
                     console.error("Add variants failed:", err);
-                    Swal.fire({ icon: 'error', title: 'Failed', text: err.response?.data?.message || err.message });
+                    apiError(err, "Could not add these variants. Please try again.");
                   } finally {
                     setSaving(false);
                   }

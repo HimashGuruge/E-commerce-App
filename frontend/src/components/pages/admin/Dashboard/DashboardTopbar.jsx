@@ -9,6 +9,7 @@ import {
   MdShoppingCart,
   MdCampaign,
   MdStore,
+  MdLocalShipping,
 
 } from "react-icons/md";
 import { RxDashboard } from "react-icons/rx";
@@ -20,6 +21,7 @@ const PAGE_TITLES = {
   "addproducts": "Add Product",
   "editproducts": "Edit Product",
   "orders": "Orders",
+  "domex": "Domex Monitor",
   "coupons": "Coupons",
   "payouts": "Payouts",
   "returns": "Returns",
@@ -37,6 +39,7 @@ const DASHBOARD_ROUTES = [
   { label: "View Products",    path: "/admin/dashboard/adminviewproducts", icon: MdOutlineGridView, keywords: ["products", "inventory", "list", "all"] },
   { label: "Add Product",      path: "/admin/dashboard/addproducts",  icon: MdAddBox,             keywords: ["create", "new", "add product"] },
   { label: "Orders",           path: "/admin/dashboard/orders",       icon: MdShoppingCart,       keywords: ["sales", "transactions", "purchases"] },
+  { label: "Domex Monitor",    path: "/admin/dashboard/domex",        icon: MdLocalShipping,        keywords: ["delivery", "shipping", "tracking", "domex", "shipments", "courier"] },
   { label: "Customer Support", path: "/admin/dashboard/notification", icon: MdChat,             keywords: ["chat", "messages", "support", "inbox"] },
   { label: "Home & Marketing", path: "/admin/dashboard/home-marketing", icon: MdCampaign,         keywords: ["features", "services", "ads", "announcements", "trending", "campaigns", "marketing", "promotions"] },
   { label: "Users",            path: "/admin/dashboard/user-privileges", icon: TbUserShield,      keywords: ["users", "permissions", "roles", "customers"] },

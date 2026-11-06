@@ -105,9 +105,27 @@ function AppLayout() {
         <Toaster
           position="top-center"
           toastOptions={{
-            style: { fontSize: "14px" },
-            success: { duration: 3000 },
-            error: { duration: 4000 },
+            duration: 4000,
+            style: {
+              fontSize: "14px",
+              borderRadius: "0.75rem",
+              boxShadow: "0 10px 30px -10px rgba(15, 23, 42, 0.35)",
+              padding: "0.7rem 1rem",
+            },
+            success: {
+              duration: 3000,
+              iconTheme: { primary: "#059669", secondary: "#ffffff" },
+              style: { borderLeft: "3px solid #059669", background: "#f0fdf4" },
+            },
+            error: {
+              duration: 5000,
+              iconTheme: { primary: "#dc2626", secondary: "#ffffff" },
+              style: { borderLeft: "3px solid #dc2626", background: "#fef2f2" },
+            },
+            info: {
+              iconTheme: { primary: "#2563eb", secondary: "#ffffff" },
+              style: { borderLeft: "3px solid #2563eb", background: "#eff6ff" },
+            },
           }}
         />
         {!isDashboard && <Navbar />}

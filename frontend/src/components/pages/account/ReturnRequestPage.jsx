@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "@/utils/api";
-import Swal from "sweetalert2";
-import getApiError from "@/utils/errors";
+import { apiError, showSuccess, showWarning } from "@/utils/notify";
 import { FiPackage, FiCheckCircle, FiXCircle, FiAlertTriangle, FiPhone, FiMail, FiCalendar } from "react-icons/fi";
 
 export default function ReturnRequestPage() {
@@ -39,7 +38,7 @@ export default function ReturnRequestPage() {
       }
     } catch (err) {
       console.error("Failed to fetch order:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Order not found" });
+      apiError(err, "We could not find this order. Please check the link and try again.");
     } finally {
       setLoading(false);
     }
@@ -47,7 +46,7 @@ export default function ReturnRequestPage() {
 
   const handleSubmit = async () => {
     if (formData.reason === "other" && !formData.reasonText.trim()) {
-      Swal.fire({ icon: "warning", title: "Missing Info", text: "Please specify your return reason" });
+      showWarning("Please specify your return reason.");
       return;
     }
 
@@ -68,19 +67,13 @@ export default function ReturnRequestPage() {
       });
 
       if (res.data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Return Request Submitted!",
-          text: "You will receive an email with return instructions shortly.",
-          timer: 3000,
-          showConfirmButton: false
-        });
+        showSuccess("Return request submitted! You will receive an email with return instructions shortly.");
 
         navigate("/orders");
       }
     } catch (err) {
       console.error("Failed to submit return:", err);
-      Swal.fire({ icon: "error", title: "Error", text: getApiError(err, "Failed to submit return request") });
+      apiError(err, "Could not submit your return request. Please try again.");
     }
   };
 

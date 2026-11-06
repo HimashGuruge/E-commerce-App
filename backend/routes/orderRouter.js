@@ -16,6 +16,14 @@ import {
 
 import authMiddleware, { adminOnly } from "../middleware/authMiddleware.js";
 
+import {
+  adminTrackingSummary,
+  adminTrackingShipments,
+  adminTrackingSellers,
+  adminTrackingSync,
+  adminTrackingOverride,
+} from "../controller/trackingAdminController.js";
+
 const router = express.Router();
 
 /**
@@ -46,7 +54,14 @@ router.put("/mark-seen", authMiddleware, markOrdersAsSeen);
 
 router.get("/userplace/orders", authMiddleware, adminGetAllOrders);
 
-router.get("/admin/sync-domex", syncDomexStatus);
+router.get("/admin/sync-domex", adminOnly, syncDomexStatus);
+
+// Admin Domex monitoring (all adminOnly)
+router.get("/admin/tracking/summary", adminOnly, adminTrackingSummary);
+router.get("/admin/tracking/shipments", adminOnly, adminTrackingShipments);
+router.get("/admin/tracking/sellers", adminOnly, adminTrackingSellers);
+router.post("/admin/tracking/sync", adminOnly, adminTrackingSync);
+router.post("/admin/tracking/orders/:orderId/override", adminOnly, adminTrackingOverride);
 
 router.get("/:orderId", authMiddleware, getOrderById);
 

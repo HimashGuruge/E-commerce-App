@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { showSuccess, showWarning } from "@/utils/notify";
 import EmailSidebar from "./EmailSidebar.jsx";
 import EmailTopBar from "./EmailTopBar.jsx";
 import EmailList from "./EmailList.jsx";
@@ -211,28 +211,28 @@ export default function EmailPage() {
 
   const archive = (id) => {
     patch(id, (m) => ({ ...m, archived: true }));
-    toast.success("Archived (mock)");
+    showSuccess("Archived (mock)");
   };
   const trash = (id) => {
     patch(id, (m) => ({ ...m, folder: "trash" }));
-    toast.success("Moved to Trash");
+    showSuccess("Moved to Trash");
   };
   const spam = (id) => {
     patch(id, (m) => ({ ...m, folder: "spam" }));
-    toast.success("Reported as spam");
+    showSuccess("Reported as spam");
   };
   const notSpam = (id) => {
     patch(id, (m) => ({ ...m, folder: "inbox", read: m.read }));
-    toast.success("Marked as not spam");
+    showSuccess("Marked as not spam");
   };
   const restore = (id) => {
     patch(id, (m) => ({ ...m, folder: "inbox" }));
-    toast.success("Restored to Inbox");
+    showSuccess("Restored to Inbox");
   };
   const deleteForever = (id) => {
     setEmails((prev) => prev.filter((m) => m.id !== id));
     if (openId === id) setOpenId(null);
-    toast.success("Deleted forever");
+    showSuccess("Deleted forever");
   };
 
   const computeSnooze = (o) => {
@@ -245,7 +245,7 @@ export default function EmailPage() {
 
   const snooze = (id, option) => {
     patch(id, (m) => ({ ...m, snoozedUntil: computeSnooze(option).toISOString(), read: true }));
-    toast.success(`Snoozed until ${computeSnooze(option).toLocaleString("en-GB")}`);
+    showSuccess(`Snoozed until ${computeSnooze(option).toLocaleString("en-GB")}`);
   };
 
   const markRead = (id) => patch(id, (m) => ({ ...m, read: true }));
@@ -260,7 +260,7 @@ export default function EmailPage() {
     if (key === "deleteForever") {
       setEmails((prev) => prev.filter((m) => !ids.has(m.id)));
       if (openId && ids.has(openId)) setOpenId(null);
-      toast.success("Deleted forever");
+      showSuccess("Deleted forever");
     } else {
       setEmails((prev) =>
         prev.map((m) => {
@@ -286,7 +286,7 @@ export default function EmailPage() {
         })
       );
       if (openId && ids.has(openId) && key !== "read") setOpenId(null);
-      toast.success("Done");
+      showSuccess("Done");
     }
     setSelected([]);
   };
@@ -384,7 +384,7 @@ export default function EmailPage() {
           ...prev,
         ];
       });
-      toast.success("Draft saved");
+      showSuccess("Draft saved");
     }
     setCompose(CLOSED_COMPOSE);
   };
@@ -392,7 +392,7 @@ export default function EmailPage() {
   const sendCompose = () => {
     const toArr = parseRecipients(compose.to);
     if (toArr.length === 0) {
-      toast.error("Add at least one recipient in “To”");
+      showWarning("Please add at least one recipient in the “To” field.");
       return;
     }
     const subject = compose.subject.trim() || "(no subject)";
@@ -420,7 +420,7 @@ export default function EmailPage() {
     ]);
     setCompose(CLOSED_COMPOSE);
     if (folder !== "sent") setFolder("sent");
-    toast.success("Saved to Sent (mock — no real email was sent)", { icon: "📬" });
+    showSuccess("Saved to Sent (mock — no real email was sent)");
   };
 
   // --------------------------- navigation etc. ---------------------------

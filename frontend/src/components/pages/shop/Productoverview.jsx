@@ -43,6 +43,7 @@ import {
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showError, showWarning, showInfo, confirm, swalTheme } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 export default function ProductOverview() {
@@ -197,7 +198,7 @@ export default function ProductOverview() {
   const askQuestion = async () => {
     const { token } = getCurrentUser();
     if (!token) {
-      Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to ask a question' });
+      showInfo("Please login to ask a question.");
       return;
     }
     if (!questionText.trim()) {
@@ -211,10 +212,10 @@ export default function ProductOverview() {
         setQuestions(prev => [data.question, ...prev]);
         setQuestionText("");
         setShowQaModal(false);
-        Swal.fire({ icon: 'success', title: 'Question Posted', text: 'Your question has been submitted', timer: 2000, showConfirmButton: false });
+        showSuccess("Your question has been submitted.");
       }
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.error || 'Failed to post question' });
+      apiError(err, "Could not post your question. Please try again.");
     } finally {
       setSubmittingQuestion(false);
     }
@@ -230,7 +231,7 @@ export default function ProductOverview() {
         setAnsweringQuestionId(null);
       }
     } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.error || 'Failed to submit answer' });
+      apiError(err, "Could not submit your answer. Please try again.");
     }
   };
 
@@ -434,34 +435,19 @@ export default function ProductOverview() {
     if (!data) return;
 
     if (showVariantSelector && !selectedVariant) {
-      await Swal.fire({
-        icon: "info",
-        title: "Select Options",
-        text: "Please select all options before adding to cart",
-        confirmButtonColor: "#0f172a",
-      });
+      showInfo("Please select all options before adding to cart.");
       return;
     }
 
     const stockToCheck = showVariantSelector ? currentStock : data.stock;
     
     if (quantity > stockToCheck) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Insufficient Stock",
-        text: `Only ${stockToCheck} items available.`,
-        confirmButtonColor: "#0f172a",
-      });
+      showWarning(`Only ${stockToCheck} items available.`);
       return;
     }
 
     if (cartQuantity + quantity > stockToCheck) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Stock Limit Exceeded",
-        text: `You already have ${cartQuantity} in cart. Total stock is ${stockToCheck}. You can add ${stockToCheck - cartQuantity} more.`,
-        confirmButtonColor: "#0f172a",
-      });
+      showWarning(`You already have ${cartQuantity} in cart. Total stock is ${stockToCheck}. You can add ${stockToCheck - cartQuantity} more.`);
       return;
     }
 
@@ -489,32 +475,17 @@ export default function ProductOverview() {
         updateCartQuantity();
       }
 
-      await Swal.fire({
-        icon: "success",
-        title: "Added to Cart!",
-        html: `
-          <div class="text-left">
-            <p class="font-bold">${data.productName}</p>
-            ${hasVariants ? `<p class="text-sm text-gray-600">${Object.entries(selectedAttributes).map(([k, v]) => `${k}: ${v}`).join(', ')}</p>` : ''}
-            <p class="text-sm text-gray-600">Quantity: ${quantity}</p>
-          </div>
-        `,
-        toast: true,
-        position: "top-end",
-        timer: 3000,
-        showConfirmButton: false,
-        background: "#1e293b",
-        color: "#fff",
-      });
+      const cartDetails = [
+        hasVariants ? Object.entries(selectedAttributes).map(([k, v]) => `${k}: ${v}`).join(", ") : "",
+        `Quantity: ${quantity}`,
+      ]
+        .filter(Boolean)
+        .join(" | ");
+      showSuccess(`Added "${data.productName}" to cart${cartDetails ? ` - ${cartDetails}` : ""}`);
 
       setQuantity(1);
     } catch (err) {
-      await Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Failed to add to cart. Please try again.",
-        confirmButtonColor: "#0f172a",
-      });
+      showError("Failed to add to cart. Please try again.");
     } finally {
       setAddingToCart(false);
     }
@@ -524,24 +495,14 @@ export default function ProductOverview() {
     if (!data || isOutOfStock) return;
 
     if (showVariantSelector && !selectedVariant) {
-      Swal.fire({
-        icon: "info",
-        title: "Select Options",
-        text: "Please select all options before proceeding",
-        confirmButtonColor: "#0f172a",
-      });
+      showInfo("Please select all options before proceeding.");
       return;
     }
 
     const stockToCheck = showVariantSelector ? currentStock : data.stock;
     
     if (quantity > stockToCheck) {
-      Swal.fire({
-        icon: "warning",
-        title: "Insufficient Stock",
-        text: `Only ${stockToCheck} items available.`,
-        confirmButtonColor: "#0f172a",
-      });
+      showWarning(`Only ${stockToCheck} items available.`);
       return;
     }
 
@@ -602,15 +563,12 @@ export default function ProductOverview() {
       const res = await api.get("/api/addresses");
       const addresses = res.data?.addresses || res.data?.data || [];
       if (addresses.length === 0) {
-        Swal.fire({
-          icon: "warning",
+        const result = await confirm({
           title: "No Address",
           text: "Please add a delivery address first.",
-          confirmButtonText: "Add Address",
-          confirmButtonColor: "#0f172a",
-        }).then(({ isConfirmed }) => {
-          if (isConfirmed) navigate("/profile");
+          confirmText: "Add Address",
         });
+        if (result.isConfirmed) navigate("/profile");
         return;
       }
       navigate("/profile");
@@ -696,7 +654,7 @@ export default function ProductOverview() {
   const openSellerChat = () => {
     const { userId } = getCurrentUser();
     if (!userId) {
-      Swal.fire({ icon: "info", title: "Login Required", text: "Please login to chat with this seller", timer: 3200, timerProgressBar: true, showConfirmButton: false });
+      showInfo("Please login to chat with this seller.");
       return;
     }
     if (!product?.seller?._id) {
@@ -714,11 +672,11 @@ export default function ProductOverview() {
     // Point them to where incoming buyer messages actually land.
     if (String(userId) === String(product.seller._id)) {
       Swal.fire({
+        ...swalTheme,
         icon: "info",
         title: "Your product",
         text: "This is your own product, so there is no buyer to chat with here. Incoming buyer messages about this product will arrive in your Seller Dashboard → Messages.",
         timer: 4500,
-        timerProgressBar: true,
         showConfirmButton: false,
       });
       return;
@@ -863,14 +821,14 @@ export default function ProductOverview() {
     if (!searchParams.get("review")) return;
     const { userId } = getCurrentUser();
     if (userId) setShowReviewModal(true);
-    else Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to write a review' });
+    else showInfo("Please login to write a review.");
     setSearchParams({}, { replace: true });
   }, [searchParams]);
 
   // Submit review
   const submitReview = async () => {
     if (!reviewRating || !reviewComment.trim()) {
-      await Swal.fire({ icon: 'warning', title: 'Missing Info', text: 'Please provide rating and comment' });
+      showWarning("Please provide a rating and a comment.");
       return;
     }
     setSubmittingReview(true);
@@ -898,7 +856,7 @@ export default function ProductOverview() {
       });
 
       if (res.data.success) {
-        await Swal.fire({ icon: 'success', title: 'Thank You!', text: 'Your review has been submitted for moderation' });
+        showSuccess("Thank you! Your review has been submitted for moderation.");
         setShowReviewModal(false);
         setReviewRating(0);
         setReviewComment("");
@@ -911,7 +869,7 @@ export default function ProductOverview() {
       }
     } catch (err) {
       console.error('Submit review error:', err.response?.data, err);
-      await Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.message || 'Failed to submit review' });
+      apiError(err, "Could not submit your review. Please try again.");
     } finally {
       setSubmittingReview(false);
     }
@@ -929,11 +887,11 @@ export default function ProductOverview() {
   const openEditModal = (review) => {
     const { userId } = getCurrentUser();
     if (!userId || review.userId?.toString() !== userId?.toString()) {
-      Swal.fire({ icon: 'warning', title: 'Cannot Edit', text: 'You can only edit your own reviews' });
+      showWarning("You can only edit your own reviews.");
       return;
     }
     if (review.status === 'flagged' || review.status === 'removed') {
-      Swal.fire({ icon: 'warning', title: 'Cannot Edit', text: 'This review cannot be edited' });
+      showWarning("This review cannot be edited.");
       return;
     }
     setEditingReview(review);
@@ -946,7 +904,7 @@ export default function ProductOverview() {
 
   const updateReview = async () => {
     if (!editRating || !editComment.trim()) {
-      await Swal.fire({ icon: 'warning', title: 'Missing Info', text: 'Please provide rating and comment' });
+      showWarning("Please provide a rating and a comment.");
       return;
     }
     setUpdatingReview(true);
@@ -974,11 +932,7 @@ export default function ProductOverview() {
         }
       );
       if (res.data.success) {
-        await Swal.fire({ 
-          icon: 'success', 
-          title: 'Updated!', 
-          text: res.data.message || 'Your review has been submitted for re-approval' 
-        });
+        showSuccess(res.data.message || "Your review has been submitted for re-approval.");
         setShowEditModal(false);
         setEditingReview(null);
         fetchReviews();
@@ -987,31 +941,30 @@ export default function ProductOverview() {
         fetchRatingDistribution();
       }
     } catch (err) {
-      await Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.message || 'Failed to update review' });
+      apiError(err, "Could not update your review. Please try again.");
     } finally {
       setUpdatingReview(false);
     }
   };
 
   const deleteReview = async (reviewId) => {
-    const confirm = await Swal.fire({
-      title: 'Delete Review?',
-      text: 'Are you sure you want to delete this review?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
+    const result = await confirm({
+      title: "Delete Review?",
+      text: "Are you sure you want to delete this review?",
+      danger: true,
+      confirmText: "Delete",
     });
-    if (!confirm.isConfirmed) return;
+    if (!result.isConfirmed) return;
 
     try {
       await api.delete(`/api/feedback/${reviewId}`);
-      await Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Your review has been deleted' });
+      showSuccess("Your review has been deleted.");
       fetchReviews();
       fetchUserReviews();
       fetchRatingStats();
       fetchRatingDistribution();
     } catch (err) {
-      await Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.message || 'Failed to delete review' });
+      apiError(err, "Could not delete this review. Please try again.");
     }
   };
 
@@ -1272,7 +1225,7 @@ export default function ProductOverview() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(window.location.href);
-                      Swal.fire({ icon: 'success', title: 'Link Copied!', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                      showSuccess("Link copied!");
                     }}
                     className="p-1.5 rounded-full transition hover:bg-gray-100 text-gray-400 hover:text-gray-600"
                     title="Share"
@@ -1850,17 +1803,13 @@ export default function ProductOverview() {
                   onClick={() => {
                     const { userId } = getCurrentUser();
                     if (!userId) {
-                      Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to write a review' });
+                      showInfo("Please login to write a review.");
                       return;
                     }
                     // Eligible = bought + delivered, and haven't reviewed yet.
                     // Fallback to true while unknown so we never block a valid buyer.
                     if (canReviewState === false) {
-                      Swal.fire({
-                        icon: 'info',
-                        title: 'Purchase Required',
-                        text: 'You can only review products you have purchased and received.',
-                      });
+                      showInfo("You can only review products you have purchased and received.");
                       return;
                     }
                     setShowReviewModal(true);
@@ -2027,7 +1976,7 @@ export default function ProductOverview() {
               onClick={() => {
                 const { token } = getCurrentUser();
                 if (!token) {
-                  Swal.fire({ icon: 'info', title: 'Login Required', text: 'Please login to ask a question' });
+                  showInfo("Please login to ask a question.");
                   return;
                 }
                 setShowQaModal(true);

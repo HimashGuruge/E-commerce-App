@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { loadCart, deleteItem, updateItemQty, saveCart } from "@/components/utils/Cart";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import { showSuccess, showInfo, showError, apiError, confirm, swalTheme } from "@/utils/notify";
 import { useNavigate } from "react-router-dom";
 import usePublicSettings from "@/hooks/usePublicSettings";
 import {
@@ -144,13 +145,7 @@ export default function ViewCart() {
           couponError: data.couponError || null,
           message: data.message || "",
         });
-        Swal.fire({
-          icon: "success",
-          title: "Coupon applied",
-          text: `You saved Rs. ${(data.coupon?.discountAmount || 0).toLocaleString()} on this order.`,
-          timer: 2500,
-          showConfirmButton: false,
-        });
+        showSuccess(`Coupon applied — you saved Rs. ${(data.coupon?.discountAmount || 0).toLocaleString()}.`);
       } else if (data?.couponError) {
         appliedCoupon.current = "";
         setQuoteData((prev) => ({ ...prev, coupon: null, couponError: data.couponError }));
@@ -209,30 +204,14 @@ export default function ViewCart() {
         if (filteredCart.length !== updatedCart.length) {
           needsUpdate = true;
           saveCart(filteredCart);
-          Swal.fire({
-            icon: "info",
-            title: "Items Removed",
-            text: `${data.missing.length} product(s) no longer available and removed from cart.`,
-            toast: true,
-            position: "top-end",
-            showConfirmButton: false,
-            timer: 3000,
-          });
+          showInfo(`${data.missing.length} product(s) no longer available and removed from your cart.`);
         }
       }
 
       if (needsUpdate) {
         saveCart(updatedCart);
         quoteFetchRef.current?.();
-        Swal.fire({
-          icon: "info",
-          title: "Cart Updated",
-          text: "Some items were updated due to stock changes.",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 3000,
-        });
+        showInfo("Some items were updated due to stock changes.");
       }
     } catch (error) {
       console.error("Batch stock check error:", error);
@@ -258,15 +237,7 @@ export default function ViewCart() {
     const newQty = currentQty + change;
     if (newQty < 1 || newQty > maxStock) {
       if (newQty > maxStock) {
-        Swal.fire({
-          icon: "info",
-          title: "Maximum Quantity Reached",
-          text: `Only ${maxStock} items available in stock.`,
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+        showInfo(`Only ${maxStock} items available in stock.`);
       }
       return;
     }
@@ -284,14 +255,11 @@ export default function ViewCart() {
   };
 
   const handleDelete = (productId, productName, variantSku) => {
-    Swal.fire({
+    confirm({
       title: "Remove Item?",
-      text: `Do you want to remove "${productName}" from cart?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, remove",
+      text: `Do you want to remove "${productName}" from your cart?`,
+      danger: true,
+      confirmText: "Yes, remove",
     }).then((result) => {
       if (result.isConfirmed) {
         deleteItem(productId, variantSku);
@@ -314,6 +282,7 @@ export default function ViewCart() {
     const exceedingStockItems = quoteData.orderedItems.filter((item) => item.qty > item.stock);
     if (exceedingStockItems.length > 0) {
       Swal.fire({
+        ...swalTheme,
         icon: "warning",
         title: "Quantity Exceeds Stock",
         html: `
@@ -346,6 +315,7 @@ export default function ViewCart() {
         const finalTotal = quoteData.total + quoteData.shipping;
 
         Swal.fire({
+          ...swalTheme,
           title: "Confirm Checkout",
           html: `
             <div class="text-left text-sm p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -380,19 +350,11 @@ export default function ViewCart() {
           })
           .join("\n");
 
-        Swal.fire({
-          icon: "error",
-          title: "Stock Error",
-          html: `<p class="text-left">${issueMessages}</p>`,
-        });
+        showError(`Some items are out of stock:\n${issueMessages}`);
         fetchQuote(token);
       }
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.response?.data?.message || "Failed to verify stock",
-      });
+      apiError(error, "Could not verify your cart's stock. Please try again.");
       fetchQuote(token);
     } finally {
       setLoading(false);

@@ -3,6 +3,7 @@ import { FiPercent, FiDollarSign, FiCheckCircle, FiX, FiEye, FiTrash2, FiInfo, F
 import api from "@/utils/api";
 import { getPublicSettings } from "@/utils/siteSettings";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showWarning, swalTheme } from "@/utils/notify";
 
 const rs = (n) => `Rs. ${(Number(n) || 0).toLocaleString()}`;
 const dstr = (d) =>
@@ -73,12 +74,15 @@ export default function SellerCommission() {
   // ---------------- Submit ----------------
   const submit = async () => {
     const amount = Number(paidAmount);
-    if (!from || !to) return Swal.fire({ icon: "error", title: "Pick a start and end date" });
-    if (new Date(to) < new Date(from)) return Swal.fire({ icon: "error", title: "End date must be on or after the start date" });
-    if (paidAmount === "" || !Number.isFinite(amount) || amount < 0)
-      return Swal.fire({ icon: "error", title: "Enter the amount you paid (Rs.)" });
+    if (!from || !to) { showWarning("Please pick a start and end date."); return; }
+    if (new Date(to) < new Date(from)) { showWarning("The end date must be on or after the start date."); return; }
+    if (paidAmount === "" || !Number.isFinite(amount) || amount < 0) {
+      showWarning("Please enter the amount you paid (Rs.).");
+      return;
+    }
 
     const ok = await Swal.fire({
+      ...swalTheme,
       icon: "question",
       title: "Submit commission payment",
       html: `Period: <b>${dstr(from)} → ${dstr(to)}</b><br/>Paid: <b>${rs(amount)}</b><br/><br/>The platform will verify the amount and your proof.`,
@@ -103,7 +107,7 @@ export default function SellerCommission() {
       const res = await api.post("/api/sellers/commission/payments", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      Swal.fire({ icon: "success", title: "Submitted", timer: 1500, showConfirmButton: false });
+      showSuccess("Submitted!");
       setPaidAmount(""); setPaymentMethod(""); setPaymentRef(""); setNote("");
       setPaidAt(new Date().toISOString().slice(0, 10));
       setFile(null);
@@ -117,10 +121,7 @@ export default function SellerCommission() {
         window.open(proofRes.data.proof.signedUrl, "_blank", "noopener");
       } catch {}
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: err.response?.data?.error || err.response?.data?.message || "Submission failed",
-      });
+      apiError(err, "Could not submit this payment. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -132,28 +133,29 @@ export default function SellerCommission() {
       const res = await api.get(`/api/sellers/commission/my-proof/${p._id}`);
       window.open(res.data.proof.signedUrl, "_blank", "noopener");
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.message || "Could not open the proof" });
+      apiError(err, "Could not open the proof. Please try again.");
     }
   };
 
   // ---------------- Cancel a pending submission ----------------
   const cancel = async (p) => {
     const ok = await Swal.fire({
-      icon: "question",
+      ...swalTheme,
+      icon: "warning",
       title: "Cancel this submission?",
       text: "The uploaded proof will be deleted. You can submit again for this period.",
       showCancelButton: true,
       confirmButtonText: "Cancel submission",
-      confirmButtonColor: "#ef4444",
+      confirmButtonColor: "#dc2626",
       reverseButtons: true,
     });
     if (!ok.isConfirmed) return;
     try {
       await api.delete(`/api/sellers/commission/payments/${p._id}`);
-      Swal.fire({ icon: "success", title: "Cancelled", timer: 1500, showConfirmButton: false });
+      showSuccess("Cancelled.");
       refresh();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.message || "Could not cancel" });
+      apiError(err, "Could not cancel this submission. Please try again.");
     }
   };
 

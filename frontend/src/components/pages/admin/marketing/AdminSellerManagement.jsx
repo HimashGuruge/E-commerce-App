@@ -4,6 +4,7 @@ import { FiUsers, FiCheck, FiX, FiAlertCircle, FiSearch, FiToggleLeft, FiPercent
 import { MdStore, MdCheckCircle, MdCancel, MdBlock } from "react-icons/md";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showInfo, confirm, swalTheme } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 const statusColors = {
@@ -54,65 +55,62 @@ export default function AdminSellerManagement() {
   }, [fetchSellers]);
 
   const handleApprove = async (id, name) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Approve Seller?",
       text: `Approve "${name}" to start selling?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#10b981",
-      confirmButtonText: "Approve",
+      confirmText: "Approve",
     });
     if (!result.isConfirmed) return;
     try {
       await api.put(`/api/sellers/admin/${id}/approve`);
-      Swal.fire({ icon: "success", title: `${name} approved!`, timer: 1500, showConfirmButton: false });
+      showSuccess(`${name} approved.`);
       fetchSellers();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || "Failed to approve" });
+      apiError(err, "Could not approve this seller. Please try again.");
     }
   };
 
   const handleReject = async (id) => {
     const { value: reason } = await Swal.fire({
+      ...swalTheme,
       title: "Reject Seller",
       input: "text",
       inputLabel: "Reason for rejection",
       inputPlaceholder: "Enter reason...",
       showCancelButton: true,
-      confirmButtonColor: "#ef4444",
       confirmButtonText: "Reject",
+      confirmButtonColor: "#ef4444",
     });
     if (!reason) return;
     try {
       await api.put(`/api/sellers/admin/${id}/reject`, { reason });
-      Swal.fire({ icon: "info", title: "Seller rejected", timer: 1500, showConfirmButton: false });
+      showInfo("Seller rejected.");
       fetchSellers();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Failed to reject" });
+      apiError(err, "Could not reject this seller. Please try again.");
     }
   };
 
   const handleSuspend = async (id, name) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Suspend Seller?",
       text: `Suspend "${name}"? They will not be able to sell until re-activated.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Suspend",
+      danger: true,
+      confirmText: "Suspend",
     });
     if (!result.isConfirmed) return;
     try {
       await api.put(`/api/sellers/admin/${id}/suspend`);
-      Swal.fire({ icon: "success", title: "Suspended", timer: 1500, showConfirmButton: false });
+      showSuccess("Seller suspended.");
       fetchSellers();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Failed to suspend" });
+      apiError(err, "Could not suspend this seller. Please try again.");
     }
   };
 
   const handleCommission = async (id, current) => {
     const { value: rate } = await Swal.fire({
+      ...swalTheme,
       title: "Set Commission Rate",
       input: "number",
       inputValue: current || 0,
@@ -123,10 +121,10 @@ export default function AdminSellerManagement() {
     if (rate === undefined) return;
     try {
       await api.put(`/api/sellers/admin/${id}/commission`, { commissionRate: Number(rate) });
-      Swal.fire({ icon: "success", title: "Commission updated!", timer: 1500, showConfirmButton: false });
+      showSuccess("Commission updated.");
       fetchSellers();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Failed to update commission" });
+      apiError(err, "Could not update the commission rate. Please try again.");
     }
   };
 
@@ -153,7 +151,7 @@ export default function AdminSellerManagement() {
     setAlertSending(true);
     try {
       await api.post(`/api/notifications/admin/seller/${alertTarget.user._id}`, { title, message });
-      Swal.fire({ icon: "success", title: `Alert sent to ${alertTarget.shopName}`, timer: 1500, showConfirmButton: false });
+      showSuccess(`Alert sent to ${alertTarget.shopName}.`);
       closeAlertModal();
     } catch (err) {
       setAlertError(err.response?.data?.error || "Failed to send alert");

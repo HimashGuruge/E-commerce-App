@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiPackage, FiEdit2, FiTrash2, FiPlus, FiSearch, FiAlertCircle } from "react-icons/fi";
 import { MdCheckCircle, MdOutlinePendingActions } from "react-icons/md";
 import api from "@/utils/api";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 
 export default function SellerProducts() {
   const navigate = useNavigate();
@@ -25,21 +25,19 @@ export default function SellerProducts() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const handleDelete = async (id, name) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Product?",
       text: `Are you sure you want to delete "${name}"?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Delete",
+      danger: true,
+      confirmText: "Delete",
     });
     if (!result.isConfirmed) return;
     try {
       await api.delete(`/api/products/${id}`);
       await fetchProducts();
-      Swal.fire({ icon: "success", title: "Deleted!", timer: 1500, showConfirmButton: false });
+      showSuccess("Product deleted!");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Failed to delete" });
+      apiError(err, "Could not delete this product. Please try again.");
     }
   };
 

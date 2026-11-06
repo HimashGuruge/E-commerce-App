@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, showWarning, showError, confirm, swalTheme } from "@/utils/notify";
 import QuillEditor from "@/components/shared/QuillEditor.jsx";
 
 const Colors = {
@@ -110,7 +111,7 @@ export default function AddProducts() {
   const handleAddCategory = async () => {
     const categoryName = formData.category.trim();
     if (!categoryName) {
-      Swal.fire({ icon: "warning", title: "Error", text: "Category name is required" });
+      showWarning("Category name is required.");
       return;
     }
     try {
@@ -132,10 +133,10 @@ export default function AddProducts() {
       setFormData(prev => ({ ...prev, category: createdCat.name }));
       setCategoryImage(null);
       setCategoryImagePreview(null);
-      Swal.fire({ icon: "success", title: "Success", text: "Category added!" });
+      showSuccess("Category added!");
     } catch (err) {
       console.error("Add category error:", err);
-      Swal.fire({ icon: "error", title: "Error", text: err?.response?.data?.message || "Failed to add category" });
+      apiError(err, "Could not add this category. Please try again.");
     } finally {
       setUploadingCategoryImage(false);
     }
@@ -143,6 +144,7 @@ export default function AddProducts() {
 
 const handleEditCategory = async (cat) => {
     const { value: formValues } = await Swal.fire({
+      ...swalTheme,
       title: "Edit Category",
       html: `
         <div id="swal-edit-overlay" style="display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9999; border-radius: 12px; flex-direction: column; align-items: center; justify-content: center;">
@@ -210,31 +212,28 @@ const handleEditCategory = async (cat) => {
       });
       console.log("Patch response:", res.data);
       await fetchCats();
-      Swal.fire({ icon: "success", title: "Updated", text: "Category updated" });
+      showSuccess("Category updated!");
     } catch (err) {
       console.error("Edit category error:", err);
-      Swal.fire({ icon: "error", title: "Error", text: err?.response?.data?.message || "Failed to update category" });
+      apiError(err, "Could not update this category. Please try again.");
     }
   };
 
   const handleDeleteCategory = async (catId, catName) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Category?",
       text: `Delete "${catName}"?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: Colors.danger,
-      cancelButtonColor: Colors.gray,
-      confirmButtonText: "Delete",
+      danger: true,
+      confirmText: "Delete",
     });
     if (!result.isConfirmed) return;
 
     try {
       await api.delete(`/api/categories/${catId}`);
       await fetchCats();
-      Swal.fire({ icon: "success", title: "Deleted", text: "Category deleted" });
+      showSuccess("Category deleted!");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: err?.response?.data?.message || "Failed to delete category" });
+      apiError(err, "Could not delete this category. Please try again.");
     }
   };
 
@@ -337,7 +336,7 @@ const handleEditCategory = async (cat) => {
       }
     } catch (err) {
       console.error("Error fetching product:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to load product data" });
+      showError("Could not load product data. Please try again.");
     } finally {
       setLoadingProduct(false);
     }
@@ -503,31 +502,31 @@ const handleEditCategory = async (cat) => {
 
   const validateForm = () => {
     if (!formData.productName.trim()) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Product name is required" });
+      showWarning("Product name is required.");
       return false;
     }
     if (!formData.category.trim()) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Category is required" });
+      showWarning("Category is required.");
       return false;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Please enter a valid price" });
+      showWarning("Please enter a valid price.");
       return false;
     }
     if (images.length === 0) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Please upload at least one image" });
+      showWarning("Please upload at least one image.");
       return false;
     }
     if (isParentProduct && variantAttributes.length === 0) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Please add at least one variant attribute" });
+      showWarning("Please add at least one variant attribute.");
       return false;
     }
     if (isParentProduct && Object.values(attributeOptions).every(arr => arr.length === 0)) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Please add options for the variant attributes" });
+      showWarning("Please add options for the variant attributes.");
       return false;
     }
     if (!isParentProduct && (!formData.stock || parseInt(formData.stock) <= 0)) {
-      Swal.fire({ icon: "warning", title: "Validation Error", text: "Please enter a valid stock quantity" });
+      showWarning("Please enter a valid stock quantity.");
       return false;
     }
     return true;
@@ -553,7 +552,7 @@ const handleEditCategory = async (cat) => {
           await fetchCats();
         } catch (catErr) {
           console.error("Category creation error:", catErr);
-          Swal.fire({ icon: "error", title: "Category Error", text: catErr?.response?.data?.message || "Failed to create new category" });
+          apiError(catErr, "Could not create this new category. Please try again.");
           setUploading(false);
           return;
         }
@@ -673,12 +672,12 @@ const handleEditCategory = async (cat) => {
         );
 
         setProgress(100);
-        Swal.fire({ icon: "success", title: "Success!", text: `Product uploaded with ${generatedVariants.length} variants!`, timer: 2000, showConfirmButton: false });
+        showSuccess(`Product uploaded with ${generatedVariants.length} variants!`);
       } else {
         setProgress(80);
         await api.post(`/api/products`, payload);
         setProgress(100);
-        Swal.fire({ icon: "success", title: "Success!", text: "Product uploaded successfully!", timer: 2000, showConfirmButton: false });
+        showSuccess("Product uploaded successfully!");
       }
       
       setFormData({
@@ -693,8 +692,7 @@ const handleEditCategory = async (cat) => {
 
     } catch (err) {
       console.error("Upload failed:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to upload product";
-      Swal.fire({ icon: "error", title: "Upload Failed", text: errorMsg });
+      apiError(err, "Could not save this product. Please try again.");
     } finally {
       setUploading(false);
       setProgress(0);
@@ -704,14 +702,10 @@ const handleEditCategory = async (cat) => {
   const handleUpdate = async () => {
     if (!validateForm()) return;
     
-    const confirmResult = await Swal.fire({
+    const confirmResult = await confirm({
       title: "Update Product?",
       text: "Are you sure you want to save these changes?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: Colors.primary,
-      cancelButtonColor: Colors.gray,
-      confirmButtonText: "Yes, update it",
+      confirmText: "Yes, update it",
     });
     
     if (!confirmResult.isConfirmed) return;
@@ -781,19 +775,12 @@ const handleEditCategory = async (cat) => {
       }
       
       setProgress(100);
-      Swal.fire({ 
-        icon: "success", 
-        title: "Updated!", 
-        text: "Product updated successfully", 
-        timer: 2000, 
-        showConfirmButton: false 
-      }).then(() => {
-        navigate("/admin/dashboard/adminviewproducts");
-      });
-      
+      showSuccess("Product updated successfully!");
+      navigate("/admin/dashboard/adminviewproducts");
+
     } catch (err) {
       console.error("Update failed:", err);
-      Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.message || err.message });
+      apiError(err, "Could not save this product. Please try again.");
     } finally {
       setUploading(false);
       setProgress(0);
@@ -801,35 +788,25 @@ const handleEditCategory = async (cat) => {
   };
 
   const handleDelete = async () => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Product?",
-      html: `<p>This will permanently delete this product${existingProduct?.isParent ? " and all its variants" : ""}.</p><p>This action cannot be undone.</p>`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: Colors.danger,
-      cancelButtonColor: Colors.gray,
-      confirmButtonText: "Yes, delete it",
+      text: `This will permanently delete this product${existingProduct?.isParent ? " and all its variants" : ""}. This action cannot be undone.`,
+      danger: true,
+      confirmText: "Yes, delete it",
     });
-    
+
     if (!result.isConfirmed) return;
-    
+
     setUploading(true);
-    
+
     try {
       await api.delete(`/api/products/${productId}`);
-      
-      Swal.fire({ 
-        icon: "success", 
-        title: "Deleted!", 
-        text: "Product and variants deleted successfully", 
-        timer: 2000, 
-        showConfirmButton: false 
-      }).then(() => {
-        navigate("/admin/dashboard/adminviewproducts");
-      });
+
+      showSuccess("Product and variants deleted!");
+      navigate("/admin/dashboard/adminviewproducts");
     } catch (err) {
       console.error("Delete failed:", err);
-      Swal.fire({ icon: "error", title: "Delete Failed", text: err.response?.data?.message || err.message });
+      apiError(err, "Could not delete this product. Please try again.");
     } finally {
       setUploading(false);
     }

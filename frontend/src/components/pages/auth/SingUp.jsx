@@ -9,7 +9,7 @@ import {
   MapPin,
 } from "lucide-react";
 import uploadToMedia from "@/components/utils/Mediaupload.jsx";
-import toast from "react-hot-toast";
+import { apiError, showError, showWarning, showSuccess } from "@/utils/notify";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -41,7 +41,7 @@ export default function Signup() {
       const url = await uploadToMedia(file);
       setFormData((prev) => ({ ...prev, profileImage: url }));
     } catch {
-      toast.error("Image upload failed");
+      showError("Could not upload your image. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -51,20 +51,20 @@ export default function Signup() {
     e.preventDefault();
 
     if (!formData.name?.trim()) {
-      toast.error("First name is required");
+      showWarning("First name is required.");
       return;
     }
     if (!formData.email?.trim()) {
-      toast.error("Email is required");
+      showWarning("Email is required.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error("Please enter a valid email address");
+      showWarning("Please enter a valid email address.");
       return;
     }
     if (!formData.password || formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      showWarning("Password must be at least 6 characters.");
       return;
     }
 
@@ -73,10 +73,10 @@ export default function Signup() {
     try {
       const { api } = await import("@/utils/api");
       await api.post(`/api/users/`, formData);
-      toast.success("Registration successful!");
+      showSuccess("Registration successful!");
       navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.error || err.response?.data?.message || "Something went wrong");
+      apiError(err, "Registration failed. Please check your details and try again.");
     } finally {
       setLoading(false);
     }

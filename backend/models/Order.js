@@ -34,7 +34,13 @@ const orderSchema = new mongoose.Schema(
     stripeSessionId: { type: String },
     trackingNumber: { type: String },
     courier: { type: String },
+    // Recognized Domex status from the LAST check (independent of orderStatus):
+    // "delivered" | "in_transit" | "ready_for_pickup" | "unknown"
     domexStatus: { type: String },
+    // Last successful/failed check time + last network/parse error (visibility only)
+    lastTrackedAt: { type: Date },
+    trackingError: { type: String, default: "" },
+    trackingErrorAt: { type: Date },
     cancelledBy: { type: String },
     cancellationReason: { type: String },
     seenByAdmin: { type: Boolean, default: false },
@@ -66,5 +72,8 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Fast lookup for the Domex monitor (status buckets + stuck detection)
+orderSchema.index({ orderStatus: 1, domexStatus: 1 });
 
 export default mongoose.model("Order", orderSchema);

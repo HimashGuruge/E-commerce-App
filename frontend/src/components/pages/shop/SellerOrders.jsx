@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { FiShoppingCart, FiSearch, FiChevronLeft, FiChevronRight, FiUser, FiPhone, FiMail, FiTruck, FiCheckCircle, FiClock } from "react-icons/fi";
 import Swal from "sweetalert2";
-import toast from "react-hot-toast";
-import getApiError from "@/utils/errors";
+import { apiError, showSuccess, swalTheme } from "@/utils/notify";
 import api from "@/utils/api";
 
 const statusColors = {
@@ -45,6 +44,7 @@ export default function SellerOrders() {
 
     if (nextStatus === "shipped") {
       const res = await Swal.fire({
+        ...swalTheme,
         title: "Mark as shipped",
         html: `<input id="swal-tracking" class="swal2-input" placeholder="Tracking number (optional)" />
                <input id="swal-courier" class="swal2-input" placeholder="Courier (optional)" />`,
@@ -69,13 +69,13 @@ export default function SellerOrders() {
       });
       if (data.success) {
         window.dispatchEvent(new Event("seller-orders-changed"));
-        Swal.fire({ toast: true, position: "top-end", timer: 2000, showConfirmButton: false, icon: "success", title: labels[nextStatus] });
+        showSuccess(labels[nextStatus]);
         await fetchOrders();
       } else {
-        toast.error(getApiError({ response: { data } }, "Update failed"));
+        apiError({ response: { data } }, "Could not update this order. Please try again.");
       }
     } catch (err) {
-      toast.error(getApiError(err, "Update failed"));
+      apiError(err, "Could not update this order. Please try again.");
     } finally {
       setUpdatingId(null);
     }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api";
-import getApiError from "@/utils/errors";
-import toast from "react-hot-toast";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiSearch, FiSave } from "react-icons/fi";
 import { invalidatePublicSettings } from "@/utils/siteSettings";
 
@@ -128,13 +127,13 @@ export default function FlashSaleManagement() {
       };
       const res = await api.put("/api/settings", { flashSale: payload });
       if (res.data?.success) {
-        toast.success("Flash sale header style saved");
+        showSuccess("Flash sale header style saved");
         invalidatePublicSettings();
         const s = res.data.settings || {};
         window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: s }));
       }
     } catch (err) {
-      toast.error(getApiError(err, "Failed to save header style"));
+      apiError(err, "Could not save the flash sale header style. Please try again.");
     } finally {
       setSavingHeader(false);
     }
@@ -203,14 +202,14 @@ export default function FlashSaleManagement() {
     try {
       if (editingId) {
         await api.put(`/api/flashsale/${editingId}`, { order: orderNum });
-        toast.success("Flash sale item updated");
+        showSuccess("Flash sale item updated");
       } else {
         await api.post("/api/flashsale", { product: selectedId, order: orderNum });
-        toast.success("Product added to flash sale");
+        showSuccess("Product added to flash sale");
       }
       closeAndReload();
     } catch (err) {
-      toast.error(getApiError(err, "Failed to save"));
+      apiError(err, "Could not save this flash sale item. Please try again.");
     }
   };
 
@@ -218,25 +217,31 @@ export default function FlashSaleManagement() {
     try {
       const nextStatus = item.status === "active" ? "inactive" : "active";
       await api.put(`/api/flashsale/${item._id}`, { status: nextStatus });
-      toast.success(
+      showSuccess(
         nextStatus === "active"
           ? "Product is now active in the flash sale"
           : "Product hidden from the flash sale"
       );
       fetchItems();
     } catch (err) {
-      toast.error(getApiError(err, "Failed to update status"));
+      apiError(err, "Could not update this product's status. Please try again.");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Remove this product from the flash sale?")) return;
+    const result = await confirm({
+      title: "Remove this product from the flash sale?",
+      text: "It will be removed from the flash sale. You can re-add it later.",
+      confirmText: "Remove",
+      danger: true,
+    });
+    if (!result.isConfirmed) return;
     try {
       await api.delete(`/api/flashsale/${id}`);
-      toast.success("Product removed from flash sale");
+      showSuccess("Product removed from flash sale");
       fetchItems();
     } catch (err) {
-      toast.error(getApiError(err, "Failed to delete"));
+      apiError(err, "Could not remove this product from the flash sale. Please try again.");
     }
   };
 

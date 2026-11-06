@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import toast from "react-hot-toast";
 import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
 import api from "@/utils/api";
+import { apiError, showWarning, showSuccess } from "@/utils/notify";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ export default function Login() {
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", role);
       window.dispatchEvent(new Event("authChange"));
-      toast.success(`Welcome back!`);
+      showSuccess("Welcome back!");
       navigate(role === "admin" ? "/admin/dashboard" : "/", { replace: true });
     }
   }, [location, navigate]);
@@ -29,7 +29,7 @@ export default function Login() {
     localStorage.setItem("token", data.token);
     localStorage.setItem("userRole", data.role);
     window.dispatchEvent(new Event("authChange"));
-    toast.success(data.message || "Login successful!");
+    showSuccess(data.message || "Login successful!");
     navigate(data.role === "admin" ? "/admin/dashboard" : "/");
   };
 
@@ -39,15 +39,15 @@ export default function Login() {
 
     const email = formData.email?.trim().toLowerCase();
     if (!email) {
-      toast.error("Please enter your email address");
+      showWarning("Please enter your email address.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Please enter a valid email address");
+      showWarning("Please enter a valid email address.");
       return;
     }
     if (!formData.password) {
-      toast.error("Please enter your password");
+      showWarning("Please enter your password.");
       return;
     }
 
@@ -59,12 +59,7 @@ export default function Login() {
         handleLoginResponse(res.data);
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.error ||
-          (error.code === "ECONNABORTED"
-            ? "Request timed out. Please try again"
-            : "Something went wrong. Please try again")
-      );
+      apiError(error, "Login failed. Please check your details and try again.");
     } finally {
       submittingRef.current = false;
       setLoading(false);

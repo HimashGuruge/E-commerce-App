@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiPackage, FiShoppingCart, FiStar, FiCheck, FiX, FiToggleLeft, FiPercent, FiRefreshCw, FiExternalLink } from "react-icons/fi";
 import api from "@/utils/api";
 import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm, swalTheme } from "@/utils/notify";
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -42,7 +43,7 @@ export default function AdminSellerDetail() {
       }
     } catch (err) {
       console.error("Failed to load seller detail:", err);
-      Swal.fire({ icon: "error", title: "Failed to load seller details" });
+      apiError(err, "Could not load seller details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -51,45 +52,41 @@ export default function AdminSellerDetail() {
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
   const handleApproveProduct = async (productId, name) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Approve Product?",
       text: `Approve "${name}" to be visible in the store?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#10b981",
-      confirmButtonText: "Approve",
+      confirmText: "Approve",
     });
     if (!result.isConfirmed) return;
     try {
       await api.put(`/api/products/${productId}/approve`);
-      Swal.fire({ icon: "success", title: "Product approved!", timer: 1500, showConfirmButton: false });
+      showSuccess("Product approved.");
       fetchDetail();
     } catch (err) {
-      Swal.fire({ icon: "error", title: err.response?.data?.error || "Failed to approve" });
+      apiError(err, "Could not approve this product. Please try again.");
     }
   };
 
   const handleSuspend = async () => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Suspend Store?",
       text: `Suspend "${seller?.shopName}"? They will not be able to sell until re-activated.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Suspend",
+      danger: true,
+      confirmText: "Suspend",
     });
     if (!result.isConfirmed) return;
     try {
       await api.put(`/api/sellers/admin/${sellerId}/suspend`);
-      Swal.fire({ icon: "success", title: "Store suspended", timer: 1500, showConfirmButton: false });
+      showSuccess("Store suspended.");
       fetchDetail();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Failed to suspend" });
+      apiError(err, "Could not suspend this store. Please try again.");
     }
   };
 
   const handleCommission = async () => {
     const { value: rate } = await Swal.fire({
+      ...swalTheme,
       title: "Set Commission Rate",
       input: "number",
       inputValue: seller?.commissionRate || 0,
@@ -100,10 +97,10 @@ export default function AdminSellerDetail() {
     if (rate === undefined) return;
     try {
       await api.put(`/api/sellers/admin/${sellerId}/commission`, { commissionRate: Number(rate) });
-      Swal.fire({ icon: "success", title: "Commission updated!", timer: 1500, showConfirmButton: false });
+      showSuccess("Commission updated.");
       fetchDetail();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Failed to update commission" });
+      apiError(err, "Could not update the commission rate. Please try again.");
     }
   };
 

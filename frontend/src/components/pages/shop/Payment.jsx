@@ -1,8 +1,8 @@
 import api from "@/utils/api";
 import React, { useEffect, useState, useMemo } from "react";
-import getApiError from "@/utils/errors";
 import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { apiError, showWarning, showInfo, swalTheme } from "@/utils/notify";
 import { clearCart } from "@/components/utils/Cart";
 import {
   CreditCard,
@@ -48,15 +48,7 @@ export default function Payment() {
           }
         }
       } catch (error) {
-        Swal.fire({
-          title: "Profile Load Error",
-          text: "Could not load your profile information. You can still proceed with checkout.",
-          icon: "warning",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 3000,
-        });
+        showWarning("Could not load your profile. You can still proceed with checkout.");
       } finally {
         setProfileLoading(false);
       }
@@ -132,12 +124,7 @@ export default function Payment() {
         navigate(location.pathname, { replace: true, state: restoredOrder });
       }
 
-      Swal.fire({
-        title: "Payment Cancelled",
-        text: "Your transaction was cancelled or failed. You can try again or choose another method.",
-        icon: "warning",
-        confirmButtonColor: "#2563eb",
-      });
+      showWarning("Your payment was cancelled or failed. You can try again or choose another method.");
 
       sessionStorage.removeItem("stripe_redirect_initiated");
     }
@@ -154,13 +141,7 @@ export default function Payment() {
         navigate(location.pathname, { replace: true, state: restoredOrder });
       }
 
-      Swal.fire({
-        title: "Payment Not Completed",
-        text: "ඔබ ගෙවීම සම්පූර්ණ කළේ නැහැ. ඔබට නැවත උත්සාහ කළ හැකියි.",
-        icon: "info",
-        confirmButtonColor: "#3b82f6",
-        confirmButtonText: "හරි",
-      });
+      showInfo("Your payment was not completed. You can try again.");
     }
   }, [location.search, navigate, orderedata]);
 
@@ -252,7 +233,7 @@ export default function Payment() {
   const handleCardPayment = async () => {
     if (!orderedata) return;
     if (items.length === 0) {
-      Swal.fire({ icon: "warning", title: "Your cart is empty" });
+      showWarning("Your cart is empty.");
       return;
     }
     setLoading(true);
@@ -285,11 +266,7 @@ export default function Payment() {
       }
     } catch (err) {
       setLoading(false);
-      Swal.fire({
-        title: "Error",
-        text: getApiError(err, "Could not initiate Stripe payment. Please try again."),
-        icon: "error",
-      });
+      apiError(err, "Could not start the card payment. Please try again.");
     }
   };
 
@@ -297,13 +274,14 @@ export default function Payment() {
   const handleCOD = async () => {
     if (!orderedata) return;
     if (items.length === 0) {
-      Swal.fire({ icon: "warning", title: "Your cart is empty" });
+      showWarning("Your cart is empty.");
       return;
     }
     const couponDiscount = orderedata?.coupon?.discountAmount || 0;
     const hasCoupon = !!orderedata?.coupon && couponDiscount > 0;
 
     const { value: accept } = await Swal.fire({
+      ...swalTheme,
       width: "94%",
       maxWidth: "500px",
       padding: "1.25rem",
@@ -507,6 +485,7 @@ export default function Payment() {
       clearCart();
 
       Swal.fire({
+        ...swalTheme,
         icon: "success",
         width: "90%",
         maxWidth: "500px",
@@ -541,12 +520,7 @@ export default function Payment() {
       });
     } catch (err) {
       setLoading(false);
-      Swal.fire({
-        title: "Order Failed",
-        text: getApiError(err, "Something went wrong. Please try again."),
-        icon: "error",
-        confirmButtonColor: "#10b981",
-      });
+      apiError(err, "Could not place your order. Please try again.");
     }
   };
 

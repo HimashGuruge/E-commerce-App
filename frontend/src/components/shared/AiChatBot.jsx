@@ -8,7 +8,7 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import api from "@/utils/api";
 import { onSocketEvent } from "@/utils/socket";
-import Swal from "sweetalert2";
+import { apiError, showError, showWarning, showInfo, confirm } from "@/utils/notify";
 import uploadToMedia from "@/components/utils/Mediaupload.jsx";
 import ReactMarkdown from "react-markdown";
 import { Bot, MessageCircle, Send, User, X } from "lucide-react";
@@ -409,13 +409,13 @@ export default function ChatBot() {
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      Swal.fire("Error", "Please select an image file", "error");
+      showWarning("Please select an image file.");
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      Swal.fire("Error", "Image size must be less than 5MB", "error");
+      showWarning("Image size must be less than 5MB.");
       return;
     }
 
@@ -766,13 +766,10 @@ export default function ChatBot() {
 
       // Alert when user types @admin — explain how it works
       if (trimmedText?.toLowerCase().includes("@admin")) {
-        const result = await Swal.fire({
-          icon: "info",
+        const result = await confirm({
           title: "Contact Admin",
           text: "Your message will be sent to the admin. They will reply to you in this chat.",
-          confirmButtonText: "Send",
-          showCancelButton: true,
-          cancelButtonText: "Cancel",
+          confirmText: "Send",
         });
         if (!result.isConfirmed) return;
       }
@@ -813,15 +810,7 @@ export default function ChatBot() {
             imageUrl = await uploadToMedia(currentImage);
           } catch (uploadErr) {
             console.error("❌ Image upload failed:", uploadErr);
-            Swal.fire({
-              icon: "error",
-              title: "Upload Failed",
-              text: "Could not upload image. Message sent without it.",
-              toast: true,
-              position: "top-end",
-              showConfirmButton: false,
-              timer: 3000,
-            });
+            showError("Could not upload the image. Your message was sent without it.");
           } finally {
             setIsUploading(false);
           }
@@ -876,17 +865,7 @@ export default function ChatBot() {
         pendingTempIdRef.current = null;
         setStreamText("");
         
-        Swal.fire({
-          icon: "error",
-          title: "Send Failed",
-          text: err.response?.data?.message || 
-                 err.message || 
-                 "Failed to send message. Check your connection.",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 5000,
-        });
+        apiError(err, "Could not send your message. Check your connection and try again.");
       } finally {
         setLoading(false);
         setIsUploading(false);
@@ -911,25 +890,13 @@ export default function ChatBot() {
       window.location.hostname !== "localhost" &&
       window.location.hostname !== "127.0.0.1"
     ) {
-      Swal.fire({
-        icon: "warning",
-        title: "Voice may not work",
-        text: "Speech recognition requires a secure connection (HTTPS). Please use HTTPS or localhost.",
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 4000,
-      });
+      showWarning("Voice input needs a secure connection (HTTPS). Please use HTTPS or localhost.");
     }
 
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      Swal.fire(
-        "Not Supported",
-        "Please use Chrome or Edge for voice features.",
-        "warning",
-      );
+      showWarning("Voice input is not supported in this browser. Please use Chrome or Edge.");
       return;
     }
 
@@ -952,15 +919,7 @@ export default function ChatBot() {
       try { recognition.abort(); } catch (_) {}
       setIsListening(false);
       recognitionRef.current = null;
-      Swal.fire({
-        icon: "info",
-        title: "No speech detected",
-        text: "Listening timed out. Please try again and speak clearly.",
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 3000,
-      });
+      showInfo("No speech detected — listening timed out. Please try again and speak clearly.");
     }, 10000);
 
     recognition.onstart = () => {
@@ -995,15 +954,7 @@ export default function ChatBot() {
         "bad-grammar": "Speech recognition grammar error.",
         "language-not-supported": `Language "${selectedLang}" is not supported for speech recognition.`,
       };
-      Swal.fire({
-        icon: "error",
-        title: "Voice Input Error",
-        text: errorMessages[e.error] || `Voice recognition error: ${e.error}`,
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 4000,
-      });
+      showError(errorMessages[e.error] || `Voice recognition error: ${e.error}`);
     };
     recognition.onend = () => {
       setIsListening(false);

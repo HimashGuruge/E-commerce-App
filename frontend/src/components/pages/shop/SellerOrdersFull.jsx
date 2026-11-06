@@ -28,8 +28,7 @@ import {
   FiGrid,
   FiList,
 } from "react-icons/fi";
-import toast from "react-hot-toast";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, showWarning } from "@/utils/notify";
 
 const STATUS_OPTIONS = [
   "pending",
@@ -141,11 +140,11 @@ export default function SellerOrdersFull() {
         });
         setEditingOrderId((prev) => (prev === orderId ? null : prev));
       }
-      toast.success(`Order marked as ${status}`);
+      showSuccess(`Order marked as ${status}`);
       loadAllOrders();
     } catch (err) {
       console.error("Update error:", err);
-      toast.error("Failed to update order");
+      apiError(err, "Could not update this order. Please try again.");
     } finally {
       setUpdatingId(null);
     }
@@ -153,7 +152,7 @@ export default function SellerOrdersFull() {
 
   const handleTrackOnDomex = async (e, trackingNumber) => {
     e.preventDefault();
-    window.open(`https://www.domex.lk/track?tracking=${trackingNumber}`, "_blank");
+    window.open(`https://domex.lk/Order-Details.php?wbno=${encodeURIComponent(trackingNumber)}`, "_blank");
   };
 
   const term = searchTerm.toLowerCase();
@@ -321,7 +320,7 @@ export default function SellerOrdersFull() {
                         const val = e.target.value;
 
                         if (val === "shipped") {
-                          toast.error("Shipping details ඇතුළත් කරන්න.");
+                          showWarning("Please enter the tracking number before marking as shipped.");
                           return;
                         }
                         handleStatusUpdate(
@@ -549,7 +548,7 @@ export default function SellerOrdersFull() {
                               const trackingValue =
                                 tempTracking[order._id] || order.trackingNumber || "";
                               if (val === "shipped" && !trackingValue.trim()) {
-                                toast.error("Shipping details ඇතුළත් කරන්න.");
+                                showWarning("Please enter the tracking number before marking as shipped.");
                                 return;
                               }
                               handleStatusUpdate(order._id, val, trackingValue);

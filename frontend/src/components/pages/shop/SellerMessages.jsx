@@ -10,8 +10,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import api from "@/utils/api";
-import toast from "react-hot-toast";
-import getApiError from "@/utils/errors";
+import { apiError, showSuccess } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 const formatRelativeTime = (date) => {
@@ -157,7 +156,7 @@ export default function SellerMessages() {
           if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
           toastTimeoutRef.current = setTimeout(() => setNewMessageArrived(false), 5000);
           if (arrived.key !== activeKeyRef.current) {
-            toast.success(`🔔 New message from ${arrived.partnerName || "a customer"}`);
+            showSuccess(`🔔 New message from ${arrived.partnerName || "a customer"}`);
           }
         }
       }
@@ -212,7 +211,7 @@ export default function SellerMessages() {
           await dispatchBadge();
         }
       } catch (err) {
-        toast.error(getApiError(err, "Could not mark messages as read. Try again."));
+        apiError(err, "Could not mark messages as read. Try again.");
       }
     },
     [visibleUnreadIds, fetchMessages, dispatchBadge]
@@ -225,7 +224,7 @@ export default function SellerMessages() {
       .map((m) => m.id)
       .filter((id) => !markedReadIds.current.has(id));
     if (!ids.length) {
-      toast.success("All messages are already read");
+      showSuccess("All messages are already read");
       return;
     }
     try {
@@ -234,10 +233,10 @@ export default function SellerMessages() {
         ids.forEach((id) => markedReadIds.current.add(id));
         await fetchMessages();
         await dispatchBadge();
-        toast.success("All messages marked as read");
+        showSuccess("All messages marked as read");
       }
     } catch (err) {
-      toast.error(getApiError(err, "Could not mark all messages as read. Try again."));
+      apiError(err, "Could not mark all messages as read. Try again.");
     }
   }, [messages, fetchMessages, dispatchBadge]);
 
@@ -375,7 +374,7 @@ export default function SellerMessages() {
         await fetchMessages();
       }
     } catch (err) {
-      toast.error(getApiError(err, "Failed to send message"));
+      apiError(err, "Failed to send message. Please try again.");
     } finally {
       setSending(false);
     }

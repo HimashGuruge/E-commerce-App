@@ -19,7 +19,7 @@ import {
   FiTrash2,
   FiPackage,
 } from "react-icons/fi";
-import toast from "react-hot-toast";
+import { apiError, showSuccess, showWarning, confirm } from "@/utils/notify";
 import Swal from "sweetalert2";
 
 const STATUS_OPTIONS = [
@@ -108,7 +108,7 @@ const OrderStatusPicker = ({
               const trackingValue =
                 tempTracking[order._id] ?? order.trackingNumber ?? "";
               if (val === "shipped" && !trackingValue.trim()) {
-                toast.error("Shipping details ඇතුළත් කරන්න.");
+                showWarning("Please enter the tracking number before marking as shipped.");
                 return;
               }
               handleStatusUpdate(order._id, val, trackingValue);
@@ -152,7 +152,7 @@ const OrderStatusPicker = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(
-                    `https://www.domex.lk/track?tracking=${order.trackingNumber}`,
+                    `https://domex.lk/Order-Details.php?wbno=${encodeURIComponent(order.trackingNumber)}`,
                     "_blank"
                   );
                 }}
@@ -322,7 +322,7 @@ export default function AdminOrderedPage() {
       setOrders(res.data.orders);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
-      if (silent) toast.error("Failed to refresh orders");
+      if (silent) apiError(err, "Could not refresh orders. Please try again.");
     } finally {
       if (!silent) setLoading(false);
       if (silent) setRefreshing(false);
@@ -344,42 +344,39 @@ export default function AdminOrderedPage() {
         });
         setEditingOrderId((prev) => (prev === orderId ? null : prev));
       }
-      toast.success(`Order marked as ${status}`);
+      showSuccess(`Order marked as ${status}`);
       loadAllOrders({ silent: true });
     } catch (err) {
       console.error("Update error:", err);
-      toast.error("Failed to update order");
+      apiError(err, "Could not update this order. Please try again.");
     } finally {
       setUpdatingId(null);
     }
   };
 
   const handleDeleteFailedOrder = async (orderId, orderIdString) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete this order?",
       text: "This action cannot be undone!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it",
+      confirmText: "Yes, delete it",
+      danger: true,
     });
 
     if (result.isConfirmed) {
       try {
         await api.delete(`/api/orders/admin/failed-order/${orderId}`);
-        toast.success("Order deleted");
+        showSuccess("Order deleted");
         loadAllOrders({ silent: true });
       } catch (err) {
         console.error("Delete error:", err);
-        toast.error("Failed to delete order");
+        apiError(err, "Could not delete this order. Please try again.");
       }
     }
   };
 
   const handleTrackOnDomex = async (e, trackingNumber) => {
     e.preventDefault();
-    window.open(`https://www.domex.lk/track?tracking=${trackingNumber}`, "_blank");
+    window.open(`https://domex.lk/Order-Details.php?wbno=${encodeURIComponent(trackingNumber)}`, "_blank");
   };
 
   const term = searchTerm.toLowerCase();

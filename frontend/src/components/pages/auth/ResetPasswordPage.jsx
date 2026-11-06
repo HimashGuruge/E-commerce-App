@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from "@/utils/api";
-import toast from 'react-hot-toast';
 import { Lock, Loader2, CheckCircle, Eye, EyeOff, ShieldCheck, Clock, AlertCircle } from 'lucide-react';
+import getApiError from "@/utils/errors";
+import { showError, showWarning, showSuccess } from "@/utils/notify";
 
 function getPasswordStrength(password) {
   if (!password) return { score: 0, label: "", color: "" };
@@ -84,22 +85,22 @@ export default function ResetPassword() {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (expired) return toast.error("This link has expired. Please request a new one.");
-    if (password !== confirmPassword) return toast.error("Passwords do not match!");
-    if (!password || !confirmPassword) return toast.error("Please fill in all fields.");
-    if (!isStrong) return toast.error("Password must be stronger. Use 8+ chars with uppercase, lowercase, numbers, and special characters.");
+    if (expired) return showWarning("This link has expired. Please request a new one.");
+    if (password !== confirmPassword) return showWarning("Passwords do not match!");
+    if (!password || !confirmPassword) return showWarning("Please fill in all fields.");
+    if (!isStrong) return showWarning("Password must be stronger. Use 8+ chars with uppercase, lowercase, numbers, and special characters.");
     setLoading(true);
 
     try {
       const res = await api.put(`/api/users/reset-password/${token}`, { password });
       if (res.data.success) {
         setIsSuccess(true);
-        toast.success("Password changed successfully!");
+        showSuccess("Password changed successfully!");
       }
     } catch (error) {
-      const msg = error.response?.data?.message || "Failed to reset password";
-      toast.error(msg);
-      if (msg.includes("expired") || msg.includes("Invalid")) setExpired(true);
+      const msg = getApiError(error, "Failed to reset password");
+      showError(msg);
+      if (msg.toLowerCase().includes("expired") || msg.toLowerCase().includes("invalid")) setExpired(true);
     } finally {
       setLoading(false);
     }

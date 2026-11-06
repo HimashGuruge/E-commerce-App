@@ -6,7 +6,7 @@ import api from "@/utils/api";
 import { onSocketEvent } from "@/utils/socket";
 import OrderStatusBadge from "@/components/pages/account/OrderStatusBadge";
 import OrderProgressTracker from "@/components/pages/account/OrderProgressTracker";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/150?text=No+Image";
 const STATUS_FILTERS = ["all", "pending", "processing", "shipped", "delivered", "cancelled"];
@@ -38,16 +38,12 @@ const OrderCard = ({ order, index, now, onRefresh }) => {
       : `${Math.floor(remainingMs / 60000)}m ${Math.floor((remainingMs % 60000) / 1000)}s`;
 
   const handleCancel = () => {
-    Swal.fire({
+    confirm({
       title: "Cancel this order?",
-      html: `<p class="mb-2">Are you sure you want to cancel this order?</p>
-             <p class="text-sm text-gray-500">Order Total: Rs. ${totalAmount.toLocaleString()}</p>`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, cancel order",
-      cancelButtonText: "Keep order",
+      text: `Are you sure you want to cancel this order? Order Total: Rs. ${totalAmount.toLocaleString()}`,
+      danger: true,
+      confirmText: "Yes, cancel order",
+      cancelText: "Keep order",
     }).then(async (result) => {
       if (!result.isConfirmed) return;
       setCancelling(true);
@@ -55,15 +51,10 @@ const OrderCard = ({ order, index, now, onRefresh }) => {
         await api.put(`/api/orders/${order._id}/cancel`, {
           reason: "Cancelled by user",
         });
-        Swal.fire({
-          title: "Order cancelled",
-          text: "Your order has been cancelled.",
-          icon: "success",
-        });
+        showSuccess("Order cancelled.");
         onRefresh();
       } catch (err) {
-        const msg = err?.response?.data?.message || "Could not cancel this order";
-        Swal.fire({ title: "Cannot cancel", text: msg, icon: "error" });
+        apiError(err, "Could not cancel this order. Please try again.");
       } finally {
         setCancelling(false);
       }
@@ -75,19 +66,11 @@ const OrderCard = ({ order, index, now, onRefresh }) => {
   const [showReturnModal, setShowReturnModal] = useState(false);
 
   const handleRequestReturn = () => {
-    Swal.fire({
+    confirm({
       title: "Request Return?",
-      html: `
-        <p class="mb-4">Are you sure you want to request a return for this order?</p>
-        <p class="text-sm text-gray-600 mb-4">Order Total: Rs. ${totalAmount.toLocaleString()}</p>
-        <p class="text-xs text-gray-500">You will receive an email with return instructions shortly.</p>
-      `,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#2563eb",
-      cancelButtonColor: "#dc2626",
-      confirmButtonText: "Yes, request return",
-      cancelButtonText: "Cancel"
+      text: `Are you sure you want to request a return for this order? Order Total: Rs. ${totalAmount.toLocaleString()}. You will receive an email with return instructions shortly.`,
+      confirmText: "Yes, request return",
+      cancelText: "Cancel",
     }).then((result) => {
       if (result.isConfirmed) {
         setShowReturnModal(true);

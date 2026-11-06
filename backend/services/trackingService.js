@@ -1,41 +1,64 @@
 import cron from "node-cron";
 import Order from "../models/Order.js";
+import TrackingEvent from "../models/TrackingEvent.js";
 import Notification from "../models/Notification.js";
 import { emitToUser } from "./socketService.js";
 import { generateReviewReminders } from "./reviewReminderService.js";
 import { ensureCODCollection } from "./payoutService.js";
 
-const DOMEX_TRACK_URL = "https://www.domex.lk/track?tracking=";
+const DOMEX_TRACK_URL = "https://domex.lk/Order-Details.php?wbno=";
 
+/**
+ * Stuck-shipment visibility window: shipped orders whose last tracking check
+ * is older than this (or which never got a known status) are flagged "stuck".
+ * Visibility ONLY — orders are never auto-delivered by age.
+ */
+export const STUCK_AFTER_DAYS = 3;
+
+let isRunning = false;
+
+/**
+ * Check one Domex tracking number.
+ * Returns { status, error }:
+ *   status = "delivered" | "in_transit" | "ready_for_pickup" | "unknown" | "error"
+ *   error  = message when the fetch failed / page could not be read
+ */
 async function checkDomexTracking(trackingNumber) {
+  let html;
   try {
     const response = await fetch(`${DOMEX_TRACK_URL}${encodeURIComponent(trackingNumber)}`, {
       signal: AbortSignal.timeout(10000),
       headers: { "User-Agent": "Mozilla/5.0" },
     });
-
-    if (!response.ok) return null;
-
-    const html = await response.text();
-
-    if (html.includes("Delivered") || html.includes("delivered") || html.includes("DELIVERED")) {
-      return "delivered";
+    if (!response.ok) {
+      return { status: "error", error: `Domex returned HTTP ${response.status}` };
     }
-    if (html.includes("In Transit") || html.includes("in transit") || html.includes("In-Transit")) {
-      return "in_transit";
-    }
-    if (html.includes("Pickup") || html.includes("Ready for Pickup")) {
-      return "ready_for_pickup";
-    }
-
-    return "unknown";
-  } catch {
-    return null;
+    html = await response.text();
+  } catch (err) {
+    return { status: "error", error: err?.message || "Network error contacting Domex" };
   }
+
+  if (html.includes("Delivered") || html.includes("delivered") || html.includes("DELIVERED")) {
+    return { status: "delivered", error: "" };
+  }
+  if (html.includes("In Transit") || html.includes("in transit") || html.includes("In-Transit")) {
+    return { status: "in_transit", error: "" };
+  }
+  if (html.includes("Pickup") || html.includes("Ready for Pickup")) {
+    return { status: "ready_for_pickup", error: "" };
+  }
+  return { status: "unknown", error: "" };
 }
 
-async function processShippedOrders() {
-  console.log("[TrackingService] Checking shipped orders...");
+async function processShippedOrders(source = "cron") {
+  if (isRunning) {
+    console.log("[TrackingService] Sync skipped — a tracking run is already in progress");
+    return { skipped: true, checked: 0, delivered: 0, unknown: 0, errors: 0, at: new Date() };
+  }
+  isRunning = true;
+  console.log(`[TrackingService] Checking shipped orders (source: ${source})...`);
+
+  const stats = { checked: 0, delivered: 0, unknown: 0, errors: 0, at: new Date() };
   try {
     const shippedOrders = await Order.find({
       orderStatus: "shipped",
@@ -44,16 +67,51 @@ async function processShippedOrders() {
 
     if (shippedOrders.length === 0) {
       console.log("[TrackingService] No shipped orders with tracking numbers found");
-      return;
+      return stats;
     }
 
-    let updatedCount = 0;
     for (const order of shippedOrders) {
-      const domexStatus = await checkDomexTracking(order.trackingNumber);
+      const { status, error } = await checkDomexTracking(order.trackingNumber);
+      const now = new Date();
+      stats.checked++;
 
-      if (domexStatus === "delivered") {
+      // Persist the recognized external status (separate from internal orderStatus)
+      const update = { lastTrackedAt: now };
+      if (status === "error") {
+        update.trackingError = error;
+        update.trackingErrorAt = now;
+        stats.errors++;
+      } else {
+        update.domexStatus = status;
+        update.trackingError = "";
+        update.trackingErrorAt = undefined;
+        if (status === "unknown") stats.unknown++;
+      }
+
+      try {
+        await Order.findOneAndUpdate({ _id: order._id }, { $set: update });
+      } catch (e) {
+        console.error(`[TrackingService] Failed to persist tracking state for ${order._id}:`, e.message);
+      }
+
+      // Full history row for every check
+      try {
+        await TrackingEvent.create({
+          order: order._id,
+          trackingNumber: order.trackingNumber,
+          status,
+          source,
+          error,
+        });
+      } catch (e) {
+        console.error(`[TrackingService] Failed to store tracking event for ${order._id}:`, e.message);
+      }
+
+      // Only a real "delivered" result moves the order forward
+      if (status === "delivered") {
         order.orderStatus = "delivered";
         await order.save();
+        stats.delivered++;
 
         // COD delivery → pending ledger row (idempotent; delivery ≠ money received)
         try {
@@ -88,8 +146,6 @@ async function processShippedOrders() {
           console.error(`[TrackingService] Failed to create review reminders for order ${order._id}:`, remErr.message);
         }
 
-        updatedCount++;
-
         // Real-time: tell the buyer's open orders page immediately
         emitToUser(order.user, "order:update", {
           orderId: order._id,
@@ -98,55 +154,27 @@ async function processShippedOrders() {
         console.log(`[TrackingService] Order ${order.orderId || order._id} auto-marked as delivered`);
       }
     }
-    console.log(`[TrackingService] Done. ${updatedCount}/${shippedOrders.length} orders updated`);
+    console.log(`[TrackingService] Done. checked ${stats.checked}, delivered ${stats.delivered}, unknown ${stats.unknown}, errors ${stats.errors}`);
   } catch (err) {
     console.error("[TrackingService] Error:", err.message);
+  } finally {
+    isRunning = false;
   }
-}
-
-const AUTO_DELIVER_DAYS = 3;
-
-async function autoDeliverStaleShipped() {
-  const cutoff = new Date(Date.now() - AUTO_DELIVER_DAYS * 24 * 60 * 60 * 1000);
-  const stale = await Order.find({ orderStatus: "shipped", updatedAt: { $lte: cutoff } });
-  if (stale.length === 0) return;
-  for (const order of stale) {
-    order.orderStatus = "delivered";
-    order.domexStatus = "delivered";
-    await order.save();
-    // COD delivery → pending ledger row (idempotent)
-    if (order.paymentMethod === "cod") {
-      try {
-        await ensureCODCollection(order);
-      } catch (codErr) {
-        console.error(`[TrackingService] COD ledger failed for order ${order._id}:`, codErr.message);
-      }
-    }
-    emitToUser(order.user, "order:update", { orderId: order._id, orderStatus: "delivered" });
-  }
-  console.log(`[TrackingService] Auto-delivered ${stale.length} stale shipped orders (shipped before ${cutoff.toISOString()})`);
+  return stats;
 }
 
 let trackingTask = null;
-let autoDeliverTask = null;
 
 export function startTrackingCron() {
   trackingTask = cron.schedule("0 */6 * * *", () => {
-    processShippedOrders();
+    processShippedOrders("cron");
   });
   console.log("[TrackingService] Cron scheduled: every 6 hours");
-  autoDeliverTask = cron.schedule("0 3 * * *", () => {
-    autoDeliverStaleShipped();
-  });
-  console.log("[TrackingService] Cron scheduled: daily auto-deliver at 3:00 AM");
 }
 
 export function stopTrackingCron() {
   if (trackingTask) {
     trackingTask.stop();
-  }
-  if (autoDeliverTask) {
-    autoDeliverTask.stop();
   }
 }
 

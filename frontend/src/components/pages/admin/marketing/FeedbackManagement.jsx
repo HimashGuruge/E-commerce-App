@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { Star, Trash2, CheckCircle, XCircle, Loader2, MessageSquare } from "lucide-react";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 const statusStyles = {
@@ -46,10 +46,10 @@ const FeedbackManagement = () => {
     try {
       await api.post(`/api/feedback/${id}/approve`, {});
       setFeedbacks(feedbacks.map((fb) => (fb._id === id ? { ...fb, status: "approved" } : fb)));
-      Swal.fire("Approved!", "Review has been approved.", "success");
+      showSuccess("Review has been approved.");
     } catch (err) {
       console.error("Approve error:", err);
-      Swal.fire("Error", err.response?.data?.message || "Failed to approve", "error");
+      apiError(err, "Could not approve this review. Please try again.");
     }
   };
 
@@ -57,32 +57,29 @@ const FeedbackManagement = () => {
     try {
       await api.put(`/api/feedback/${id}`, { status: "rejected" });
       setFeedbacks(feedbacks.map((fb) => (fb._id === id ? { ...fb, status: "rejected" } : fb)));
-      Swal.fire("Rejected!", "Review has been rejected.", "success");
+      showSuccess("Review has been rejected.");
     } catch (err) {
       console.error("Reject error:", err);
-      Swal.fire("Error", err.response?.data?.message || "Failed to reject", "error");
+      apiError(err, "Could not reject this review. Please try again.");
     }
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Review",
       text: "Are you sure you want to delete this review?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, delete!",
+      danger: true,
+      confirmText: "Yes, delete!",
     });
 
     if (result.isConfirmed) {
       try {
         await api.delete(`/api/feedback/${id}/admin`);
         setFeedbacks(feedbacks.filter((fb) => fb._id !== id));
-        Swal.fire("Deleted!", "Review has been deleted.", "success");
+        showSuccess("Review has been deleted.");
       } catch (err) {
         console.error("Delete error:", err);
-        Swal.fire("Error", err.response?.data?.message || "Failed to delete", "error");
+        apiError(err, "Could not delete this review. Please try again.");
       }
     }
   };

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Navigate } from "react-router-dom";
-import Swal from "sweetalert2";
+import { confirm, showError } from "@/utils/notify";
 import api from "@/utils/api";
 import { injectAdminTheme } from "@/utils/color";
 import { getPublicSettings } from "@/utils/siteSettings";
@@ -20,22 +20,16 @@ export default function Dashboard() {
 
   const toggleMobile = () => setMobileOpen(!mobileOpen);
 
-  const handleLogout = () => {
-    Swal.fire({
+  const handleLogout = async () => {
+    const result = await confirm({
       title: "Logout?",
       text: "Are you sure you want to logout?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#10b981",
-      cancelButtonColor: "#ef4444",
-      confirmButtonText: "Yes, logout!",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        localStorage.removeItem("token");
-        window.dispatchEvent(new Event("authChange"));
-        navigate("/login");
-      }
+      confirmText: "Yes, logout!",
     });
+    if (!result.isConfirmed) return;
+    localStorage.removeItem("token");
+    window.dispatchEvent(new Event("authChange"));
+    navigate("/login");
   };
 
   const authcheck = useCallback(() => {
@@ -51,8 +45,8 @@ export default function Dashboard() {
         if (data.success && data.user?.role === "admin") {
           setUser(data.user);
         } else {
-          Swal.fire({ icon: "error", title: "Access Denied", text: "Only administrators can access this dashboard" })
-            .then(() => navigate("/"));
+          showError("Only administrators can access this dashboard.");
+          navigate("/");
         }
         setLoading(false);
       })

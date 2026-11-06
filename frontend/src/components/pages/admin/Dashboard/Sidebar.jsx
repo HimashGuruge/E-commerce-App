@@ -13,7 +13,7 @@ import {
   MdSettings,
 } from "react-icons/md";
 import { TbUserShield } from "react-icons/tb";
-import { FiMessageSquare, FiHelpCircle, FiPackage, FiClock, FiTag } from "react-icons/fi";
+import { FiMessageSquare, FiHelpCircle, FiPackage, FiClock, FiTag, FiTruck } from "react-icons/fi";
 import { MdStore } from "react-icons/md";
 import { FiDollarSign } from "react-icons/fi";
 
@@ -570,6 +570,18 @@ export default function Sidebar({
                 {pendingReturnsCount} PENDING
               </span>
             )}
+          </NavLink>
+
+          {/* Domex Delivery Monitor */}
+          <NavLink
+            to="/admin/dashboard/domex"
+            className={navItemClass}
+            onClick={() => closeMobile && setTimeout(() => closeMobile(), 100)}
+          >
+            <FiTruck size={18} className="text-brand-600" />
+            <span className="flex-1 text-[13px] font-medium">
+              Domex Monitor
+            </span>
           </NavLink>
 
           {/* Coupons */}

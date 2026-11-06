@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import api from "@/utils/api";
 import { FiPackage, FiAlertCircle, FiCheckCircle, FiXCircle, FiDollarSign, FiRefreshCw, FiInfo, FiChevronDown, FiChevronUp, FiMessageSquare, FiX, FiSend } from "react-icons/fi";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 export default function ReturnsManagement() {
@@ -31,7 +31,7 @@ export default function ReturnsManagement() {
       }
     } catch (err) {
       console.error("Failed to fetch returns:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to load return requests" });
+      apiError(err, "Could not load return requests. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -48,58 +48,53 @@ export default function ReturnsManagement() {
 
   const handleApprove = async (id) => {
     try {
-      const result = await Swal.fire({
+      const result = await confirm({
         title: "Approve Return?",
         text: "This will notify the customer that their return request has been approved.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#2563eb",
-        cancelButtonColor: "#dc2626",
-        confirmButtonText: "Yes, approve",
-        cancelButtonText: "Cancel"
+        confirmText: "Yes, approve",
       });
 
       if (!result.isConfirmed) return;
 
       await api.put(`/api/feedback/returns/${id}/approve`);
-      Swal.fire({ icon: "success", title: "Approved", text: "Return request approved" });
+      showSuccess("Return request approved.");
       fetchReturns();
     } catch (err) {
       console.error("Failed to approve:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to approve return" });
+      apiError(err, "Could not approve this return. Please try again.");
     }
   };
 
   const handleReject = async (id, reason) => {
     try {
       await api.put(`/api/feedback/returns/${id}/reject`, { rejectionReason: reason });
-      Swal.fire({ icon: "success", title: "Rejected", text: "Return request rejected" });
+      showSuccess("Return request rejected.");
       fetchReturns();
     } catch (err) {
       console.error("Failed to reject:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to reject return" });
+      apiError(err, "Could not reject this return. Please try again.");
     }
   };
 
   const handleProcessRefund = async (id, amount) => {
     try {
       await api.put(`/api/feedback/returns/${id}/process-refund`, { refundAmount: amount });
-      Swal.fire({ icon: "success", title: "Processing", text: "Refund initiated" });
+      showSuccess("Refund initiated.");
       fetchReturns();
     } catch (err) {
       console.error("Failed to process refund:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to process refund" });
+      apiError(err, "Could not process this refund. Please try again.");
     }
   };
 
   const handleComplete = async (id, method) => {
     try {
       await api.put(`/api/feedback/returns/${id}/complete`, { refundMethod: method });
-      Swal.fire({ icon: "success", title: "Completed", text: "Return completed" });
+      showSuccess("Return completed.");
       fetchReturns();
     } catch (err) {
       console.error("Failed to complete:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to complete return" });
+      apiError(err, "Could not complete this return. Please try again.");
     }
   };
 
@@ -127,7 +122,7 @@ export default function ReturnsManagement() {
       fetchReturns();
     } catch (err) {
       console.error("Failed to send message:", err);
-      Swal.fire({ icon: "error", title: "Error", text: "Failed to send message to seller" });
+      apiError(err, "Could not send the message to the seller. Please try again.");
     } finally {
       setMsgSending(false);
     }

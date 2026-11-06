@@ -4,7 +4,7 @@ import { FiSave, FiRefreshCw, FiGlobe, FiMail, FiType, FiHash, FiUpload, FiX, Fi
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from "react-icons/fa";
 import { Sparkles, Zap, Star, Truck, Tag, MapPin, Phone, Mail, Facebook, X, Instagram, Youtube, Music2 } from "lucide-react";
 
-import Swal from "sweetalert2";
+import { apiError, showSuccess, showWarning, showInfo } from "@/utils/notify";
 import uploadToMedia from "@/components/utils/Mediaupload";
 import { injectTheme, injectFont, injectNavbar, injectBarFont, injectAdminTheme, generateBrandShades } from "@/utils/color";
 import { invalidatePublicSettings } from "@/utils/siteSettings";
@@ -436,7 +436,7 @@ export default function SettingsManagement() {
       }
     } catch (err) {
       console.error("Failed to load settings:", err);
-      Swal.fire("Error", "Failed to load settings", "error");
+      apiError(err, "Could not load the settings. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -594,13 +594,13 @@ export default function SettingsManagement() {
         injectNavbar(form);
         const color = form.chatWidgetColor || form.primaryColor || "#F85606";
         document.cookie = `opencodeChatColor=${encodeURIComponent(color)}; max-age=31536000; path=/`;
-        Swal.fire("Saved!", "Settings updated successfully.", "success");
+        showSuccess("Settings updated successfully.");
         invalidatePublicSettings();
         window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: res.data.settings }));
       }
     } catch (err) {
       console.error("Failed to save settings:", err);
-      Swal.fire("Error", err.response?.data?.message || "Failed to save settings", "error");
+      apiError(err, "Could not save the settings. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -621,12 +621,12 @@ export default function SettingsManagement() {
         if (payload.chatWidgetColor || payload.primaryColor) {
           document.cookie = `opencodeChatColor=${encodeURIComponent(color)}; max-age=31536000; path=/`;
         }
-        Swal.fire({ icon: "success", title: "Saved!", text: `${section} updated successfully.`, timer: 1500, showConfirmButton: false });
+        showSuccess(`${section} updated successfully.`);
         invalidatePublicSettings();
         window.dispatchEvent(new CustomEvent("settingsUpdated", { detail: res.data.settings }));
       }
     } catch (err) {
-      Swal.fire("Error", err.response?.data?.message || `Failed to save ${section.toLowerCase()}`, "error");
+      apiError(err, `Could not save the ${section.toLowerCase()} settings. Please try again.`);
     } finally {
       setSavingSection(null);
     }
@@ -634,20 +634,21 @@ export default function SettingsManagement() {
 
   const handleReset = () => {
     fetchSettings();
-    Swal.fire("Reset", "Form has been reset to saved values.", "info");
+    showInfo("Form has been reset to saved values.");
   };
 
   const handleTestEmail = async () => {
     if (!form.emailFromAddress && !form.smtpUser) {
-      return Swal.fire("Missing", "Set SMTP user or from email first", "warning");
+      showWarning("Set the SMTP user or a from-email address first.");
+      return;
     }
     setTestLoading(true);
     try {
       const to = form.emailFromAddress || form.smtpUser;
       await api.post("/api/settings/test-email", { to });
-      Swal.fire("Sent!", `Test email sent to ${to}. Check your inbox.`, "success");
+      showSuccess(`Test email sent to ${to}. Check your inbox.`);
     } catch (err) {
-      Swal.fire("Failed", err.response?.data?.message || "Failed to send test email. Check your SMTP settings.", "error");
+      apiError(err, "Could not send the test email. Check your SMTP settings.");
     } finally {
       setTestLoading(false);
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Eye, EyeOff, HelpCircle, MessageSquare, Info, ChevronDown, ChevronUp } from "lucide-react";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
 
 export default function QuestionsManagement() {
@@ -41,27 +41,19 @@ export default function QuestionsManagement() {
       const { data } = await api.patch(`/api/questions/${id}/status`);
       if (data.success) {
         setQuestions(prev => prev.map(q => q._id === id ? data.question : q));
-        Swal.fire({
-          icon: "success",
-          title: currentStatus === "active" ? "Question Hidden" : "Question Visible",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+        showSuccess(currentStatus === "active" ? "Question hidden." : "Question is now visible.");
       }
     } catch (err) {
-      Swal.fire("Error", err.response?.data?.error || "Failed to update status", "error");
+      apiError(err, "Could not update the question status. Please try again.");
     }
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Delete Question",
       text: "Are you sure? This will permanently delete the question and its answers.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, delete!",
+      danger: true,
+      confirmText: "Yes, delete!",
     });
 
     if (result.isConfirmed) {
@@ -69,10 +61,10 @@ export default function QuestionsManagement() {
         const { data } = await api.delete(`/api/questions/${id}`);
         if (data.success) {
           setQuestions(prev => prev.filter(q => q._id !== id));
-          Swal.fire("Deleted!", "Question has been deleted.", "success");
+          showSuccess("Question has been deleted.");
         }
       } catch (err) {
-        Swal.fire("Error", err.response?.data?.error || "Failed to delete", "error");
+        apiError(err, "Could not delete this question. Please try again.");
       }
     }
   };

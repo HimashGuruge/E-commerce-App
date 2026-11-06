@@ -4,7 +4,7 @@ import { User, Mail, Phone, MapPin, Edit, Camera, Loader2, LogOut, PlusCircle, T
 import Swal from "sweetalert2";
 import api from "@/utils/api";
 import uploadToMedia from "@/components/utils/Mediaupload";
-import getApiError from "@/utils/errors";
+import { apiError, showSuccess, showError, confirm } from "@/utils/notify";
 
 const DISTRICTS = [
   "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
@@ -110,9 +110,9 @@ export default function ProfilePage() {
       await api.put(`/api/users/me`, { ...editForm, profileImage: url });
       setEditForm((prev) => ({ ...prev, profileImage: url }));
       setUser((prev) => ({ ...prev, profileImage: url }));
-      Swal.fire({ icon: "success", title: "Photo Updated!", timer: 1500, showConfirmButton: false });
+      showSuccess("Photo updated!");
     } catch {
-      Swal.fire({ icon: "error", title: "Upload Failed" });
+      showError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -136,11 +136,11 @@ export default function ProfilePage() {
       const res = await api.put(`/api/users/me`, editForm);
       if (res.data) {
         setUser(res.data.user || res.data);
-        Swal.fire({ icon: "success", title: "Profile Updated!", timer: 1500, showConfirmButton: false });
+        showSuccess("Profile updated!");
         setEditing(false);
       }
     } catch (_err) {
-      Swal.fire({ icon: "error", title: "Update Failed", text: getApiError(_err, "Failed to save") });
+      apiError(_err, "Could not save your profile. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -163,9 +163,9 @@ export default function ProfilePage() {
       }
       setShowAddressModal(false);
       fetchAddresses();
-      Swal.fire({ icon: "success", title: editingAddress ? "Address Updated!" : "Address Added!", timer: 1500, showConfirmButton: false });
+      showSuccess(editingAddress ? "Address updated!" : "Address added!");
     } catch (_err) {
-      Swal.fire({ icon: "error", title: "Failed to save address", text: getApiError(_err, "Failed to save") });
+      apiError(_err, "Could not save your address. Please try again.");
     }
   };
 
@@ -173,44 +173,44 @@ export default function ProfilePage() {
     e.preventDefault();
     const { currentPassword, newPassword, confirmPassword } = passwordForm;
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Swal.fire({ icon: "error", title: "Please fill in all password fields" });
+      showError("Please fill in all password fields.");
       return;
     }
     if (newPassword.length < 6) {
-      Swal.fire({ icon: "error", title: "New password must be at least 6 characters" });
+      showError("New password must be at least 6 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      Swal.fire({ icon: "error", title: "New password and confirm password do not match" });
+      showError("New password and confirm password do not match.");
       return;
     }
     if (currentPassword === newPassword) {
-      Swal.fire({ icon: "error", title: "New password must be different from the current password" });
+      showError("New password must be different from the current password.");
       return;
     }
     try {
       setSavingPassword(true);
       await api.put(`/api/users/me/password`, passwordForm);
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      Swal.fire({ icon: "success", title: "Password Changed!", timer: 1500, showConfirmButton: false });
+      showSuccess("Password changed!");
     } catch (_err) {
-      Swal.fire({ icon: "error", title: "Change Failed", text: _err.response?.data?.error });
+      apiError(_err, "Could not change password. Please try again.");
     } finally {
       setSavingPassword(false);
     }
   };
 
   const handleDeleteAddress = async (id) => {
-    const result = await Swal.fire({ title: "Delete Address?", icon: "warning", showCancelButton: true, confirmButtonColor: "#ef4444", cancelButtonColor: "#64748b", confirmButtonText: "Yes, delete!" });
+    const result = await confirm({ title: "Delete Address?", danger: true, confirmText: "Yes, delete!" });
     if (result.isConfirmed) {
       await api.delete(`/api/addresses/${id}`);
       fetchAddresses();
-      Swal.fire({ icon: "success", title: "Deleted!", timer: 1500, showConfirmButton: false });
+      showSuccess("Address deleted!");
     }
   };
 
   const handleLogout = () => {
-    Swal.fire({ title: "Logout?", icon: "question", showCancelButton: true, confirmButtonColor: "#ef4444", cancelButtonColor: "#64748b", confirmButtonText: "Yes, logout" }).then((r) => {
+    confirm({ title: "Logout?", confirmText: "Yes, logout" }).then((r) => {
       if (r.isConfirmed) {
         localStorage.clear();
         window.dispatchEvent(new Event("authChange"));

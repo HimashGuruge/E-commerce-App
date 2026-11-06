@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { showSuccess, showInfo } from "@/utils/notify";
 import {
   Menu, Search, SlidersHorizontal, LifeBuoy, Settings, LogOut, UserRound, Info,
 } from "lucide-react";
@@ -30,7 +30,7 @@ export default function EmailTopBar({
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("userRole");
-    toast.success("Signed out");
+    showSuccess("Signed out");
     navigate("/login");
   };
 
@@ -108,7 +108,7 @@ export default function EmailTopBar({
       {/* Help menu */}
       {menu === "help" && (
         <div role="menu" className="absolute right-2 top-[52px] z-50 w-60 rounded-md border border-[#dadce0] bg-white py-1.5 shadow-[0_2px_10px_2px_rgba(60,64,67,0.2)]">
-          <button className={menuItem()} role="menuitem" onClick={() => { closeMenu(); toast("Help center (demo) — no external links in this build."); }}>
+          <button className={menuItem()} role="menuitem" onClick={() => { closeMenu(); showInfo("Help center (demo) — no external links in this build."); }}>
             Help center
           </button>
           <button
@@ -116,12 +116,12 @@ export default function EmailTopBar({
             role="menuitem"
             onClick={() => {
               closeMenu();
-              toast.success("Shortcuts: ↑/↓ select · Enter open · s star · a select all · r reply · d archive · Esc close");
+              showInfo("Shortcuts: ↑/↓ select · Enter open · s star · a select all · r reply · d archive · Esc close");
             }}
           >
             Keyboard shortcuts
           </button>
-          <button className={menuItem()} role="menuitem" onClick={() => { closeMenu(); toast("Feedback recorded (demo)."); }}>
+          <button className={menuItem()} role="menuitem" onClick={() => { closeMenu(); showInfo("Feedback recorded (demo)."); }}>
             Send feedback
           </button>
         </div>
@@ -215,7 +215,7 @@ export default function EmailTopBar({
           >
             <span className="flex items-center gap-2"><UserRound size={15} aria-hidden="true" /> Manage profile</span>
           </button>
-          <button className={menuItem()} role="menuitem" onClick={() => { closeMenu(); toast("Connected as demo account (mock)."); }}>
+          <button className={menuItem()} role="menuitem" onClick={() => { closeMenu(); showInfo("Connected as demo account (mock)."); }}>
             <span className="flex items-center gap-2"><Info size={15} aria-hidden="true" /> About this demo mailbox</span>
           </button>
           <div className="my-1 border-t border-[#f0f0f0]" />

@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import api from "@/utils/api";
-import toast from "react-hot-toast";
-import Swal from "sweetalert2";
+import { apiError, showSuccess, confirm } from "@/utils/notify";
 import { onSocketEvent } from "@/utils/socket";
-import { getAdminAccent } from "@/utils/color";
+
 import {
   FiSearch,
   FiCheckCircle,
@@ -30,7 +29,7 @@ export default function PendingProductApprovals() {
       setProducts(res.data.products || []);
     } catch (err) {
       console.error("Failed to load pending products:", err);
-      toast.error("Failed to load pending products");
+      apiError(err, "Could not load pending products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -50,14 +49,10 @@ export default function PendingProductApprovals() {
   }, []);
 
   const handleApprove = async (product) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Approve this product?",
-      html: `"${product.name}" from ${product.shopName || "unknown store"} will become public.`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: getAdminAccent(),
-      confirmButtonText: "Yes, approve",
-      cancelButtonText: "Cancel",
+      text: `"${product.name}" from ${product.shopName || "unknown store"} will become public.`,
+      confirmText: "Yes, approve",
     });
     if (!result.isConfirmed) return;
 
@@ -65,25 +60,21 @@ export default function PendingProductApprovals() {
     try {
       await api.put(`/api/products/${product.productId}/approve`);
       setProducts((prev) => prev.filter((p) => p.productId !== product.productId));
-      toast.success("Product approved — now public");
+      showSuccess("Product approved — now public");
     } catch (err) {
       console.error("Approve error:", err);
-      toast.error("Failed to approve product");
+      apiError(err, "Could not approve this product. Please try again.");
     } finally {
       setBusyId(null);
     }
   };
 
   const handleReject = async (product) => {
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Reject this product?",
-      html: `${product.name} will be deleted. This action cannot be undone.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it",
-      cancelButtonText: "Cancel",
+      text: `${product.name} will be deleted. This action cannot be undone.`,
+      confirmText: "Yes, delete it",
+      danger: true,
     });
     if (!result.isConfirmed) return;
 
@@ -91,10 +82,10 @@ export default function PendingProductApprovals() {
     try {
       await api.delete(`/api/products/${product.productId}`);
       setProducts((prev) => prev.filter((p) => p.productId !== product.productId));
-      toast.success("Product rejected and deleted");
+      showSuccess("Product rejected and deleted");
     } catch (err) {
       console.error("Reject error:", err);
-      toast.error("Failed to delete product");
+      apiError(err, "Could not reject this product. Please try again.");
     } finally {
       setBusyId(null);
     }
@@ -102,14 +93,10 @@ export default function PendingProductApprovals() {
 
   const handleBulkApprove = async () => {
     if (selectedProducts.size === 0) return;
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Approve selection?",
-      html: `Approve ${selectedProducts.size} product(s)? They will become public.`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: getAdminAccent(),
-      confirmButtonText: "Yes, approve",
-      cancelButtonText: "Cancel",
+      text: `Approve ${selectedProducts.size} product(s)? They will become public.`,
+      confirmText: "Yes, approve",
     });
     if (!result.isConfirmed) return;
 
@@ -118,10 +105,10 @@ export default function PendingProductApprovals() {
       await api.put("/api/products/bulk/approve", { data: { ids: [...selectedProducts] } });
       setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.productId)));
       setSelectedProducts(new Set());
-      toast.success(`${selectedProducts.size} product(s) approved — now public`);
+      showSuccess(`${selectedProducts.size} product(s) approved — now public`);
     } catch (err) {
       console.error("Bulk approve error:", err);
-      toast.error("Failed to approve products");
+      apiError(err, "Could not approve the selected products. Please try again.");
     } finally {
       setBusyId(null);
     }
@@ -129,15 +116,11 @@ export default function PendingProductApprovals() {
 
   const handleBulkReject = async () => {
     if (selectedProducts.size === 0) return;
-    const result = await Swal.fire({
+    const result = await confirm({
       title: "Reject selection?",
-      html: `${selectedProducts.size} product(s) will be deleted. This cannot be undone.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete them",
-      cancelButtonText: "Cancel",
+      text: `${selectedProducts.size} product(s) will be deleted. This cannot be undone.`,
+      confirmText: "Yes, delete them",
+      danger: true,
     });
     if (!result.isConfirmed) return;
 
@@ -146,10 +129,10 @@ export default function PendingProductApprovals() {
       await api.delete("/api/products/bulk", { data: { ids: [...selectedProducts] } });
       setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.productId)));
       setSelectedProducts(new Set());
-      toast.success(`${selectedProducts.size} product(s) rejected and deleted`);
+      showSuccess(`${selectedProducts.size} product(s) rejected and deleted`);
     } catch (err) {
       console.error("Bulk reject error:", err);
-      toast.error("Failed to delete products");
+      apiError(err, "Could not reject the selected products. Please try again.");
     } finally {
       setBusyId(null);
     }
