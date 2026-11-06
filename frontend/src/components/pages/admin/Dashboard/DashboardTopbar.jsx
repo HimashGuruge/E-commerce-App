@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { RxHamburgerMenu, RxExit } from "react-icons/rx";
-import { FiSearch, FiPlus, FiX } from "react-icons/fi";
+import { FiSearch, FiX } from "react-icons/fi";
 import {
   MdOutlineGridView,
   MdAddBox,
@@ -16,9 +16,13 @@ import { TbUserShield } from "react-icons/tb";
 import { FiMessageSquare, FiHelpCircle } from "react-icons/fi";
 const PAGE_TITLES = {
   "adminviewproducts": "Products",
+  "pendingproducts": "Pending Approvals",
   "addproducts": "Add Product",
   "editproducts": "Edit Product",
   "orders": "Orders",
+  "coupons": "Coupons",
+  "payouts": "Payouts",
+  "returns": "Returns",
   "notification": "Customer Support",
   "home-marketing": "Home & Marketing",
   "user-privileges": "Users",
@@ -44,7 +48,7 @@ const DASHBOARD_ROUTES = [
 export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
   const navigate = useNavigate();
   const currentPage = window.location.pathname.split("/").pop() || "dashboard";
-  const pageTitle = PAGE_TITLES[currentPage] || currentPage.charAt(0).toUpperCase() + currentPage.slice(1).replace(/-/g, " ");
+  const pageTitle = PAGE_TITLES[currentPage] || currentPage.replace(/-/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -93,9 +97,9 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
   };
 
   const renderDropdown = () => (
-    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 z-50 max-h-80 overflow-y-auto">
+    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg shadow-slate-900/10 z-50 max-h-80 overflow-y-auto">
       {filteredRoutes.length === 0 ? (
-        <div className="px-4 py-3 text-sm text-slate-400 text-center">No pages match "{searchQuery}"</div>
+        <div className="px-3 py-2.5 text-[13px] text-slate-400 text-center">No pages match "{searchQuery}"</div>
       ) : (
         filteredRoutes.map((r) => {
           const IconComp = r.icon;
@@ -104,12 +108,12 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
               key={r.path}
               type="button"
               onClick={() => handleNavigate(r.path)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 text-left transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0 text-left transition-colors"
             >
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                <IconComp size={16} className="text-slate-600" />
+              <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <IconComp size={14} className="text-slate-600" />
               </div>
-              <span className="text-sm font-medium text-slate-900">{r.label}</span>
+              <span className="text-[13px] font-medium text-slate-900">{r.label}</span>
             </button>
           );
         })
@@ -145,7 +149,7 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
       {showMobileSearch && (
         <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-2 relative" ref={searchRef}>
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               ref={mobileSearchRef}
               type="text"
@@ -153,10 +157,10 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => filteredRoutes.length > 0 && setShowDropdown(true)}
-              className="w-full pl-10 pr-10 py-2 bg-slate-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="w-full pl-9 pr-9 py-1.5 bg-white border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-500/15 focus:border-brand-300"
             />
             <button type="button" onClick={() => { setShowMobileSearch(false); setSearchQuery(""); setShowDropdown(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <FiX size={18} />
+              <FiX size={16} />
             </button>
           </div>
           {showDropdown && renderDropdown()}
@@ -165,42 +169,44 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
 
       {/* Desktop Header */}
       <div className="hidden lg:flex sticky top-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 items-center justify-end z-40">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Search */}
-          <div className="relative" ref={searchRef}>
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <div className="relative flex items-center gap-1.5" ref={searchRef}>
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
             <input
               type="text"
               placeholder="Search pages..."
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => filteredRoutes.length > 0 && setShowDropdown(true)}
-              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-300 w-64 transition-shadow"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchQuery.length >= 1) setShowDropdown(true);
+              }}
+              className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-500/15 focus:border-brand-300 w-64 transition-colors"
             />
+            <button
+              type="button"
+              onClick={() => searchQuery.length >= 1 && setShowDropdown(true)}
+              className="p-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 hover:shadow-sm hover:shadow-brand-500/25 transition-all active:scale-95"
+              title="Search"
+            >
+              <FiSearch size={16} />
+            </button>
             {showDropdown && renderDropdown()}
           </div>
 
-          {/* Add Button */}
-          <NavLink
-            to="/admin/dashboard/addproducts"
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-500 text-white rounded-xl hover:bg-brand-600 hover:shadow-md hover:shadow-brand-500/30 transition-all active:scale-95"
-          >
-            <FiPlus size={18} />
-            <span className="text-sm font-medium">Add Product</span>
-          </NavLink>
-
           {/* User */}
-          <div className="flex items-center gap-2.5 pl-4 border-l border-slate-200">
+          <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
             {user?.profileImage ? (
-              <img src={user.profileImage} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" referrerPolicy="no-referrer" />
+              <img src={user.profileImage} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white font-bold text-xs">
                 {user?.name?.charAt(0) || "A"}
               </div>
             )}
             <div className="hidden xl:block">
-              <p className="text-sm font-semibold text-slate-900 leading-tight">{user?.name || "Admin"}</p>
-              <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wider">Administrator</p>
+              <p className="text-[13px] font-semibold text-slate-900 leading-tight">{user?.name || "Admin"}</p>
+              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.12em]">Administrator</p>
             </div>
           </div>
 
@@ -213,11 +219,11 @@ export default function DashboardTopbar({ user, mobileOpen, toggleMobile }) {
               window.dispatchEvent(new Event("authChange"));
               navigate("/login");
             }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-red-50/70 text-red-600 border border-red-100 hover:bg-red-100 transition-all duration-200 active:scale-95"
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-red-50/70 text-red-600 border border-red-100 hover:bg-red-100 transition-all duration-200 active:scale-95"
             title="Logout"
           >
             <RxExit size={16} className="text-red-500" />
-            <span className="hidden xl:inline text-sm font-medium">Logout</span>
+            <span className="hidden xl:inline text-[13px] font-medium">Logout</span>
           </button>
         </div>
       </div>
