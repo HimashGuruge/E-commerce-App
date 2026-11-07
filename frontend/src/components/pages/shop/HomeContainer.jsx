@@ -50,31 +50,31 @@ const CategoryGrid = ({ categories }) => {
   if (!categories || categories.length === 0) return null;
 
   return (
-    <section className="bg-white py-6 md:py-8 border-b border-slate-100">
+    <section className="bg-white py-3 md:py-4 border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center gap-2 mb-4 md:mb-6">
-          <Sparkles className="text-brand-500" size={18} />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+        <div className="flex items-center gap-2 mb-2 md:mb-3">
+          <Sparkles className="text-brand-500" size={16} />
+          <h2 className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-900">
             Shop by Category
           </h2>
         </div>
-        <div className="flex flex-row flex-nowrap gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x">
+        <div className="flex flex-row flex-nowrap gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
           {categories.map((cat) => (
             <Link
               key={cat._id || cat.id}
               to={`/shop/category/${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, "-")}`}
-              className="flex-shrink-0 snap-start group w-24 md:w-[5.5rem]"
+              className="flex-shrink-0 snap-start group w-16 md:w-20"
             >
-                <div className="w-24 h-24 md:w-[5.5rem] md:h-[5.5rem] rounded-2xl bg-slate-50 flex items-center justify-center p-1 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 border border-slate-100 group-hover:border-brand-200">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-slate-50 flex items-center justify-center p-0.5 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 border border-slate-100 group-hover:border-brand-200">
                 <img
                   src={cat.image || "https://img.lazcdn.com/static/lk/p/default-category.jpg"}
                   alt={cat.name}
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded-lg"
                   loading="lazy"
                 />
               </div>
-              <div className="text-center mt-2 px-1">
-                <span className="text-sm md:text-base font-semibold text-slate-700 group-hover:text-brand-600 transition-colors truncate block w-full">
+              <div className="text-center mt-1 px-1">
+                <span className="text-xs md:text-xs font-semibold text-slate-700 group-hover:text-brand-600 transition-colors truncate block w-full">
                   {cat.name}
                 </span>
               </div>
