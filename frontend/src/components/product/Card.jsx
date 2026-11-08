@@ -95,15 +95,15 @@ export default function Card({ productId, productName, price, sellingPrice, imag
       <button
         onClick={handleWishlistClick}
         disabled={wishlistLoading}
-        className={`absolute top-2 right-2 z-10 p-1.5 rounded-full transition-all ${
+        className={`absolute top-1.5 right-1.5 z-10 p-1 rounded-full transition-all ${
           isWishlisted
             ? "bg-red-500 text-white shadow-md"
             : "bg-white/90 text-gray-400 hover:text-red-500"
         }`}
       >
-        <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
+        <Heart size={14} fill={isWishlisted ? "currentColor" : "none"} />
       </button>
-      <div className="relative w-full pb-[100%] overflow-hidden bg-slate-100">
+      <div className="relative w-full pb-[85%] overflow-hidden bg-slate-100">
         {firstImageUrl ? (
           <img
             src={firstImageUrl}
@@ -140,13 +140,13 @@ export default function Card({ productId, productName, price, sellingPrice, imag
         )}
       </div>
 
-      <div className="pt-2 pb-3 px-2">
-        <h3 className="overflow-hidden text-ellipsis text-sm font-medium text-slate-800 h-[36px] leading-[18px] line-clamp-2">
+      <div className="pt-1.5 pb-2 px-2">
+        <h3 className="overflow-hidden text-ellipsis text-sm font-medium text-slate-800 h-[18px] leading-[18px] line-clamp-1">
           {productName}
         </h3>
 
         <div className="flex items-center gap-1 mt-1">
-          <span className="text-brand-500 font-bold text-base">
+          <span className="text-brand-500 font-bold text-sm">
             Rs. {formatPrice(nowPriceNum || oldPriceNum)}
           </span>
           {isSale && oldPriceNum > 0 && (
@@ -157,7 +157,7 @@ export default function Card({ productId, productName, price, sellingPrice, imag
         </div>
 
         {rating > 0 && (
-          <div className="flex items-center mt-2">
+          <div className="flex items-center mt-1">
             <div className="inline-flex gap-px">
               {[1, 2, 3, 4, 5].map((star) => (
                 <span

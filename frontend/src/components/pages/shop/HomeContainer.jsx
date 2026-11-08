@@ -552,7 +552,7 @@ export default function HomeContainer() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-lg border border-slate-100 overflow-hidden animate-pulse">
-                  <div className="relative w-full pb-[100%] bg-slate-100" />
+                  <div className="relative w-full pb-[85%] bg-slate-100" />
                   <div className="pt-2 pb-3 px-2">
                     <div className="h-4 bg-slate-100 rounded mb-1.5" />
                     <div className="h-4 bg-slate-100 rounded w-2/3 mb-2" />
@@ -857,7 +857,7 @@ export default function HomeContainer() {
                   })()}
 
                   {/* Products Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
                     {filteredProducts.map((product, index) => (
                         <ProductCard
                           key={product.productId || product._id || index}
