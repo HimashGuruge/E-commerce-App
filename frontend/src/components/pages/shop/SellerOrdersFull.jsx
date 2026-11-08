@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "@/utils/api";
+import { onSocketEvent } from "@/utils/socket";
 import {
   FiRefreshCw,
   FiPackage,
@@ -38,6 +39,14 @@ const STATUS_OPTIONS = [
   "cancelled",
   "failed",
 ];
+
+// Matches the seller endpoint's allowed transitions (PUT /api/sellers/orders/:id/status).
+// Sellers can only move an order forward one step at a time.
+const SELLER_ALLOWED = {
+  pending: ["processing"],
+  processing: ["shipped"],
+  shipped: ["delivered"],
+};
 
 const API_BASE_URL = "";
 
@@ -99,13 +108,29 @@ export default function SellerOrdersFull() {
 
   useEffect(() => {
     loadAllOrders();
+    // A buyer placing a new order emits seller:new-order to this seller's room.
+    // Re-fetch the list silently (no spinner) so the page updates live.
+    const unsub = onSocketEvent(["seller:new-order"], () => loadAllOrders(true));
+    return unsub;
   }, []);
 
-  const loadAllOrders = async () => {
-    setLoading(true);
+  const loadAllOrders = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await api.get("/api/orders/userplace/orders");
-      setOrders(res.data.orders);
+      // Seller-scoped: only orders that include this seller's products.
+      // The endpoint is paginated (max 50 per page), so collect every page.
+      let page = 1;
+      let all = [];
+      while (true) {
+        const res = await api.get("/api/sellers/orders", {
+          params: { page, limit: 50 },
+        });
+        const body = res.data;
+        all = all.concat(body.orders || []);
+        if (page >= body.totalPages) break;
+        page += 1;
+      }
+      setOrders(all);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
     } finally {
@@ -114,6 +139,14 @@ export default function SellerOrdersFull() {
   };
 
   const handleStatusUpdate = async (orderId, status, trackingNumber) => {
+    // Sellers can only move an order forward one step (pending → processing →
+    // shipped → delivered). Anything else is rejected by the endpoint.
+    const current = orders.find((o) => o._id === orderId)?.orderStatus;
+    const allowed = SELLER_ALLOWED[current];
+    if (!allowed || !allowed.includes(status)) {
+      showWarning(`This order is ${current}. It can only be moved to ${allowed ? capitalize(allowed[0]) : "nothing"}.`);
+      return;
+    }
     setUpdatingId(orderId);
     // Show the new status (and its color) immediately, before the API answer
     setOrders((prev) =>
@@ -128,7 +161,7 @@ export default function SellerOrdersFull() {
       )
     );
     try {
-      await api.put(`/api/orders/admin/update-order-status/${orderId}`, {
+      await api.put(`/api/sellers/orders/${orderId}/status`, {
         status,
         trackingNumber,
       });
@@ -141,7 +174,9 @@ export default function SellerOrdersFull() {
         setEditingOrderId((prev) => (prev === orderId ? null : prev));
       }
       showSuccess(`Order marked as ${status}`);
-      loadAllOrders();
+      // Re-sync in the background. Silent = no full-page spinner, so the
+      // list updates in place instead of flashing to a loader.
+      loadAllOrders(true);
     } catch (err) {
       console.error("Update error:", err);
       apiError(err, "Could not update this order. Please try again.");
