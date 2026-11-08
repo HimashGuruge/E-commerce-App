@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Filter, Search, X, ChevronDown, ChevronUp, Star, Package, Truck, Clock, TrendingUp, TrendingDown, CircleCheck, SlidersHorizontal } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Filter, Search, X, ChevronDown, ChevronUp, Star, Package, Truck, Clock, TrendingUp, TrendingDown, SlidersHorizontal } from "lucide-react";
 import usePublicSettings from "@/hooks/usePublicSettings";
 
 const SORT_OPTIONS = [
-  { value: "newest", label: "Newest First", Icon: Clock },
-  { value: "price-low", label: "Price: Low to High", Icon: TrendingUp },
-  { value: "price-high", label: "Price: High to Low", Icon: TrendingDown },
-  { value: "rating", label: "Top Rated", Icon: Star },
+  { value: "newest", label: "Newest First", short: "Newest", Icon: Clock },
+  { value: "price-low", label: "Price: Low to High", short: "Price ↑", Icon: TrendingUp },
+  { value: "price-high", label: "Price: High to Low", short: "Price ↓", Icon: TrendingDown },
+  { value: "rating", label: "Top Rated", short: "Top Rated", Icon: Star },
 ];
 
 const RATINGS = [5, 4, 3, 2, 1];
@@ -34,6 +34,26 @@ const LeftSideFilter = ({
 
   const [localPrice, setLocalPrice] = useState({ min: "", max: "" });
   const [categorySearch, setCategorySearch] = useState("");
+
+  // Roving tabindex + keyboard navigation for the Sort By radiogroup.
+  const sortBtnRefs = useRef([]);
+  const focusSortOption = (value) => {
+    const idx = SORT_OPTIONS.findIndex((o) => o.value === value);
+    sortBtnRefs.current[idx]?.focus();
+  };
+  const handleSortKeyDown = (e) => {
+    const idx = SORT_OPTIONS.findIndex((o) => o.value === filters.sortBy);
+    let target = null;
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") target = (idx + 1) % SORT_OPTIONS.length;
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") target = (idx - 1 + SORT_OPTIONS.length) % SORT_OPTIONS.length;
+    else if (e.key === "Home") target = 0;
+    else if (e.key === "End") target = SORT_OPTIONS.length - 1;
+    if (target !== null) {
+      e.preventDefault();
+      setFilters((prev) => ({ ...prev, sortBy: SORT_OPTIONS[target].value }));
+      sortBtnRefs.current[target]?.focus();
+    }
+  };
 
   useEffect(() => {
     setLocalPrice({
@@ -154,38 +174,28 @@ const LeftSideFilter = ({
               : <ChevronDown size={18} className="text-slate-400" />}
           </button>
           {expandedSections.sort && (
-            <div className="space-y-2">
-              {SORT_OPTIONS.map(({ value, label, Icon }) => {
+            <div role="radiogroup" aria-label="Sort products" className="grid grid-cols-2 gap-1.5">
+              {SORT_OPTIONS.map(({ value, short, Icon }, idx) => {
                 const active = filters.sortBy === value;
-                const iconColor = active
-                  ? "text-brand-600 dark:text-brand-300"
-                  : label === "Top Rated"
-                    ? "text-amber-500"
-                    : "text-slate-500 dark:text-slate-400";
                 return (
                   <button
                     key={value}
+                    ref={(el) => { sortBtnRefs.current[idx] = el; }}
                     type="button"
+                    role="radio"
+                    aria-checked={active}
+                    tabIndex={active ? 0 : -1}
+                    onKeyDown={handleSortKeyDown}
                     onClick={() => setFilters((prev) => (prev.sortBy === value ? prev : { ...prev, sortBy: value }))}
-                    aria-pressed={active}
                     style={active ? activeOptionStyle : idleOptionStyle}
-                    className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-3 text-left transition-all duration-200 ${
+                    className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 active:scale-[0.97] ${
                       active
-                        ? "border-brand-200 bg-brand-50 hover:border-brand-300 hover:shadow-sm dark:border-brand-800 dark:bg-brand-900/40"
-                        : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/70"
+                        ? "bg-brand-500 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <span className="flex items-center gap-3">
-                      <span className={iconColor}>
-                        <Icon size={18} />
-                      </span>
-                      <span className={`text-sm ${active ? "font-semibold text-brand-800 dark:text-brand-300" : "font-medium text-slate-600 dark:text-slate-300"}`}>
-                        {label}
-                      </span>
-                    </span>
-                    {active && (
-                      <CircleCheck size={19} className="text-brand-600 dark:text-brand-300" />
-                    )}
+                    <Icon size={15} className={active ? "text-white" : "text-slate-500 dark:text-slate-400"} />
+                    <span>{short}</span>
                   </button>
                 );
               })}
