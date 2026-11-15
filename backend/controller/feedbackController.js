@@ -207,16 +207,19 @@ export const approveReturn = asyncHandler(async (req, res) => {
     throw new Error("Return request not found");
   }
 
-  // Notify user
+  // Notify user (admin -> customer): recipient = customer, senderType "admin"
+  // so it counts toward the customer's unread badge; adminRead true so it does
+  // not clutter the admin's own badge (this is the admin's own action).
   try {
     const messageText = `Your return request #${returnRequest._id} has been approved`;
     await Message.create({
       sender: req.user._id,
+      recipient: returnRequest.user,
       message: messageText,
-      senderType: "user",
-      isAdmin: false,
-      adminRead: false,
-      userRead: true,
+      senderType: "admin",
+      isAdmin: true,
+      adminRead: true,
+      userRead: false,
     });
   } catch (err) {
     console.error("Failed to notify user of approval:", err);
@@ -254,16 +257,19 @@ export const rejectReturn = asyncHandler(async (req, res) => {
     throw new Error("Return request not found");
   }
 
-  // Notify user
+  // Notify user (admin -> customer): recipient = customer, senderType "admin"
+  // so it counts toward the customer's unread badge; adminRead true so it does
+  // not clutter the admin's own badge (this is the admin's own action).
   try {
     const messageText = `Your return request #${returnRequest._id} has been rejected: ${rejectionReason}`;
     await Message.create({
       sender: req.user._id,
+      recipient: returnRequest.user,
       message: messageText,
-      senderType: "user",
-      isAdmin: false,
-      adminRead: false,
-      userRead: true,
+      senderType: "admin",
+      isAdmin: true,
+      adminRead: true,
+      userRead: false,
     });
   } catch (err) {
     console.error("Failed to notify user of rejection:", err);
