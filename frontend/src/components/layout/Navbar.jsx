@@ -314,7 +314,7 @@ export default function Navbar() {
   return (
     <>
       {/* Top Bar - Daraz Style - Hidden on mobile, visible desktop */}
-      <div className="fixed top-0 left-0 w-full z-[60] text-xs h-[40px] hidden lg:block" style={{ backgroundColor: 'var(--topbar-bg)', color: 'var(--topbar-text)' }}>
+      <div className="fixed top-0 left-0 w-full z-[60] text-xs h-12 hidden lg:block" style={{ backgroundColor: 'var(--topbar-bg)', color: 'var(--topbar-text)' }}>
         <div className="max-w-[1400px] mx-auto px-6 flex justify-end items-center h-full gap-4">
           {isSeller ? (
             <Link to="/seller/dashboard" className="px-4 py-2 navbar-text-base hover:text-brand-600 transition-colors font-semibold">
@@ -413,7 +413,7 @@ export default function Navbar() {
 
       {/* Main Navbar with Search */}
       <nav
-        className="fixed top-0 lg:top-[40px] left-0 w-full z-50 backdrop-blur-md py-2"
+        className="fixed top-0 lg:top-12 left-0 w-full z-50 backdrop-blur-md py-2"
         style={{ backgroundColor: 'var(--navbar-bg)', height: 'var(--navbar-height, 60px)', paddingTop: 'var(--navbar-pad, 8px)', paddingBottom: 'var(--navbar-pad, 8px)' }}
       >
         <div className="max-w-[1400px] mx-auto px-2 lg:px-6 flex items-center gap-2 lg:gap-6 h-full">
