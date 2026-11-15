@@ -442,26 +442,34 @@ export default function Navbar() {
           {/* Search Bar - Daraz Style with Autocomplete */}
           <form onSubmit={handleSearch} className="flex-1 max-w-xl lg:max-w-2xl">
             <div className="relative">
-              <div className="flex">
+              <div
+                className="flex items-center rounded-full border transition-shadow focus-within:shadow-md"
+                style={{ backgroundColor: 'var(--navbar-search-bg, #ffffff)', borderColor: 'var(--navbar-search-border, #e2e8f0)' }}
+              >
                 <div className="flex-1 relative">
+                  <Search
+                    size={16}
+                    className="absolute left-4 lg:left-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40"
+                    style={{ color: 'var(--navbar-search-text, #0f172a)' }}
+                  />
                   <input
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
                     placeholder="Search"
-                    className="w-full text-xs lg:text-sm px-2 lg:px-5 py-1 lg:py-3 border rounded-l-lg focus:outline-none focus:border-brand-500 placeholder:text-slate-400"
-                    style={{ backgroundColor: 'var(--navbar-search-bg, #ffffff)', borderColor: 'var(--navbar-search-border, #e2e8f0)', color: 'var(--navbar-search-text, #0f172a)' }}
+                    className="w-full text-xs lg:text-sm pl-10 lg:pl-12 py-1.5 lg:py-3 bg-transparent outline-none placeholder:opacity-60"
+                    style={{ color: 'var(--navbar-search-text, #0f172a)' }}
                   />
                 </div>
-                  <button
-                    type="submit"
-                    className="px-3 lg:px-6 py-1 lg:py-3 font-semibold text-xs lg:text-sm rounded-r-lg hover:opacity-90 transition-colors"
-                    style={{ backgroundColor: 'var(--navbar-search-btn, var(--color-brand-500))', color: 'var(--navbar-search-btn-text, #ffffff)' }}
-                  >
-                    <span className="hidden lg:inline">SEARCH</span>
-                    <span className="lg:hidden"><Search size={15} style={{ fill: 'var(--navbar-search-btn-text, #ffffff)' }} /></span>
-                  </button>
+                <button
+                  type="submit"
+                  className="px-3 lg:px-6 py-1.5 lg:py-3 font-semibold text-xs lg:text-sm rounded-full hover:opacity-90 active:scale-95 transition"
+                  style={{ backgroundColor: 'var(--navbar-search-btn, var(--color-brand-500))', color: 'var(--navbar-search-btn-text, #ffffff)' }}
+                >
+                  <span className="hidden lg:inline">SEARCH</span>
+                  <span className="lg:hidden"><Search size={15} style={{ fill: 'var(--navbar-search-btn-text, #ffffff)' }} /></span>
+                </button>
               </div>
               
               {/* Suggestions Dropdown */}
