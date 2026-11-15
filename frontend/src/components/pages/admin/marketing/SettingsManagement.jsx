@@ -663,11 +663,11 @@ export default function SettingsManagement() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-3 md:p-4 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Site Settings</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage your brand identity and site-wide configuration</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Site Settings</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Manage your brand identity and site-wide configuration</p>
         </div>
         <button
           type="button"
@@ -679,13 +679,13 @@ export default function SettingsManagement() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
 
         {/* Brand Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiHash className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiHash className="w-4 h-4 text-brand-500" />
               Brand Identity
             </h2>
             <button
@@ -701,7 +701,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Brand Name</label>
               <input
@@ -729,7 +729,7 @@ export default function SettingsManagement() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Logo Image</label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {form.logo ? (
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                     <img src={form.logo} alt="Logo" className="w-full h-full object-contain p-1" />
@@ -780,7 +780,7 @@ export default function SettingsManagement() {
           </div>
 
           {/* Live Preview */}
-          <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Preview</p>
             <div className="flex items-center gap-3">
               <div
@@ -809,10 +809,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Navbar Colors */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiHash className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiHash className="w-4 h-4 text-brand-500" />
               Navbar
             </h2>
             <button
@@ -828,11 +828,11 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Customize the main navigation bar and top promo bar colors.
           </p>
 
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -845,7 +845,7 @@ export default function SettingsManagement() {
             <span className="text-sm font-medium text-slate-700">Show "Become a Seller" link in top bar (for logged-out visitors)</span>
           </div>
           {form.navbar?.sellerLinkEnabled !== false && (
-            <div className="mb-4">
+            <div className="mb-3">
               <HexField
                 label="Become a Seller Link Color"
                 value={form.navbar.sellerLinkColor}
@@ -855,7 +855,7 @@ export default function SettingsManagement() {
               />
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Navbar Background</label>
               <div className="flex items-center gap-3">
@@ -911,7 +911,7 @@ export default function SettingsManagement() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Top Bar Background</label>
               <div className="flex items-center gap-3">
@@ -952,7 +952,7 @@ export default function SettingsManagement() {
 
           {/* Sizes */}
           <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Sizes</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <NumField label="Nav Height (desktop)" value={form.navbar.height} onSet={(v) => setNavbarField("height", v)} min={40} max={120} />
             <NumField label="Logo Size" value={form.navbar.logoSize} onSet={(v) => setNavbarField("logoSize", v)} min={20} max={96} />
             <NumField label="Brand Text Size" value={form.navbar.brandTextSize} onSet={(v) => setNavbarField("brandTextSize", v)} min={12} max={36} />
@@ -960,7 +960,7 @@ export default function SettingsManagement() {
 
           {/* Logo */}
           <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Logo (Letter Mode)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <NumField label="Logo Letter Size" value={form.navbar.letterSize} onSet={(v) => setNavbarField("letterSize", v)} min={8} max={72} />
             <HexField label="Logo Letter Color" value={form.navbar.letterColor} onSet={(v) => setNavbarField("letterColor", v)} placeholder="#ffffff" />
             <HexField label="Logo Box Background" value={form.navbar.logoBg} onSet={(v) => setNavbarField("logoBg", v)} placeholder="#f97316" />
@@ -968,7 +968,7 @@ export default function SettingsManagement() {
 
           {/* Brand + Search */}
           <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Brand &amp; Search</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <HexField label="Brand Text Color" value={form.navbar.brandTextColor} onSet={(v) => setNavbarField("brandTextColor", v)} placeholder="#F85606" fallbackHint="brand color" />
             <HexField label="Search Input Background" value={form.navbar.searchBg} onSet={(v) => setNavbarField("searchBg", v)} placeholder="#ffffff" />
             <HexField label="Search Input Border" value={form.navbar.searchBorder} onSet={(v) => setNavbarField("searchBorder", v)} placeholder="#e2e8f0" />
@@ -979,7 +979,7 @@ export default function SettingsManagement() {
 
           {/* Cart + Auth Buttons */}
           <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 mt-6">Cart &amp; Auth Buttons</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <HexField label="Cart Icon Color" value={form.navbar.cartColor} onSet={(v) => setNavbarField("cartColor", v)} placeholder="#475569" fallbackHint="navbar text" />
             <HexField label="Login Link Color" value={form.navbar.loginColor} onSet={(v) => setNavbarField("loginColor", v)} placeholder="#475569" fallbackHint="navbar text" />
             <HexField label="Sign Up Button Background" value={form.navbar.signupBtnBg} onSet={(v) => setNavbarField("signupBtnBg", v)} placeholder="#d94804" fallbackHint="brand dark" />
@@ -987,10 +987,10 @@ export default function SettingsManagement() {
           </div>
 
           {/* Navbar Live Preview */}
-          <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Live Preview (desktop)</p>
             <div className="rounded-lg overflow-hidden border bg-white" style={{ borderColor: form.navbarBorder }}>
-              <div className="px-4 py-2 text-xs font-medium flex items-center gap-4" style={{ backgroundColor: form.topbarBg, color: form.topbarText }}>
+              <div className="px-4 py-2 text-xs font-medium flex items-center gap-3" style={{ backgroundColor: form.topbarBg, color: form.topbarText }}>
                 <span>📢 Free shipping over Rs. 10,000</span>
                 <span className="ml-auto">Help | Track Order</span>
               </div>
@@ -1042,10 +1042,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Theme Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiDroplet className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiDroplet className="w-4 h-4 text-brand-500" />
               Theme Color
             </h2>
             <button
@@ -1061,7 +1061,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Primary Color</label>
               <div className="flex items-center gap-3">
@@ -1096,7 +1096,7 @@ export default function SettingsManagement() {
             </div>
           </div>
           {/* Color shades preview */}
-          <div className="mt-4">
+          <div className="mt-3">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Generated Shades</p>
             <div className="flex gap-1 h-8 rounded-lg overflow-hidden">
               {[50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((shade) => (
@@ -1113,10 +1113,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Admin Panel Theme */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiSliders className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiSliders className="w-4 h-4 text-brand-500" />
               Admin Panel Theme
             </h2>
             <button
@@ -1132,11 +1132,11 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Give the admin console its own accent color, separate from the store theme.
             Leave this empty to make the admin panel follow the store brand color.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Admin Accent Color</label>
               <div className="flex items-center gap-3">
@@ -1208,10 +1208,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Chat Widget Color */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiMessageCircle className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiMessageCircle className="w-4 h-4 text-brand-500" />
               Chat Widget Color
             </h2>
             <button
@@ -1227,7 +1227,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Widget Color</label>
               <div className="flex items-center gap-3">
@@ -1266,10 +1266,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Font Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiType className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiType className="w-4 h-4 text-brand-500" />
               Typography & Fonts
             </h2>
             <button
@@ -1285,7 +1285,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {FONT_PRESETS.map((preset) => (
                 <button
@@ -1301,7 +1301,7 @@ export default function SettingsManagement() {
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Font Family</label>
                 <input
@@ -1327,7 +1327,7 @@ export default function SettingsManagement() {
                 <p className="text-xs text-slate-400 mt-1">Leave empty for system fonts</p>
               </div>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Preview</p>
               <p className="text-base" style={{ fontFamily: form.fontFamily }}>
                 The quick brown fox jumps over the lazy dog. 1234567890
@@ -1340,10 +1340,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Footer Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiGlobe className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiGlobe className="w-4 h-4 text-brand-500" />
               Footer Settings
             </h2>
             <button
@@ -1366,10 +1366,10 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Content Column */}
-            <div className="md:col-span-2 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
                   <input type="text" name="footerCompanyName" value={form.footerCompanyName} onChange={handleChange} placeholder="BrandName Inc." className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm" />
@@ -1430,7 +1430,7 @@ export default function SettingsManagement() {
             </div>
 
             {/* Style Column */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Background Color</label>
                 <div className="flex items-center gap-2">
@@ -1623,7 +1623,7 @@ export default function SettingsManagement() {
                         <span className="font-medium">{form.footerSupportEmail || "Email"}</span>
                       </li>
                     </ul>
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex gap-2 mt-3">
                       {form.socialEnabled?.facebook && (
                         <span className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ color: form.footerTextColor }}>
                           <Facebook size={16} />
@@ -1649,7 +1649,7 @@ export default function SettingsManagement() {
                 <p className="font-medium" style={{ color: form.footerTextColor }}>
                   &copy; {new Date().getFullYear()} {form.footerCompanyName || "Brand"}
                 </p>
-                <div className="flex items-center gap-4 font-medium" style={{ color: form.footerTextColor }}>
+                <div className="flex items-center gap-3 font-medium" style={{ color: form.footerTextColor }}>
                   <span>Privacy Policy</span>
                   <span>Terms of Service</span>
                   <span>Return Policy</span>
@@ -1660,10 +1660,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Meta Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiType className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiType className="w-4 h-4 text-brand-500" />
               SEO & Meta
             </h2>
             <button
@@ -1679,7 +1679,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Meta Title</label>
               <input
@@ -1709,10 +1709,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Email Configuration */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiMail className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiMail className="w-4 h-4 text-brand-500" />
               Email Configuration
             </h2>
             <button
@@ -1734,7 +1734,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Configure how your site sends emails (order confirmations, login alerts, etc.).
           </p>
 
@@ -1756,7 +1756,7 @@ export default function SettingsManagement() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">From Name</label>
               <input
@@ -1781,7 +1781,7 @@ export default function SettingsManagement() {
 
           {form.emailProvider === "smtp" ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">SMTP Host</label>
                   <input
@@ -1836,7 +1836,7 @@ export default function SettingsManagement() {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Gmail Email</label>
                   <input
@@ -1889,7 +1889,7 @@ export default function SettingsManagement() {
                 <summary className="text-sm font-medium text-brand-600 cursor-pointer hover:text-brand-700 list-none flex items-center gap-1">
                   <span className="text-xs">▼</span> Step-by-step guide
                 </summary>
-                <div className="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-3">
+                <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-3">
                   <div>
                     <p className="font-semibold text-slate-800 mb-1">Step 1: Google Cloud Console</p>
                     <ol className="list-decimal ml-4 space-y-1">
@@ -1930,7 +1930,7 @@ export default function SettingsManagement() {
             </>
           )}
 
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-3">
             <button
               type="button"
               onClick={handleTestEmail}
@@ -1945,10 +1945,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Shipping Configuration */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiTruck className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiTruck className="w-4 h-4 text-brand-500" />
               Shipping Configuration
             </h2>
             <button
@@ -1964,7 +1964,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Configure shipping methods, costs, and delivery estimates shown on the Shipping Info page.
           </p>
 
@@ -2031,10 +2031,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Announcement Bar */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiHash className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiHash className="w-4 h-4 text-brand-500" />
               Announcement Bar
             </h2>
             <button
@@ -2050,10 +2050,10 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Customize the scrolling announcement bar shown on the home page.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Scroll Speed (seconds)</label>
               <input
@@ -2103,7 +2103,7 @@ export default function SettingsManagement() {
               </div>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-3">
             <label className="block text-sm font-medium text-slate-700 mb-1">Bar Font</label>
             <select
               value={form.announcement?.fontFamily || ""}
@@ -2120,7 +2120,7 @@ export default function SettingsManagement() {
             </select>
             <p className="text-xs text-slate-400 mt-1">Font used only for the announcement bar text</p>
           </div>
-          <div className="mt-4 p-4 rounded-xl overflow-hidden" style={{ backgroundColor: form.announcement?.bgColor || "#F85606" }}>
+          <div className="mt-3 p-3 rounded-xl overflow-hidden" style={{ backgroundColor: form.announcement?.bgColor || "#F85606" }}>
             <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: form.announcement?.textColor || "#ffffff", opacity: 0.6 }}>Preview</p>
             <div className="flex items-center gap-6 whitespace-nowrap" style={{ color: form.announcement?.textColor || "#ffffff", fontFamily: form.announcement?.fontFamily || undefined }}>
               <span className="flex items-center gap-2 text-sm font-medium opacity-90">★ New collection out now!</span>
@@ -2131,10 +2131,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Newsletter Banner */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiMail className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiMail className="w-4 h-4 text-brand-500" />
               Newsletter Banner
             </h2>
             <button
@@ -2150,11 +2150,11 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Customize the subscribe newsletter banner shown above the footer.
           </p>
 
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -2167,7 +2167,7 @@ export default function SettingsManagement() {
             <span className="text-sm font-medium text-slate-700">Show Newsletter Banner</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Background Color</label>
               <div className="flex items-center gap-3">
@@ -2224,7 +2224,7 @@ export default function SettingsManagement() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Button Background</label>
               <div className="flex items-center gap-3">
@@ -2263,7 +2263,7 @@ export default function SettingsManagement() {
             </div>
           </div>
 
-          <div className="space-y-4 mb-4">
+          <div className="space-y-3 mb-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Title Text</label>
               <input
@@ -2274,7 +2274,7 @@ export default function SettingsManagement() {
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Input Placeholder</label>
                 <input
@@ -2301,7 +2301,7 @@ export default function SettingsManagement() {
           {form.newsletter?.enabled && (
             <div className="p-4 rounded-xl overflow-hidden border border-slate-200" style={{ backgroundColor: form.newsletter?.bgColor || "#F85606" }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: form.newsletter?.textColor || "#ffffff", opacity: 0.6 }}>Preview</p>
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: form.newsletter?.iconColor || "#ffffff" }}>
                     <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
@@ -2327,10 +2327,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* App Promo (PDP) */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiSmartphone className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiSmartphone className="w-4 h-4 text-brand-500" />
               App Promo (PDP)
             </h2>
             <button
@@ -2346,10 +2346,10 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Configure the QR code / app download promo card on the product detail page.
           </p>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -2396,10 +2396,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Commission Payment (seller_pays mode) */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiDollarSign className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiDollarSign className="w-4 h-4 text-brand-500" />
               Commission Payment (seller_pays)
             </h2>
             <button
@@ -2415,7 +2415,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Free-text instructions shown to sellers who pay their commission separately (seller_pays mode).
             Include bank / IBAN details, payment schedule, and how to submit proof.
           </p>
@@ -2432,10 +2432,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Seller Defaults (PDP) */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiUser className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiUser className="w-4 h-4 text-brand-500" />
               Seller Defaults (PDP)
             </h2>
             <button
@@ -2451,10 +2451,10 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Default seller stats shown on the product detail page (per-seller data will override these when available).
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Seller Rating (%)</label>
               <input
@@ -2491,10 +2491,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Return Policy Configuration */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiRefreshCw className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiRefreshCw className="w-4 h-4 text-brand-500" />
               Return Policy
             </h2>
             <button
@@ -2510,11 +2510,11 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Configure the return policy shown on the Returns & Exchanges page.
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -2653,10 +2653,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Filter Panel (Shop / Home) */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiSliders className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiSliders className="w-4 h-4 text-brand-500" />
               Filter Panel (Shop &amp; Home)
             </h2>
             <button
@@ -2672,10 +2672,10 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Show or hide each filter section in the left-hand panel on the Shop and Home product pages.
           </p>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {FILTER_SECTIONS.map((section) => (
               <div key={section.key} className="flex items-center gap-3">
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -2693,10 +2693,10 @@ export default function SettingsManagement() {
           </div>
 
           {/* Sort By style */}
-          <div className="mt-6 pt-5 border-t border-slate-100 space-y-4">
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
             <p className="text-sm font-semibold text-slate-700">Sort By box style</p>
             <p className="text-xs text-slate-500">Leave a color empty to keep the default look.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <HexField label="Heading color" placeholder="#000000" fallbackHint="default black/white" value={form.filterPanel?.sortBox?.headingColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, headingColor: v } } }))} />
               <HexField label="Option text color" placeholder="#475569" fallbackHint="default grey" value={form.filterPanel?.sortBox?.optionColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, optionColor: v } } }))} />
               <HexField label="Active option bg color" placeholder="#0f172a" fallbackHint="default dark" value={form.filterPanel?.sortBox?.activeBgColor || ""} onSet={(v) => setForm(prev => ({ ...prev, filterPanel: { ...prev.filterPanel, sortBox: { ...prev.filterPanel.sortBox, activeBgColor: v } } }))} />
@@ -2773,10 +2773,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Shop "All Products" Header */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiSliders className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiSliders className="w-4 h-4 text-brand-500" />
               Shop Header ("All Products")
             </h2>
             <button
@@ -2792,10 +2792,10 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Style the header at the top of the Shop / Home product grid. Leave any field empty to keep the default look.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Badge text</label>
               <input
@@ -2843,7 +2843,7 @@ export default function SettingsManagement() {
           {/* Layout & extras: toggles, alignment, badge icon, accent bar, View All button */}
           <div className="mt-5 pt-5 border-t border-slate-100">
             <p className="text-sm font-bold text-slate-800 mb-3">Layout & extras</p>
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3 mb-3">
               <div className="flex items-center gap-3">
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" checked={form.shopHeader?.showBadge !== false} onChange={(e) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, showBadge: e.target.checked } }))} className="sr-only peer" />
@@ -2866,7 +2866,7 @@ export default function SettingsManagement() {
                 <span className="text-sm font-medium text-slate-700">Show "View All" button (links to /shop)</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Header alignment</label>
                 <select
@@ -2898,7 +2898,7 @@ export default function SettingsManagement() {
               <HexField label="Title accent bar color" placeholder="#10b981" fallbackHint="empty = no bar" value={form.shopHeader?.titleAccent || ""} onSet={(v) => setForm(prev => ({ ...prev, shopHeader: { ...prev.shopHeader, titleAccent: v } }))} />
             </div>
             {form.shopHeader?.viewAllEnabled === true && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-4 border-t border-slate-100">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Button text</label>
                   <input
@@ -2989,10 +2989,10 @@ export default function SettingsManagement() {
         </div>
 
         {/* Home Right Sidebar widgets */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FiEye className="w-5 h-5 text-brand-500" />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FiEye className="w-4 h-4 text-brand-500" />
               Home Right Sidebar
             </h2>
             <button
@@ -3008,7 +3008,7 @@ export default function SettingsManagement() {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 mb-3">
             Control the widgets on the right column of the home page: Shop by Category, Trending Now, and Recently Viewed.
           </p>
 
